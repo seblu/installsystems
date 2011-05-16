@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Started 10/05/2011 by Seblu <seblu@seblu.net>
+
+'''
+InstallSystems Image Manipulation Tool
+'''
+
+import os
+import argparse
+import installsystems
+import installsystems.printer as p
+
+class DebugAction(argparse.Action):
+    '''Set installsystems in debug mode. Argparse callback'''
+    def __call__(self, parser, namespace, values, option_string=None):
+        installsystems.debug = True
+        p.debug("Debug on")
+
+
+def init(options):
+    '''Create an empty fresh source image tree'''
+    # Directory must not exists
+    if os.path.exists(options.path) and os.path.isdir(options.path):
+        p.error("Directory already exists: %s" % options.path)
+    # Check if parent path is writable
+    parent_path = os.path.abspath(os.path.join(options.path, "../"))
+    if not os.access(parent_path, os.W_OK):
+        p.error("%s is not writable."%parent_path)
+    # call init from library
+    try:
+        simg = installsystems.image.SourceImage(options.path, create=True)
+    except Exception as e:
+        p.error("init failed: %s." % e)
+
+def build(options):
+    '''Create a package image'''
+    for d in ("", "parser", "setup", "data"):
+        rp = os.path.join(options.path, d)
+        if not os.path.exists(rp):
+            p.error("Missing directory: %s" % rp)
+        if not os.path.isdir(rp):
+            p.error("Not a directory: %s" % rp)
+        if not os.access(rp, os.R_OK|os.X_OK):
+            p.error("Unable to access to %s" % rp)
+    try:
+        simg = installsystems.image.SourceImage(options.path)
+        simg.build()
+    except Exception as e:
+        p.error("build failed: %s." % e)
+
+# Top level argument parsing
+p_main = argparse.ArgumentParser()
+p_main.add_argument("-v", "--version", action="version", version=installsystems.version,
+                    help="show installsystems version")
+p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
+                    help="active debug mode")
+subparsers = p_main.add_subparsers()
+# Init command parser
+p_init = subparsers.add_parser("init", help=init.__doc__)
+p_init.add_argument("path", help="Path of new image directory")
+p_init.set_defaults(func=init)
+# Build command parser
+p_build =  subparsers.add_parser("build", help=build.__doc__)
+p_build.add_argument("path", nargs="?", type=str, default=".")
+p_build.set_defaults(func=build)
+# Parse and run
+args = p_main.parse_args()
+args.func(args)

@@ -11,4 +11,3 @@ version = "1-dev"
 debug = False
 
 import printer
-import image

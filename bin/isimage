@@ -10,6 +10,7 @@ import os
 import argparse
 import installsystems
 import installsystems.printer as p
+import installsystems.image
 
 class DebugAction(argparse.Action):
     '''Set installsystems in debug mode. Argparse callback'''
@@ -29,7 +30,9 @@ def init(options):
         p.error("%s is not writable."%parent_path)
     # call init from library
     try:
-        simg = installsystems.image.SourceImage(options.path, create=True)
+        simg = installsystems.image.SourceImage(options.path,
+                                                verbose=options.verbose,
+                                                create=True)
     except Exception as e:
         p.error("init failed: %s." % e)
 
@@ -55,6 +58,8 @@ p_main.add_argument("-v", "--version", action="version", version=installsystems.
                     help="show installsystems version")
 p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")
+p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
+                    help="active quiet mode")
 subparsers = p_main.add_subparsers()
 # Init command parser
 p_init = subparsers.add_parser("init", help=init.__doc__)

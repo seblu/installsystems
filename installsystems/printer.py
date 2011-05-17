@@ -65,8 +65,12 @@ def debug(message, fd=sys.stderr, endl=os.linesep):
     if installsystems.debug:
         out("#light##black#%s#reset#" % message, fd, endl)
 
-def arrow(message, fd=sys.stdout, endl=os.linesep):
-    out("#light##red#=>#reset# %s" % message)
-
-def arrow2(message, fd=sys.stdout, endl=os.linesep):
-    out(" #light##yellow#=>#reset# %s" % message)
+def arrow(message, level, verbose, fd=sys.stdout, endl=os.linesep):
+    if not verbose:
+        return
+    if level == 1:
+        out("#light##red#=>#reset# %s" % message)
+    elif level == 2:
+        out(" #light##yellow#=>#reset# %s" % message)
+    elif level == 3:
+        out("  #light##purple#=>#reset# %s" % message)

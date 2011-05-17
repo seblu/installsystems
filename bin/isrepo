@@ -1,0 +1,95 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Started 16/05/2011 by Seblu <seblu@seblu.net>
+
+'''
+InstallSystems Repository Manipulation Tool
+'''
+
+import os
+import argparse
+import installsystems
+import installsystems.repository
+import installsystems.printer as p
+
+class DebugAction(argparse.Action):
+    '''Set installsystems in debug mode. Argparse callback'''
+    def __call__(self, parser, namespace, values, option_string=None):
+        installsystems.debug = True
+        p.debug("Debug on")
+
+
+def init(options):
+    '''Create an empty fresh repo tree'''
+    # call init from library
+    try:
+        repo = installsystems.repository.Repository(options.image_path,
+                                                    options.data_path,
+                                                    verbose=options.verbose,
+                                                    create=True)
+    except Exception as e:
+        p.error("init failed: %s." % e)
+
+def add(options):
+    '''Add a package to repository'''
+    try:
+        repo = installsystems.repository.Repository(options.image_path,
+                                                    options.data_path,
+                                                    verbose=options.verbose)
+        pkg = installsystems.image.PackageImage(options.path,
+                                                verbose=options.verbose)
+        pkg.check_md5()
+        repo.add(pkg)
+    except Exception as e:
+        p.error("add failed: %s." % e)
+
+def delete(options):
+    '''Remove a package from repository'''
+    try:
+        repo = installsystems.repository.Repository(options.image_path,
+                                                    options.data_path,
+                                                    verbose=options.verbose)
+        repo.delete(options.image_name, options.image_version)
+    except Exception as e:
+        p.error("del failed: %s." % e)
+
+# Top level argument parsing
+p_main = argparse.ArgumentParser()
+p_main.add_argument("-v", "--version", action="version", version=installsystems.version,
+                    help="show installsystems version")
+p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
+                    help="active debug mode")
+p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
+                    help="active quiet mode")
+p_main.add_argument("-I", "--image-path", dest="image_path", type=str,
+                    help="Image repository path")
+p_main.add_argument("-D", "--data-path", dest="data_path", type=str,
+                    help="Data repository path")
+
+subparsers = p_main.add_subparsers()
+# Init command parser
+p_init = subparsers.add_parser("init", help=init.__doc__)
+p_init.add_argument("image_path", nargs="?", default=argparse.SUPPRESS,
+                    help="Path of the new image directory")
+p_init.add_argument("data_path", nargs="?", default=argparse.SUPPRESS,
+                    help="Path of the new data directory")
+p_init.set_defaults(func=init)
+# Add command parser
+p_add =  subparsers.add_parser("add", help=add.__doc__)
+p_add.add_argument("path", type=str)
+p_add.set_defaults(func=add)
+# Del command parser
+p_del =  subparsers.add_parser("del", help=delete.__doc__)
+p_del.add_argument("image_name", type=str)
+p_del.add_argument("image_version", type=str)
+p_del.set_defaults(func=delete)
+# Parse and run
+args = p_main.parse_args()
+# Check global args
+if args.image_path is None:
+    p_main.print_usage()
+    p.error("image path missing")
+elif args.data_path is None:
+    p_main.print_usage()
+    p.error("data path missing")
+args.func(args)

@@ -14,7 +14,7 @@ parser = """# -*- python -*-
 
 def parser(image):
 \t'''Method called by parser'''
-\t\t pass
+\t pass
 
 # vim:set ts=2 sw=2 noet:
 """

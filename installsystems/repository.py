@@ -11,39 +11,13 @@ import time
 import shutil
 import json
 import installsystems
+import installsystems.tools as istools
 from installsystems.printer import *
 from installsystems.tarball import Tarball
 from installsystems.image import Image, PackageImage
 from installsystems.database import Database
 
-class RepositoryBase(object):
-    '''Base repository class'''
-
-    def complete_path(self, path):
-        '''Format a path to be complete'''
-        if self.path_type(path) in ('http', 'ssh'):
-            return path
-        else:
-            return os.path.abspath(path)
-
-    def path_type(self, path):
-        '''Return path type'''
-        if path.startswith("http://") or path.startswith("https://"):
-            return "http"
-        # elif path.startswith("ssh://"):
-        #     return "ssh"
-        return "file"
-
-    def cp(self, source, destination):
-        '''Copy a source to destination. Take care of path type'''
-        stype = self.path_type(source)
-        dtype = self.path_type(destination)
-        if stype == dtype == "file":
-            shutil.copy(source, destination)
-        elif stype == "file" and dtype == "":
-            pass
-
-class Repository(RepositoryBase):
+class Repository(object):
     '''Repository class'''
 
     last_name = "last"
@@ -136,7 +110,7 @@ class Repository(RepositoryBase):
         return ts
 
 
-class RepositoryCache(RepositoryBase):
+class RepositoryCache(object):
     '''Local repository cache class'''
 
     def __init__(self, cache_path, verbose=True):
@@ -154,8 +128,8 @@ class RepositoryCache(RepositoryBase):
 
     def register(self, name, image, data):
         '''Register a repository to track'''
-        self.repos[name] = Repository(self.complete_path(image),
-                                      self.complete_path(data),
+        self.repos[name] = Repository(istools.complete_path(image),
+                                      istools.complete_pathh(data),
                                       verbose=self.verbose)
 
     def update(self):
@@ -167,9 +141,9 @@ class RepositoryCache(RepositoryBase):
                                                            self.last(r)))
             if self.repos[r].last() > self.last(r):
                 # copy last file
-                self.cp(self.repos[r].last_path, os.path.join(self.last_path, r))
+                istools.cp(self.repos[r].last_path, os.path.join(self.last_path, r))
                 # copy db file
-                self.cp(self.repos[r].db.path, os.path.join(self.db_path, r))
+                istools.cp(self.repos[r].db.path, os.path.join(self.db_path, r))
                 arrow("%s updated" % r, 2, self.verbose)
 
     def last(self, reponame):
@@ -191,7 +165,7 @@ class RepositoryCache(RepositoryBase):
         # get remote image
         remotepath = os.path.join(self.repos[reponame].image_path, filename)
         arrow("Copying from repository", 2, self.verbose)
-        self.cp(remotepath, localpath)
+        istools.cp(remotepath, localpath)
         return localpath
 
     def find_image(self, name, version):

@@ -9,6 +9,7 @@ InstallSystems Installation Tool
 import os
 import argparse
 import installsystems
+import installsystems.tools as istools
 from installsystems.printer import *
 from installsystems.repository import RepositoryCache
 from installsystems.image import PackageImage
@@ -48,8 +49,8 @@ try:
     # Partial parse
     args = p_main.parse_known_args()[0]
     # looks if arguments is a file or image name
-    if os.path.exists(args.image_name):
-        pkg = PackageImage(args.image_name)
+    if istools.get_path_type(args.image_name) == "file":
+        pkg = PackageImage(istools.complete_path(args.image_name))
     else:
         # init repo cache object
         repocache = RepositoryCache(args.cache_path, verbose=args.verbose)

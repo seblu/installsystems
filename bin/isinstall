@@ -22,7 +22,7 @@ class DebugAction(argparse.Action):
 
 # Top level argument parsing
 p_main = argparse.ArgumentParser()
-p_main.add_argument("-v", "--version", action="version", version=installsystems.version,
+p_main.add_argument("-", "--version", action="version", version=installsystems.version,
                     help="show installsystems version")
 p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")
@@ -39,6 +39,8 @@ p_main.add_argument("-V", "--image-version", dest="image_version", type=int, def
                     help="specific image version")
 p_main.add_argument("image_name", type=str,
                     help="image to install")
+p_main.add_argument('-u', "--update", action="store_true", dest="update", default=False,
+                    help="update repository cache")
 
 # program entry point
 try:
@@ -49,8 +51,9 @@ try:
     # register command ligne repo
     if args.image_path is not None:
         repocache.register("cmdline", args.image_path, args.data_path)
-    # update remote info if available
-    repocache.update()
+    # update remote info if -u options is present
+    if args.update:
+        repocache.update()
     # get image package
     pkg = repocache.get(args.image_name, args.image_version)
     # create global dict, used to share and transmit data between scripts

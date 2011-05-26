@@ -11,6 +11,7 @@ import argparse
 import installsystems
 from installsystems.printer import *
 from installsystems.repository import RepositoryCache
+from installsystems.image import PackageImage
 
 class DebugAction(argparse.Action):
     '''Set installsystems in debug mode. Argparse callback'''
@@ -46,27 +47,25 @@ p_main.add_argument("image_name", type=str,
 try:
     # Partial parse
     args = p_main.parse_known_args()[0]
-    # create repo cache object
-    repocache = RepositoryCache(args.cache_path, verbose=args.verbose)
-    # register command ligne repo
-    if args.image_path is not None:
-        repocache.register("cmdline", args.image_path, args.data_path)
-    # update remote info if -u options is present
-    if args.update:
-        repocache.update()
-    # get image package
-    pkg = repocache.get(args.image_name, args.image_version)
-    # create global dict, used to share and transmit data between scripts
-    # and add parser object to allow parser script to extend parser
-    gl = { "parser": p_main }
+    # looks if arguments is a file or image name
+    if os.path.exists(args.image_name):
+        pkg = PackageImage(args.image_name)
+    else:
+        # init repo cache object
+        repocache = RepositoryCache(args.cache_path, verbose=args.verbose)
+        # register command ligne repo
+        if args.image_path is not None:
+            repocache.register("cmdline", args.image_path, args.data_path)
+        # update remote info if -u options is present
+        if args.update:
+            repocache.update()
+        # get image package
+        pkg = repocache.get(args.image_name, args.image_version)
     # run parser scripts
-    pkg.run_parser(gl)
+    pkg.run_parser({ "parser": p_main })
     # call parser again, with extended attributes
     args = p_main.parse_args()
-    # remove parser object from global
-    del gl["parser"]
-    gl["args"] = args
     # run setup scripts
-    pkg.run_setup(gl)
+    pkg.run_setup({"args": args})
 except Exception as e:
     error(e)

@@ -50,7 +50,7 @@ def delete(options):
 
 # Top level argument parsing
 p_main = argparse.ArgumentParser()
-p_main.add_argument("-v", "--version", action="version", version=installsystems.version,
+p_main.add_argument("-V", "--version", action="version", version=installsystems.version,
                     help="show installsystems version")
 p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")

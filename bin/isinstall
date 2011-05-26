@@ -22,7 +22,7 @@ class DebugAction(argparse.Action):
 
 # Top level argument parsing
 p_main = argparse.ArgumentParser()
-p_main.add_argument("-", "--version", action="version", version=installsystems.version,
+p_main.add_argument("-V", "--version", action="version", version=installsystems.version,
                     help="show installsystems version")
 p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")
@@ -35,12 +35,12 @@ p_main.add_argument("-D", "--data-path", dest="data_path", type=str, default=Non
 p_main.add_argument("-C", "--cache-path", dest="cache_path", type=str,
                     default="/var/cache/isinstall",
                     help="local cache repository path")
-p_main.add_argument("-V", "--image-version", dest="image_version", type=int, default=None,
+p_main.add_argument("-v", "--image-version", dest="image_version", type=int, default=None,
                     help="specific image version")
-p_main.add_argument("image_name", type=str,
-                    help="image to install")
 p_main.add_argument('-u', "--update", action="store_true", dest="update", default=False,
                     help="update repository cache")
+p_main.add_argument("image_name", type=str,
+                    help="image to install (path or name)")
 
 # program entry point
 try:

@@ -73,3 +73,5 @@ try:
     pkg.run_setup({"args": args})
 except Exception as e:
     error(e)
+except KeyboardInterrupt:
+    warn("Keyboard Interrupted")

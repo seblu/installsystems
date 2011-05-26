@@ -11,7 +11,6 @@ import stat
 import datetime
 import time
 import json
-import hashlib
 import StringIO
 import ConfigParser
 import subprocess
@@ -19,9 +18,9 @@ import json
 import tarfile
 import re
 import installsystems.template
+import installsystems.tools as istools
 from installsystems.printer import *
 from installsystems.tarball import Tarball
-
 
 class Image(object):
     '''Abstract class of images'''
@@ -185,15 +184,17 @@ class SourceImage(Image):
     def create_data_tarball(self, tar_path, data_path):
         '''Create a data tarball'''
         dname = os.path.basename(data_path)
+        # not derefence for directory. Verbatim copy.
+        ddref = False if os.path.isdir(data_path) else True
         try:
             # opening file
             if self.pbzip2_path:
                 tb = open(tar_path, mode="w")
                 p = subprocess.Popen(self.pbzip2_path, shell=False, close_fds=True,
                                      stdin=subprocess.PIPE, stdout=tb.fileno())
-                tarball = Tarball.open(mode="w|", dereference=True, fileobj=p.stdin)
+                tarball = Tarball.open(mode="w|", dereference=ddref, fileobj=p.stdin)
             else:
-                tarball = Tarball.open(tar_path, "w:bz2", dereference=True)
+                tarball = Tarball.open(tar_path, "w:bz2", dereference=ddref)
             tarball.add(data_path, arcname=dname, recursive=True)
             # closing tarball file
             tarball.close()

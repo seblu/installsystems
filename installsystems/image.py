@@ -51,12 +51,6 @@ class Image(object):
                 return os.path.join(os.path.abspath(d), name)
         return None
 
-    def md5_checksum(self, path):
-        '''Compute md5 of a file'''
-        m = hashlib.md5()
-        m.update(open(path, "r").read())
-        return m.hexdigest()
-
 class SourceImage(Image):
     '''Image source manipulation class'''
 
@@ -239,7 +233,7 @@ class SourceImage(Image):
             arrow("Compute MD5 of %s" % dt, 2, self.verbose)
             path = os.path.join(self.base_path, dt)
             desc["data"][dt] = { "size": os.path.getsize(path),
-                                 "md5": self.md5_checksum(path) }
+                                 "md5": istools.md5sum(path) }
         # create file
         filedesc = StringIO.StringIO()
         # serialize
@@ -294,7 +288,7 @@ class PackageImage(Image):
         for databall in databalls:
             arrow(databall, 2, self.verbose)
             md5_meta = databalls[databall]["md5"]
-            md5_file = self.md5_checksum(os.path.join(self.base_path, databall))
+            md5_file = istools.md5sum(os.path.join(self.base_path, databall))
             if md5_meta != md5_file:
                 raise Exception("Invalid md5: %s" % databall)
 

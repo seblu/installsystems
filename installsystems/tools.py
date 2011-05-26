@@ -9,6 +9,12 @@ InstallSystems Generic Tools Library
 import os
 from installsystems.image import Image
 
+def md5sum(self, path):
+    '''Compute md5 of a file'''
+    m = hashlib.md5()
+    m.update(open(path, "r").read())
+    return m.hexdigest()
+
 def cp(self, source, destination):
     '''Copy a source to destination. Take care of path type'''
     stype = path_type(source)

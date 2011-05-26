@@ -8,6 +8,8 @@ InstallSystems Installation Tool
 
 import os
 import argparse
+import time
+import datetime
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -30,17 +32,15 @@ p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")
 p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
                     help="active quiet mode")
-p_main.add_argument("-I", "--image-path", dest="image_path", type=str, default=None,
+p_main.add_argument("-I", "--image-repo", dest="image_path", type=str, default=None,
                     help="remote image repository path")
-p_main.add_argument("-D", "--data-path", dest="data_path", type=str, default=None,
+p_main.add_argument("-D", "--data-repo", dest="data_path", type=str, default=None,
                     help="remote data repository path")
 p_main.add_argument("-C", "--cache-path", dest="cache_path", type=str,
                     default="/var/cache/isinstall",
                     help="local cache repository path")
 p_main.add_argument("-v", "--image-version", dest="image_version", type=int, default=None,
                     help="specific image version")
-p_main.add_argument('-u', "--update", action="store_true", dest="update", default=False,
-                    help="update repository cache")
 p_main.add_argument("image_name", type=str,
                     help="image to install (path or name)")
 
@@ -58,19 +58,25 @@ try:
         # register command ligne repo
         if args.image_path is not None:
             repocache.register("cmdline", args.image_path, args.data_path)
-        # update remote info if -u options is present
-        if args.update:
-            repocache.update()
+        # update remote info
+        repocache.update()
         # get image package
         pkg = repocache.get(args.image_name, args.image_version)
     else:
-        raise Exception("Invalid image name")
+        p_main.print_usage()
+        exit(1)
+    # install start time
+    t0 = time.time()
     # run parser scripts
     pkg.run_parser({ "parser": p_main })
     # call parser again, with extended attributes
     args = p_main.parse_args()
     # run setup scripts
     pkg.run_setup({"args": args})
+    # compute building time
+    t1 = time.time()
+    dt = int(t1 - t0)
+    arrow("Install time: %s" % datetime.timedelta(seconds=dt), 1, args.verbose)
 except Exception as e:
     error(e)
 except KeyboardInterrupt:

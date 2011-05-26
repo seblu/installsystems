@@ -26,6 +26,7 @@ def cp(source, destination):
 
 def get_path_type(path):
     '''Return path type. This is usefull to know what king of path is given'''
+    from installsystems.image import Image
     if path.startswith("http://") or path.startswith("https://"):
         return "http"
     elif path.startswith("ssh://"):
@@ -47,9 +48,3 @@ def complete_path(path):
         return os.path.abspath(path)
     else:
         return None
-
-def path_strip_file(path):
-    '''Remove file:// header of a local file path'''
-    if path.startswith("file://"):
-        return path[len("file://")]
-    return path

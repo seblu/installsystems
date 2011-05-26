@@ -22,29 +22,29 @@ class DebugAction(argparse.Action):
             debug("Debug on")
 
 
-def init(options):
+def init(args):
     '''Create an empty fresh repo tree'''
     # call init from library
     try:
-        Repository.create(options.image_path, options.data_path, options.verbose)
+        Repository.create(args.image_path, args.data_path, args.verbose)
     except Exception as e:
         error("init failed: %s." % e)
 
-def add(options):
+def add(args):
     '''Add a package to repository'''
     try:
-        repo = Repository(options.image_path, options.data_path, options.verbose)
-        pkg = PackageImage(options.path, options.verbose)
+        repo = Repository(args.image_path, args.data_path, args.verbose)
+        pkg = PackageImage(args.path, args.verbose)
         pkg.check_md5()
         repo.add(pkg)
     except Exception as e:
         error("add failed: %s." % e)
 
-def delete(options):
+def delete(args):
     '''Remove a package from repository'''
     try:
-        repo = Repository(options.image_path, options.data_path, options.verbose)
-        repo.delete(options.image_name, options.image_version)
+        repo = Repository(args.image_path, args.data_path, args.verbose)
+        repo.delete(args.image_name, args.image_version)
     except Exception as e:
         error("del failed: %s." % e)
 
@@ -63,18 +63,18 @@ p_main.add_argument("-D", "--data-path", dest="data_path", type=str,
 
 subparsers = p_main.add_subparsers()
 # Init command parser
-p_init = subparsers.add_parser("init", help=init.__doc__)
+p_init = subparsers.add_parser("init", help=init.__doc__.lower())
 p_init.add_argument("image_path", nargs="?", default=argparse.SUPPRESS,
                     help="Path of the new image directory")
 p_init.add_argument("data_path", nargs="?", default=argparse.SUPPRESS,
                     help="Path of the new data directory")
 p_init.set_defaults(func=init)
 # Add command parser
-p_add =  subparsers.add_parser("add", help=add.__doc__)
+p_add =  subparsers.add_parser("add", help=add.__doc__.lower())
 p_add.add_argument("path", type=str)
 p_add.set_defaults(func=add)
 # Del command parser
-p_del =  subparsers.add_parser("del", help=delete.__doc__)
+p_del =  subparsers.add_parser("del", help=delete.__doc__.lower())
 p_del.add_argument("image_name", type=str)
 p_del.add_argument("image_version", type=str)
 p_del.set_defaults(func=delete)

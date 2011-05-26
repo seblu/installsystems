@@ -8,6 +8,8 @@ InstallSystems Image Manipulation Tool
 
 import os
 import argparse
+import time
+import datetime
 import installsystems
 from installsystems.printer import *
 from installsystems.image import SourceImage
@@ -20,34 +22,27 @@ class DebugAction(argparse.Action):
             debug("Debug on")
 
 
-def init(options):
+def init(args):
     '''Create an empty fresh source image tree'''
-    # Directory must not exists
-    if os.path.exists(options.path) and os.path.isdir(options.path):
-        error("Directory already exists: %s" % options.path)
-    # Check if parent path is writable
-    parent_path = os.path.abspath(os.path.join(options.path, "../"))
-    if not os.access(parent_path, os.W_OK):
-        error("%s is not writable."%parent_path)
     # call init from library
     try:
-        simg = SourceImage.create(options.path, options.verbose)
+        simg = SourceImage.create(args.path, args.verbose)
     except Exception as e:
         error("init failed: %s." % e)
 
-def build(options):
+def build(args):
     '''Create a package image'''
-    for d in ("", "parser", "setup", "data"):
-        rp = os.path.join(options.path, d)
-        if not os.path.exists(rp):
-            error("Missing directory: %s" % d)
-        if not os.path.isdir(rp):
-            error("Not a directory: %s" % rp)
-        if not os.access(rp, os.R_OK|os.X_OK):
-            error("Unable to access to %s" % rp)
     try:
-        simg = SourceImage(options.path)
-        simg.build()
+        # start time
+        t0 = time.time()
+        # load source image
+        simg = SourceImage(args.path)
+        # do the job
+        simg.build(args.force)
+        # compute building time
+        t1 = time.time()
+        dt = int(t1 - t0)
+        arrow("Build time: %s" % datetime.timedelta(seconds=dt), 1, args.verbose)
     except Exception as e:
         error("build failed: %s." % e)
 
@@ -59,13 +54,16 @@ p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")
 p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
                     help="active quiet mode")
+
 subparsers = p_main.add_subparsers()
 # Init command parser
-p_init = subparsers.add_parser("init", help=init.__doc__)
+p_init = subparsers.add_parser("init", help=init.__doc__.lower())
 p_init.add_argument("path", help="Path of new image directory")
 p_init.set_defaults(func=init)
 # Build command parser
-p_build =  subparsers.add_parser("build", help=build.__doc__)
+p_build =  subparsers.add_parser("build", help=build.__doc__.lower())
+p_build.add_argument('-f', "--force", action="store_true", dest="force", default=False,
+                     help="overwrite existing image")
 p_build.add_argument("path", nargs="?", type=str, default=".")
 p_build.set_defaults(func=build)
 # Parse and run

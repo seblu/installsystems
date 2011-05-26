@@ -8,7 +8,6 @@ Image stuff
 
 import os
 import stat
-import datetime
 import time
 import json
 import StringIO
@@ -17,7 +16,7 @@ import subprocess
 import json
 import tarfile
 import re
-import installsystems.template
+import installsystems.template as istemplate
 import installsystems.tools as istools
 from installsystems.printer import *
 from installsystems.tarball import Tarball
@@ -53,15 +52,6 @@ class Image(object):
 class SourceImage(Image):
     '''Image source manipulation class'''
 
-    def __init__(self, path, verbose=True, pbzip2=True):
-        Image.__init__(self, pbzip2)
-        self.base_path = path
-        self.parser_path = os.path.join(path, "parser")
-        self.setup_path = os.path.join(path, "setup")
-        self.data_path = os.path.join(path, "data")
-        self.verbose = verbose
-        self.description = self.parse_description()
-
     @classmethod
     def create(cls, path, verbose=True, pbzip2=True):
         '''Create an empty source image'''
@@ -80,16 +70,13 @@ class SourceImage(Image):
         try:
             # create description example from template
             arrow("Creating description example", 2, verbose)
-            open(os.path.join(path, "description"), "w").write(
-                installsystems.template.description)
+            open(os.path.join(path, "description"), "w").write(istemplate.description)
             # create parser example from template
             arrow("Creating parser script example", 2, verbose)
-            open(os.path.join(parser_path, "01-parser.py"), "w").write(
-                installsystems.template.parser)
+            open(os.path.join(parser_path, "01-parser.py"), "w").write(istemplate.parser)
             # create setup example from template
             arrow("Creating setup script example", 2, verbose)
-            open(os.path.join(setup_path, "01-setup.py"), "w").write(
-                installsystems.template.setup)
+            open(os.path.join(setup_path, "01-setup.py"), "w").write(istemplate.setup)
         except Exception as e:
             raise Exception("Unable to example file: %s" % e)
         try:
@@ -105,16 +92,35 @@ class SourceImage(Image):
             raise Exception("Unable to set rights on %s: %s" % (pf, e))
         return cls(path, verbose, pbzip2)
 
-    def build(self):
+    def __init__(self, path, verbose=True, pbzip2=True):
+        Image.__init__(self, pbzip2)
+        self.base_path = path
+        self.parser_path = os.path.join(path, "parser")
+        self.setup_path = os.path.join(path, "setup")
+        self.data_path = os.path.join(path, "data")
+        self.verbose = verbose
+        self.valid_source_image()
+        self.description = self.parse_description()
+
+    def valid_source_image(self):
+        '''Check if we are a valid SourceImage'''
+        for d in (self.base_path, self.parser_path, self.setup_path, self.data_path):
+            if not os.path.exists(d):
+                raise Exception("Missing directory: %s" % d)
+            if not os.path.isdir(d):
+                raise Exception("Not a directory: %s" % d)
+            if not os.access(d, os.R_OK|os.X_OK):
+                raise Exception("Unable to access to %s" % d)
+
+    def build(self, overwrite=False):
         '''Create packaged image'''
-        t0 = time.time()
         # compute script tarball paths
         tarpath = os.path.join(self.base_path,
                                "%s-%s%s" % (self.description["name"],
                                             self.description["version"],
                                             self.image_extension))
         # check if free to create script tarball
-        if os.path.exists(tarpath):
+        if os.path.exists(tarpath) and overwrite == False:
             raise Exception("Tarball already exists. Remove it before")
         # printing pbzip2 status
         if self.pbzip2_path:
@@ -148,10 +154,6 @@ class SourceImage(Image):
                     recursive=True, filter=self.tar_scripts_filter)
         # closing tarball file
         tarball.close()
-        # compute building time
-        t1 = time.time()
-        dt = int(t1 - t0)
-        arrow("Build time: %s" % datetime.timedelta(seconds=dt), 2, self.verbose)
 
     def data_tarballs(self):
         '''List all data tarballs in data directory'''

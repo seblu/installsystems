@@ -17,6 +17,7 @@ import ConfigParser
 import subprocess
 import json
 import tarfile
+import re
 import installsystems.template
 from installsystems.printer import *
 from installsystems.tarball import Tarball
@@ -28,6 +29,16 @@ class Image(object):
     image_extension = ".isimage"
     image_payload = ".isdata"
     image_format = "1"
+
+    @staticmethod
+    def check_image_name(buf):
+        '''Check if @name is a valid image name'''
+        return re.match("\w+", buf) is not None
+
+    @staticmethod
+    def check_image_version(buf):
+        '''Check if @name is a valid image version'''
+        return re.match("\d+", buf) is not None
 
     def __init__(self, pbzip2=True):
         self.pbzip2_path = self.path_search("pbzip2") if pbzip2 else None

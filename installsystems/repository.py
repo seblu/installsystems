@@ -129,7 +129,7 @@ class RepositoryCache(object):
     def register(self, name, image, data):
         '''Register a repository to track'''
         self.repos[name] = Repository(istools.complete_path(image),
-                                      istools.complete_pathh(data),
+                                      istools.complete_path(data),
                                       verbose=self.verbose)
 
     def update(self):

@@ -7,6 +7,7 @@ InstallSystems Generic Tools Library
 '''
 
 import os
+from installsystems.image import Image
 
 def cp(self, source, destination):
     '''Copy a source to destination. Take care of path type'''
@@ -25,6 +26,8 @@ def get_path_type(path):
         return "ssh"
     elif path.startswith("file://") or os.path.exists(path):
         return "file"
+    elif Image.check_image_name(path):
+        return "name"
     return None
 
 def complete_path(path):

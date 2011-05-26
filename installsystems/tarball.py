@@ -10,6 +10,7 @@ import os
 import time
 import tarfile
 import StringIO
+import re
 
 class Tarball(tarfile.TarFile):
     def add_str(self, name, content, ftype, mode):
@@ -27,3 +28,11 @@ class Tarball(tarfile.TarFile):
         '''Return a string from a filename in a tarball'''
         ti = self.getmember(name)
         return self.extractfile(ti).read()
+
+    def getnames(self, reg_pattern=None):
+        lorig = super(Tarball, self).getnames()
+        if reg_pattern is None:
+            return lorig
+        else:
+            return [ tpname for tpname in lorig
+                     if re.match(reg_pattern, tpname) ]

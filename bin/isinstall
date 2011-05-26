@@ -1,0 +1,69 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Started 18/05/2011 by Seblu <seblu@seblu.net>
+
+'''
+InstallSystems Installation Tool
+'''
+
+import os
+import argparse
+import installsystems
+from installsystems.printer import *
+from installsystems.repository import RepositoryCache
+
+class DebugAction(argparse.Action):
+    '''Set installsystems in debug mode. Argparse callback'''
+    def __call__(self, parser, namespace, values, option_string=None):
+        if installsystems.debug == False:
+            installsystems.debug = True
+            debug("Debug on")
+
+
+# Top level argument parsing
+p_main = argparse.ArgumentParser()
+p_main.add_argument("-v", "--version", action="version", version=installsystems.version,
+                    help="show installsystems version")
+p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
+                    help="active debug mode")
+p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
+                    help="active quiet mode")
+p_main.add_argument("-I", "--image-path", dest="image_path", type=str, default=None,
+                    help="remote image repository path")
+p_main.add_argument("-D", "--data-path", dest="data_path", type=str, default=None,
+                    help="remote data repository path")
+p_main.add_argument("-C", "--cache-path", dest="cache_path", type=str,
+                    default="/var/cache/isinstall",
+                    help="local cache repository path")
+p_main.add_argument("-V", "--image-version", dest="image_version", type=int, default=None,
+                    help="specific image version")
+p_main.add_argument("image_name", type=str,
+                    help="image to install")
+
+# program entry point
+try:
+    # Partial parse
+    args = p_main.parse_known_args()[0]
+    # create repo cache object
+    repocache = RepositoryCache(args.cache_path, verbose=args.verbose)
+    # register command ligne repo
+    if args.image_path is not None:
+        repocache.register("cmdline", args.image_path, args.data_path)
+    # update remote info if available
+    repocache.update()
+    # get image package
+    pkg = repocache.get(args.image_name, args.image_version)
+    # create global dict, used to share and transmit data between scripts
+    # and add parser object to allow parser script to extend parser
+    gl = { "parser": p_main }
+    # run parser scripts
+    pkg.run_parser(gl)
+    # call parser again, with extended attributes
+    args = p_main.parse_args()
+    # remove parser object from global
+    del gl["parser"]
+    gl["args"] = args
+    # run setup scripts
+    pkg.run_setup(gl)
+except Exception as e:
+    error(e)

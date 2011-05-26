@@ -12,9 +12,7 @@ author =
 parser = """# -*- python -*-
 # -*- coding: utf-8 -*-
 
-def parser(image):
-\t'''Method called by parser'''
-\t pass
+parser.add_argument("-n", "--hostname", dest="hostname", type=str)
 
 # vim:set ts=2 sw=2 noet:
 """
@@ -22,9 +20,7 @@ def parser(image):
 setup = """# -*- python -*-
 # -*- coding: utf-8 -*-
 
-def setup(image):
-\t'''Method called by installer'''
-\tpass
+print "hostname: %s" % args.hostname
 
 # vim:set ts=2 sw=2 noet:
 """

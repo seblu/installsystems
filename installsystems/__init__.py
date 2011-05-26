@@ -10,4 +10,4 @@ canonical_name="installsystems"
 version = "1-dev"
 debug = False
 
-import printer
+__all__ = []

@@ -9,48 +9,47 @@ InstallSystems Image Manipulation Tool
 import os
 import argparse
 import installsystems
-import installsystems.printer as p
-import installsystems.image
+from installsystems.printer import *
+from installsystems.image import SourceImage
 
 class DebugAction(argparse.Action):
     '''Set installsystems in debug mode. Argparse callback'''
     def __call__(self, parser, namespace, values, option_string=None):
-        installsystems.debug = True
-        p.debug("Debug on")
+        if installsystems.debug == False:
+            installsystems.debug = True
+            debug("Debug on")
 
 
 def init(options):
     '''Create an empty fresh source image tree'''
     # Directory must not exists
     if os.path.exists(options.path) and os.path.isdir(options.path):
-        p.error("Directory already exists: %s" % options.path)
+        error("Directory already exists: %s" % options.path)
     # Check if parent path is writable
     parent_path = os.path.abspath(os.path.join(options.path, "../"))
     if not os.access(parent_path, os.W_OK):
-        p.error("%s is not writable."%parent_path)
+        error("%s is not writable."%parent_path)
     # call init from library
     try:
-        simg = installsystems.image.SourceImage(options.path,
-                                                verbose=options.verbose,
-                                                create=True)
+        simg = SourceImage.create(options.path, options.verbose)
     except Exception as e:
-        p.error("init failed: %s." % e)
+        error("init failed: %s." % e)
 
 def build(options):
     '''Create a package image'''
     for d in ("", "parser", "setup", "data"):
         rp = os.path.join(options.path, d)
         if not os.path.exists(rp):
-            p.error("Missing directory: %s" % rp)
+            error("Missing directory: %s" % rp)
         if not os.path.isdir(rp):
-            p.error("Not a directory: %s" % rp)
+            error("Not a directory: %s" % rp)
         if not os.access(rp, os.R_OK|os.X_OK):
-            p.error("Unable to access to %s" % rp)
+            error("Unable to access to %s" % rp)
     try:
-        simg = installsystems.image.SourceImage(options.path)
+        simg = SourceImage(options.path)
         simg.build()
     except Exception as e:
-        p.error("build failed: %s." % e)
+        error("build failed: %s." % e)
 
 # Top level argument parsing
 p_main = argparse.ArgumentParser()

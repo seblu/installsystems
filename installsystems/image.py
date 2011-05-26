@@ -16,15 +16,18 @@ import StringIO
 import ConfigParser
 import subprocess
 import json
-import installsystems.printer as p
-import installsystems.tarball as tar
+import tarfile
 import installsystems.template
+from installsystems.printer import *
+from installsystems.tarball import Tarball
 
-image_extension = ".img.tar.bz2"
-image_format = "1"
 
 class Image(object):
     '''Abstract class of images'''
+
+    image_extension = ".isimage"
+    image_payload = ".isdata"
+    image_format = "1"
 
     def __init__(self, pbzip2=True):
         self.pbzip2_path = self.path_search("pbzip2") if pbzip2 else None
@@ -46,54 +49,57 @@ class Image(object):
 class SourceImage(Image):
     '''Image source manipulation class'''
 
-    def __init__(self, path, verbose=True, create=False, pbzip2=True):
+    def __init__(self, path, verbose=True, pbzip2=True):
         Image.__init__(self, pbzip2)
         self.base_path = path
         self.parser_path = os.path.join(path, "parser")
         self.setup_path = os.path.join(path, "setup")
         self.data_path = os.path.join(path, "data")
         self.verbose = verbose
-        if create:
-            self.create()
         self.description = self.parse_description()
 
-    def create(self):
+    @classmethod
+    def create(cls, path, verbose=True, pbzip2=True):
         '''Create an empty source image'''
+        parser_path = os.path.join(path, "parser")
+        setup_path = os.path.join(path, "setup")
+        data_path = os.path.join(path, "data")
         # create base directories
-        p.arrow("Creating base directories", 1, self.verbose)
+        arrow("Creating base directories", 1, verbose)
         try:
-            for d in (self.base_path, self.parser_path, self.setup_path, self.data_path):
+            for d in (path, parser_path, setup_path, data_path):
                 os.mkdir(d)
         except Exception as e:
-            raise Exception("Unable to create directory %s: %s" % (d, e))
+            raise Exception("Unable to create directory: %s: %s" % (d, e))
         # create example files
-        p.arrow("Creating examples", 1, self.verbose)
+        arrow("Creating examples", 1, verbose)
         try:
             # create description example from template
-            p.arrow("Creating description example", 2, self.verbose)
-            open(os.path.join(self.base_path, "description"), "w").write(
+            arrow("Creating description example", 2, verbose)
+            open(os.path.join(path, "description"), "w").write(
                 installsystems.template.description)
             # create parser example from template
-            p.arrow("Creating parser script example", 2, self.verbose)
-            open(os.path.join(self.parser_path, "01-parser.py"), "w").write(
+            arrow("Creating parser script example", 2, verbose)
+            open(os.path.join(parser_path, "01-parser.py"), "w").write(
                 installsystems.template.parser)
             # create setup example from template
-            p.arrow("Creating setup script example", 2, self.verbose)
-            open(os.path.join(self.setup_path, "01-setup.py"), "w").write(
+            arrow("Creating setup script example", 2, verbose)
+            open(os.path.join(setup_path, "01-setup.py"), "w").write(
                 installsystems.template.setup)
         except Exception as e:
             raise Exception("Unable to example file: %s" % e)
         try:
             # setting rights on files in setup and parser
-            p.arrow("Setting executable rights on scripts", 2, self.verbose)
+            arrow("Setting executable rights on scripts", 2, verbose)
             umask = os.umask(0)
             os.umask(umask)
-            for path in (self.parser_path, self.setup_path):
-                for f in os.listdir(path):
-                    pf = os.path.join(path, f)
+            for dpath in (parser_path, setup_path):
+                for f in os.listdir(dpath):
+                    pf = os.path.join(dpath, f)
                     os.chmod(pf, 0777 & ~umask)
         except Exception as e:
             raise Exception("Unable to set rights on %s: %s" % (pf, e))
+        return cls(path, verbose, pbzip2)
 
     def build(self):
         '''Create packaged image'''
@@ -102,38 +108,38 @@ class SourceImage(Image):
         tarpath = os.path.join(self.base_path,
                                "%s-%s%s" % (self.description["name"],
                                             self.description["version"],
-                                            image_extension))
+                                            self.image_extension))
         # check if free to create script tarball
         if os.path.exists(tarpath):
             raise Exception("Tarball already exists. Remove it before")
         # printing pbzip2 status
         if self.pbzip2_path:
-            p.arrow("Parallel bzip2 enabled (%s)" % self.pbzip2_path, 1, self.verbose)
+            arrow("Parallel bzip2 enabled (%s)" % self.pbzip2_path, 1, self.verbose)
         else:
-            p.arrow("Parallel bzip disabled", 1, self.verbose)
+            arrow("Parallel bzip disabled", 1, self.verbose)
         #  Create data tarballs
         data_d = self.create_data_tarballs()
         # generate description.json
         jdesc = self.generate_json_description()
         # creating scripts tarball
-        p.arrow("Creating scripts tarball", 1, self.verbose)
-        p.arrow("Name %s" % os.path.relpath(tarpath), 2, self.verbose)
+        arrow("Creating scripts tarball", 1, self.verbose)
+        arrow("Name %s" % os.path.relpath(tarpath), 2, self.verbose)
         try:
-            tarball = tar.Tarball.open(tarpath, mode="w:bz2", dereference=True)
+            tarball = Tarball.open(tarpath, mode="w:bz2", dereference=True)
         except Exception as e:
             raise Exception("Unable to create tarball %s: %s" % (tarpath, e))
         # add .description.json
-        p.arrow("Add .description.json", 2, self.verbose)
-        tarball.add_str("description.json", jdesc, tar.tarfile.REGTYPE, 0444)
+        arrow("Add .description.json", 2, self.verbose)
+        tarball.add_str("description.json", jdesc, tarfile.REGTYPE, 0444)
         # add .format
-        p.arrow("Add .format", 2, self.verbose)
-        tarball.add_str("format", image_format, tar.tarfile.REGTYPE, 0444)
+        arrow("Add .format", 2, self.verbose)
+        tarball.add_str("format", self.image_format, tarfile.REGTYPE, 0444)
         # add parser scripts
-        p.arrow("Add parser scripts", 2, self.verbose)
+        arrow("Add parser scripts", 2, self.verbose)
         tarball.add(self.parser_path, arcname="parser",
                     recursive=True, filter=self.tar_scripts_filter)
         # add setup scripts
-        p.arrow("Add setup scripts", 2, self.verbose)
+        arrow("Add setup scripts", 2, self.verbose)
         tarball.add(self.setup_path, arcname="setup",
                     recursive=True, filter=self.tar_scripts_filter)
         # closing tarball file
@@ -141,7 +147,7 @@ class SourceImage(Image):
         # compute building time
         t1 = time.time()
         dt = int(t1 - t0)
-        p.arrow("Build time: %s" % datetime.timedelta(seconds=dt), 2, self.verbose)
+        arrow("Build time: %s" % datetime.timedelta(seconds=dt), 2, self.verbose)
 
     def data_tarballs(self):
         '''List all data tarballs in data directory'''
@@ -150,25 +156,25 @@ class SourceImage(Image):
             filename = "%s-%s-%s%s" % (self.description["name"],
                                        self.description["version"],
                                        dname,
-                                       image_extension)
+                                       self.image_payload)
             databalls[filename] = os.path.abspath(os.path.join(self.data_path, dname))
         return databalls
 
     def create_data_tarballs(self):
         '''Create all data tarballs in data directory'''
-        p.arrow("Creating data tarballs", 1, self.verbose)
+        arrow("Creating data tarballs", 1, self.verbose)
         # build list of data tarball candidate
         candidates = self.data_tarballs()
         if len(candidates) == 0:
-            p.arrow("No data tarball", 2, self.verbose)
+            arrow("No data tarball", 2, self.verbose)
             return
         # create tarballs
         for candidate in candidates:
             path = os.path.join(self.base_path, candidate)
             if os.path.exists(path):
-                p.arrow("Tarball %s already exists." % candidate, 2, self.verbose)
+                arrow("Tarball %s already exists." % candidate, 2, self.verbose)
             else:
-                p.arrow("Creating tarball %s" % candidate, 2, self.verbose)
+                arrow("Creating tarball %s" % candidate, 2, self.verbose)
                 self.create_data_tarball(path, candidates[candidate])
 
     def create_data_tarball(self, tar_path, data_path):
@@ -180,9 +186,9 @@ class SourceImage(Image):
                 tb = open(tar_path, mode="w")
                 p = subprocess.Popen(self.pbzip2_path, shell=False, close_fds=True,
                                      stdin=subprocess.PIPE, stdout=tb.fileno())
-                tarball = tar.Tarball.open(mode="w|", dereference=True, fileobj=p.stdin)
+                tarball = Tarball.open(mode="w|", dereference=True, fileobj=p.stdin)
             else:
-                tarball = tar.Tarball.open(tar_path, "w:bz2", dereference=True)
+                tarball = Tarball.open(tar_path, "w:bz2", dereference=True)
             tarball.add(data_path, arcname=dname, recursive=True)
             # closing tarball file
             tarball.close()
@@ -210,16 +216,16 @@ class SourceImage(Image):
 
     def generate_json_description(self):
         '''Generate a json description file'''
-        p.arrow("Generating JSON description", 1, self.verbose)
+        arrow("Generating JSON description", 1, self.verbose)
         # copy description
         desc = self.description.copy()
         # timestamp image
-        p.arrow("Timestamping", 2, self.verbose)
+        arrow("Timestamping", 2, self.verbose)
         desc["date"] = int(time.time())
         # append data tarballs info
         desc["data"] = dict()
         for dt in self.data_tarballs():
-            p.arrow("Compute MD5 of %s" % dt, 2, self.verbose)
+            arrow("Compute MD5 of %s" % dt, 2, self.verbose)
             path = os.path.join(self.base_path, dt)
             desc["data"][dt] = { "size": os.path.getsize(path),
                                  "md5": self.md5_checksum(path) }
@@ -230,7 +236,7 @@ class SourceImage(Image):
 
     def parse_description(self):
         '''Raise an exception is description file is invalid and return vars to include'''
-        p.arrow("Parsing description", 1, self.verbose)
+        arrow("Parsing description", 1, self.verbose)
         d = dict()
         try:
             descpath = os.path.join(self.base_path, "description")
@@ -250,28 +256,21 @@ class PackageImage(Image):
         self.path = os.path.abspath(path)
         self.base_path = os.path.dirname(self.path)
         self.verbose = verbose
+        self.tarball = Tarball.open(self.path, mode='r:bz2')
         self.parse()
 
     def parse(self):
         '''Parse tarball and extract metadata'''
         # extract metadata
-        p.arrow("Read tarball metadata", 1, self.verbose)
-        try:
-            tarball = tar.Tarball.open(self.path)
-            img_format = tarball.get_str("format")
-            img_desc = tarball.get_str("description.json")
-            tarball.close()
-        except Exception as e:
-            raise e
+        arrow("Read tarball metadata", 1, self.verbose)
+        img_format = self.tarball.get_str("format")
+        img_desc = self.tarball.get_str("description.json")
         # check format
-        p.arrow("Read format", 2, self.verbose)
-        try:
-            if img_format != image_format:
-                raise Exception()
-        except Exception:
-            raise Exception("Invalid image format")
+        arrow("Read format", 2, self.verbose)
+        if img_format != self.image_format:
+            raise Exception("Invalid tarball image format")
         # check description
-        p.arrow("Read description", 2, self.verbose)
+        arrow("Read description", 2, self.verbose)
         try:
             self.description = json.loads(img_desc)
         except Exception as e:
@@ -279,10 +278,10 @@ class PackageImage(Image):
 
     def check_md5(self):
         '''Check if md5 of data tarballs are correct'''
-        p.arrow("Check MD5", 1, self.verbose)
+        arrow("Check MD5", 1, self.verbose)
         databalls = self.description["data"]
         for databall in databalls:
-            p.arrow(databall, 2, self.verbose)
+            arrow(databall, 2, self.verbose)
             md5_meta = databalls[databall]["md5"]
             md5_file = self.md5_checksum(os.path.join(self.base_path, databall))
             if md5_meta != md5_file:
@@ -305,9 +304,23 @@ class PackageImage(Image):
         return [ os.path.join(self.base_path, d)
                  for d in self.description["data"] ]
 
-class DataImage(Image):
-    '''Data image manipulation class'''
+    def run_parser(self, gl):
+        '''Run parser scripts'''
+        self.run_scripts(gl, "parser")
 
-    def __init__(self, path):
-        Image.__init__(self)
-        self.path = path
+    def run_setup(self, gl):
+        '''Run setup scripts'''
+        self.run_scripts(gl, "setup")
+
+    def run_scripts(self, gl, directory):
+        '''Run scripts in a tarball directory'''
+        arrow("Run %s" % directory, 1, self.verbose)
+        # get list of parser scripts
+        l_scripts = self.tarball.getnames("%s/.*\.py" % directory)
+        # order matter!
+        l_scripts.sort()
+        # run scripts
+        for n_scripts in l_scripts:
+            arrow(os.path.basename(n_scripts), 2, self.verbose)
+            s_scripts = self.tarball.get_str(n_scripts)
+            exec(s_scripts, gl, dict())

@@ -8,6 +8,7 @@ InstallSystems Generic Tools Library
 
 import os
 import hashlib
+import shutil
 
 def md5sum(path):
     '''Compute md5 of a file'''
@@ -17,12 +18,14 @@ def md5sum(path):
 
 def cp(source, destination):
     '''Copy a source to destination. Take care of path type'''
-    stype = path_type(source)
-    dtype = path_type(destination)
+    stype = get_path_type(source)
+    dtype = get_path_type(destination)
     if stype == dtype == "file":
         shutil.copy(source, destination)
     elif stype == "file" and dtype == "":
-        pass
+        raise NotImplementedError
+    else:
+        raise NotImplementedError
 
 def get_path_type(path):
     '''Return path type. This is usefull to know what king of path is given'''
@@ -31,7 +34,7 @@ def get_path_type(path):
         return "http"
     elif path.startswith("ssh://"):
         return "ssh"
-    elif path.startswith("file://") or os.path.exists(path):
+    elif path.startswith("file://") or path.startswith("/") or os.path.exists(path):
         return "file"
     elif Image.check_image_name(path):
         return "name"

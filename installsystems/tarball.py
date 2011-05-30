@@ -11,6 +11,10 @@ import time
 import tarfile
 import StringIO
 import re
+# Use tarfile from python 2.7 which include filter parameter in add method.
+# This is really needed to filter an modify tarball content on the fly.
+# Should be removed when python 2.7 will be the minimum python version
+from installsystems import tarfile
 
 class Tarball(tarfile.TarFile):
     def add_str(self, name, content, ftype, mode):

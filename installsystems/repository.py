@@ -9,7 +9,6 @@ Repository stuff
 import os
 import time
 import shutil
-import json
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -82,32 +81,27 @@ class Repository(object):
 
     def delete(self, name, version):
         '''Delete an image from repository'''
-        name = "%s-%s" % (name, version)
-        fname = "%s.json" % name
-        # FIXME: check tarball exists before doing this
-        tbs = self.tarballs(name)
+        if self.db.find(name, version) is None:
+            error("Unable to find %s version %s in database" % (name, version))
+        # removing script tarballs
+        arrow("Removing script tarball", 1, self.verbose)
+        tpath = os.path.join(self.image_path, "%s-%s%s" % (name, version,
+                                                           Image.image_extension))
+        if os.path.exists(tpath):
+            os.unlink(tpath)
+            arrow("%s removed" % os.path.basename(tpath), 2, self.verbose)
+        # removing data tarballs
+        arrow("Removing data tarballs", 1, self.verbose)
+        for tb in self.db.databalls(name, version):
+            tpath = os.path.join(self.data_path, tb)
+            if os.path.exists(tpath):
+                os.unlink(tpath)
+                arrow("%s removed" % tb, 2, self.verbose)
         # removing metadata
         self.db.delete(name, version)
-        # removing tarballs
-        arrow("Removing tarballs", 1, self.verbose)
-        for tb in tbs:
-            arrow("Removing %s" % os.path.basename(tb), 2, self.verbose)
-            os.unlink(tb)
         # update last file
         arrow("Updating last file", 1, self.verbose)
         self.update_last()
-
-    def tarballs(self, name):
-        '''List all tarballs (script + data)'''
-        ts = list()
-        # add script tarballs
-        ts.append(os.path.abspath(os.path.join(self.image_path,
-                                               "%s%s" % (name, Image.image_extension))))
-        tempdb = Tarball.open(self.db_path, mode='r:bz2')
-        jdesc = json.loads(tempdb.get_str("%s.json" % name))
-        for dt in jdesc["data"]:
-            ts.append(os.path.abspath(os.path.join(self.data_path, dt)))
-        return ts
 
 
 class RepositoryCache(object):

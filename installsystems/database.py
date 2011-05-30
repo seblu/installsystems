@@ -58,6 +58,7 @@ class Database(object):
         '''Deltete a packaged image'''
         arrow("Removing metadata from db", 1, self.verbose)
         newdb_path = "%s.new" % self.path
+        fname = "%s-%s.json" % (name, version)
         try:
             db = Tarball.open(self.path, mode='r:bz2')
             newdb = Tarball.open(newdb_path, mode='w:bz2')
@@ -69,6 +70,16 @@ class Database(object):
             shutil.move(newdb_path, self.path)
         except Exception as e:
             raise Exception("Removing metadata fail: %s" % e)
+
+    def databalls(self, name, version):
+        '''List data tarballs filenames'''
+        try:
+            db = Tarball.open(self.path, mode='r:bz2')
+            jdesc = json.loads(db.get_str("%s-%s.json" % (name, version)))
+            db.close()
+            return jdesc["data"]
+        except Exception as e:
+            raise Exception("Listing data tarballs fail: %s" % e)
 
     def find(self, name, version=None):
         '''Find last version of an image'''

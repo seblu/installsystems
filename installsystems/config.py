@@ -8,7 +8,6 @@ InstallSystems Configuration files class
 
 import os
 from ConfigParser import RawConfigParser
-from xdg import BaseDirectory
 from installsystems.printer import *
 
 class ConfigFile(object):

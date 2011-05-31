@@ -9,6 +9,8 @@ Repository stuff
 import os
 import time
 import shutil
+import pwd
+import grp
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -19,40 +21,43 @@ from installsystems.database import Database
 class Repository(object):
     '''Repository class'''
 
-    last_name = "last"
-
-    def __init__(self, image_path, data_path, verbose=True):
-        self.image_path = os.path.abspath(image_path)
-        self.last_path = os.path.join(image_path, self.last_name)
-        self.data_path = os.path.abspath(data_path)
+    def __init__(self, config, verbose=True):
         self.verbose = verbose
-        self.db = Database(os.path.join(image_path, "db"), verbose=self.verbose)
+        self.config = config
+        self.db = Database(os.path.join(config.image, config.db), verbose=self.verbose)
+        self.last_path = os.path.join(config.image, config.last)
 
     @classmethod
-    def create(cls, image_path, data_path, verbose=True):
+    def create(cls, config, verbose=True):
         '''Create an empty base repository'''
         # create base directories
         arrow("Creating base directories", 1, verbose)
-        try:
-            for d in (image_path, data_path):
+        for d in (config.image, config.data):
+            try:
                 if os.path.exists(d):
-                    arrow("%s already exists" % os.path.relpath(d), 2, verbose)
+                    arrow("%s already exists" % d, 2, verbose)
                 else:
-                    os.mkdir(d)
-                    arrow("%s directory created" % os.path.relpath(d), 2, verbose)
-        except Exception as e:
-            raise Exception("Unable to create directory %s: %s" % (d, e))
+                    istools.mkdir(d, config.chown, config.chgroup, config.dchmod)
+                    arrow("%s directory created" % d, 2, verbose)
+            except Exception as e:
+                raise
+                raise Exception("Unable to create directory %s: %s" % (d, e))
         # create database
-        d = Database.create(os.path.join(image_path, "db"), verbose=verbose)
+        dbpath = os.path.join(config.image, "db")
+        d = Database.create(dbpath, verbose=verbose)
+        istools.chrights(dbpath, config.chown, config.chgroup, config.fchmod)
         # create last file
         arrow("Creating last file", 1, verbose)
-        self = cls(image_path, data_path, verbose)
+        self = cls(config, verbose)
         self.update_last()
+        return self
 
     def update_last(self):
         '''Update last file to current time'''
         try:
             open(self.last_path, "w").write("%s\n" % int(time.time()))
+            os.chown(self.last_path, self.config.chown, self.config.chgroup)
+            os.chmod(self.last_path, self.config.fchmod)
         except Exception as e:
             raise Exception("Update last file failed: %s" % e)
 
@@ -69,10 +74,12 @@ class Repository(object):
         # copy file to directory
         arrow("Adding file to directories", 1, self.verbose)
         arrow("Adding %s" % os.path.basename(package.path), 2, self.verbose)
-        shutil.copy(package.path, self.image_path)
+        istools.copy(package.path, self.config.image,
+                     self.config.chown, self.config.chgroup, self.config.fchmod)
         for db in package.databalls():
             arrow("Adding %s" % os.path.basename(db), 2, self.verbose)
-            shutil.copy(db, self.data_path)
+            istools.copy(db, self.config.data,
+                         self.config.chown, self.config.chgroup, self.config.fchmod)
         # add file to db
         self.db.add(package)
         # update last file
@@ -85,7 +92,7 @@ class Repository(object):
             error("Unable to find %s version %s in database" % (name, version))
         # removing script tarballs
         arrow("Removing script tarball", 1, self.verbose)
-        tpath = os.path.join(self.image_path, "%s-%s%s" % (name, version,
+        tpath = os.path.join(self.config.image, "%s-%s%s" % (name, version,
                                                            Image.image_extension))
         if os.path.exists(tpath):
             os.unlink(tpath)
@@ -93,7 +100,7 @@ class Repository(object):
         # removing data tarballs
         arrow("Removing data tarballs", 1, self.verbose)
         for tb in self.db.databalls(name, version):
-            tpath = os.path.join(self.data_path, tb)
+            tpath = os.path.join(self.config.data, tb)
             if os.path.exists(tpath):
                 os.unlink(tpath)
                 arrow("%s removed" % tb, 2, self.verbose)
@@ -102,6 +109,67 @@ class Repository(object):
         # update last file
         arrow("Updating last file", 1, self.verbose)
         self.update_last()
+
+
+class RepositoryConfig(object):
+    '''Repository configuration container'''
+
+    def __init__(self, *args, **kwargs):
+        # set default value for arguments
+        self.name = args[0]
+        self.db = "db"
+        self.last = "last"
+        self.image = ""
+        self.data = ""
+        self.chown = os.getuid()
+        self.chgroup = os.getgid()
+        umask = os.umask(0)
+        os.umask(umask)
+        self.fchmod =  0666 & ~umask
+        self.dchmod =  0777 & ~umask
+        self.update(**kwargs)
+
+    def update(self, *args, **kwargs):
+        '''
+        Update attribute with checking value
+        All attribute must already exists
+        '''
+        # autoset parameter in cmdline
+        for k in kwargs:
+            if hasattr(self, k):
+                # attribute which are not in the following list cannot be loaded
+                # from configuration
+                try:
+                    # convert userid
+                    if k == "chown":
+                        if not k.isdigit():
+                            kwargs[k] = pwd.getpwnam(kwargs[k]).pw_uid
+                        setattr(self, k, int(kwargs[k]))
+                    # convert gid
+                    elif k == "chgroup":
+                        if not k.isdigit():
+                            kwargs[k] = grp.getgrnam(kwargs[k]).gr_gid
+                        setattr(self, k, int(kwargs[k]))
+                    # convert file mode
+                    elif k in ("fchmod", "dchmod"):
+                        setattr(self, k, int(kwargs[k], 8))
+                        # convert repo path
+                    elif k in ("image", "data"):
+                        setattr(self, k, istools.abspath(kwargs[k]))
+                    # else is string
+                    else:
+                        setattr(self, k, kwargs[k])
+                except Exception as e:
+                    warn("Unable to set config parameter %s in repository %s: %s" % (k, self.name, e))
+
+    def __eq__(self, other):
+        return vars(self) == vars(other)
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __contains__(self, key):
+        return key in self.__dict__
 
 
 class RepositoryCache(object):
@@ -124,9 +192,8 @@ class RepositoryCache(object):
     def register(self, iterepo):
         '''Register a repository to track'''
         for r in iterepo:
-            print r
-            self.repos[r[0]] = Repository(istools.complete_path(r[1]),
-                                          istools.complete_path(r[2]),
+            self.repos[r[0]] = Repository(istools.abspath(r[1]),
+                                          istools.abstpath(r[2]),
                                           verbose=self.verbose)
 
     def update(self):
@@ -138,9 +205,9 @@ class RepositoryCache(object):
                                                            self.last(r)))
             if self.repos[r].last() > self.last(r):
                 # copy last file
-                istools.cp(self.repos[r].last_path, os.path.join(self.last_path, r))
+                istools.copy(self.repos[r].last_path, os.path.join(self.last_path, r))
                 # copy db file
-                istools.cp(self.repos[r].db.path, os.path.join(self.db_path, r))
+                istools.copy(self.repos[r].db.path, os.path.join(self.db_path, r))
                 arrow("%s updated" % r, 2, self.verbose)
 
     def last(self, reponame):
@@ -162,7 +229,7 @@ class RepositoryCache(object):
         # get remote image
         remotepath = os.path.join(self.repos[reponame].image_path, filename)
         arrow("Copying from repository", 2, self.verbose)
-        istools.cp(remotepath, localpath)
+        istools.copy(remotepath, localpath)
         return localpath
 
     def find_image(self, name, version):

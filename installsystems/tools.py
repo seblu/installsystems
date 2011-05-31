@@ -16,18 +16,37 @@ def md5sum(path):
     m.update(open(path, "r").read())
     return m.hexdigest()
 
-def cp(source, destination):
+def copy(source, destination, uid=None, gid=None, mode=None):
     '''Copy a source to destination. Take care of path type'''
-    stype = get_path_type(source)
-    dtype = get_path_type(destination)
+    stype = pathtype(source)
+    dtype = pathtype(destination)
     if stype == dtype == "file":
         shutil.copy(source, destination)
     elif stype == "file" and dtype == "":
         raise NotImplementedError
     else:
         raise NotImplementedError
+    # setting destination file rights
+    if dtype == "file":
+        if os.path.isdir(destination):
+            destination = os.path.join(destination, os.path.basename(source))
+        chrights(destination, uid, gid, mode)
 
-def get_path_type(path):
+def mkdir(path, uid=None, gid=None, mode=None):
+    '''Create a directory and set rights'''
+    os.mkdir(path)
+    chrights(path, uid, gid, mode)
+
+def chrights(path, uid=None, gid=None, mode=None):
+    '''Set rights on a file'''
+    if uid is not None:
+        os.chown(path, uid, -1)
+    if gid is not None:
+        os.chown(path, -1, gid)
+    if mode is not None:
+        os.chmod(path, mode)
+
+def pathtype(path):
     '''Return path type. This is usefull to know what king of path is given'''
     from installsystems.image import Image
     if path.startswith("http://") or path.startswith("https://"):
@@ -40,9 +59,9 @@ def get_path_type(path):
         return "name"
     return None
 
-def complete_path(path):
-    '''Format a path to be complete'''
-    ptype = get_path_type(path)
+def abspath(path):
+    '''Format a path to be absolute'''
+    ptype = pathtype(path)
     if ptype in ("http", "ssh"):
         return path
     elif ptype == "file":

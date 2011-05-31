@@ -26,27 +26,27 @@ def init(args):
     '''Create an empty fresh repo tree'''
     # call init from library
     try:
-        Repository.create(args.repo_image, args.repo_data, args.verbose)
+        Repository.create(args.repo, args.verbose)
     except Exception as e:
-        error("init failed: %s." % e)
+        raise Exception("init failed: %s" % e)
 
 def add(args):
     '''Add a package to repository'''
     try:
-        repo = Repository(args.repo_image, args.repo_data, args.verbose)
+        repo = Repository(args.repo, args.verbose)
         pkg = PackageImage(args.path, args.verbose)
         pkg.check_md5()
         repo.add(pkg)
     except Exception as e:
-        error("add failed: %s." % e)
+        raise Exception("add failed: %s" % e)
 
 def delete(args):
     '''Remove a package from repository'''
     try:
-        repo = Repository(args.repo_image, args.repo_data, args.verbose)
+        repo = Repository(args.repo, args.verbose)
         repo.delete(args.image_name, args.image_version)
     except Exception as e:
-        error("del failed: %s." % e)
+        raise Exception("del failed: %s" % e)
 
 # Top level argument parsing
 p_main = argparse.ArgumentParser()
@@ -60,10 +60,6 @@ p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
                     help="config file path")
 p_main.add_argument("-r", "--repo-name", dest="repo_name", type=str, default=None,
                     help="repository name")
-p_main.add_argument("-I", "--repo-image", dest="repo_image", type=str,
-                    help="image repository path")
-p_main.add_argument("-D", "--repo-data", dest="repo_data", type=str,
-                    help="data repository path")
 subparsers = p_main.add_subparsers()
 # Init command parser
 p_init = subparsers.add_parser("init", help=init.__doc__.lower())
@@ -86,21 +82,16 @@ try:
     args = p_main.parse_args()
     # load config
     config = ConfigFile("isrepo", args.config)
-    # get config repository
-    c_repo = config.repo(args.repo_name)
-    # looks for image repository in config, if needed
-    if args.repo_image is None and c_repo is not None:
-        args.repo_image = c_repo[0]
-    # looks for data repository in config, if needed
-    if args.repo_data is None and c_repo is not None:
-        args.repo_data = c_repo[1]
-    # final check of existance
-    if args.repo_image is None:
-        raise Exception("image repository missing")
-    elif args.repo_data is None:
-        raise Exception("data repository missing")
-    debug("Image repo: %s" % args.repo_image)
-    debug("Data repo: %s" % args.repo_data)
+    # get config repositories
+    repos = config.repos
+    if len(repos) == 1:
+        args.repo = repos[repos.keys()[0]]
+    elif args.repo_name in repos.keys():
+        args.repo = repos[args.repo_name]
+    else:
+        raise Exception("No image repository found")
+    debug("Image repo: %s" % args.repo.image)
+    debug("Data repo: %s" % args.repo.data)
     args.func(args)
 except Exception as e:
     p_main.print_usage()

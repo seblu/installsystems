@@ -10,6 +10,7 @@ import json
 import os
 import shutil
 import tarfile
+import installsystems.tools as istools
 from installsystems.tarball import Tarball
 from installsystems.printer import *
 
@@ -50,7 +51,9 @@ class Database(object):
             newdb.add_str(name, package.jdescription(), tarfile.REGTYPE, 0444)
             db.close()
             newdb.close()
-            shutil.move(newdb_path, self.path)
+            # preserve permission and stats when moving
+            shutil.copystat(self.path, newdb_path)
+            os.rename(newdb_path, self.path)
         except Exception as e:
             raise Exception("Adding metadata fail: %s" % e)
 
@@ -67,7 +70,9 @@ class Database(object):
                     newdb.addfile(ti, db.extractfile(ti))
             db.close()
             newdb.close()
-            shutil.move(newdb_path, self.path)
+            # preserve permission and stats when moving
+            shutil.copystat(self.path, newdb_path)
+            os.rename(newdb_path, self.path)
         except Exception as e:
             raise Exception("Removing metadata fail: %s" % e)
 

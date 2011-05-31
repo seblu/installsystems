@@ -9,6 +9,7 @@ InstallSystems Configuration files class
 import os
 from ConfigParser import RawConfigParser
 from installsystems.printer import *
+from installsystems.repository import RepositoryConfig
 
 class ConfigFile(object):
     '''Configuration class'''
@@ -38,17 +39,19 @@ class ConfigFile(object):
             try:
                 cp = RawConfigParser()
                 cp.read(self.path)
+                # main configuration
                 if cp.has_section(self.prefix):
                     self._config = dict(cp.items(self.prefix))
                     cp.remove_section(self.prefix)
+                # each section is a repository
                 for rep in cp.sections():
-                    img = data = None
-                    if cp.has_option(rep, "image"):
-                        img = cp.get(rep, "image")
-                    if cp.has_option(rep, "data"):
-                        data = cp.get(rep, "data")
-                    self._repos[rep]= (img, data)
+                    # check if its a repo section
+                    if "image" not in cp.options(rep):
+                        continue
+                    # get all options in repo
+                    self._repos[rep] = RepositoryConfig(rep, **dict(cp.items(rep)))
             except Exception as e:
+                raise
                 raise Exception("Unable load file %s: %s" % (self.path, e))
         else:
             debug("No config file found")
@@ -87,18 +90,4 @@ class ConfigFile(object):
     @property
     def repos(self):
         '''Get a list of repository available'''
-        for r in self._repos:
-            yield (r, self._repos[r][0], self._repos[r][1])
-
-    def repo(self, name):
-        '''
-        Return a reposiory by its name
-        name can be None if there is only one repository
-        '''
-        if name is None and len(self._repos) == 1:
-            return self._repos[self._repos.keys()[0]]
-        elif name is not None:
-            if name in self._repos.keys():
-                return self._repos[name]
-        return None
-
+        return self._repos.copy()

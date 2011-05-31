@@ -318,6 +318,7 @@ class PackageImage(Image):
 
     def run_setup(self, gl):
         '''Run setup scripts'''
+        gl["image"] = self
         self.run_scripts(gl, "setup")
 
     def run_scripts(self, gl, directory):

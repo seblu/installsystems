@@ -15,6 +15,7 @@ import installsystems.tools as istools
 from installsystems.printer import *
 from installsystems.repository import RepositoryCache
 from installsystems.image import PackageImage
+from installsystems.config import ConfigFile
 
 class DebugAction(argparse.Action):
     '''Set installsystems in debug mode. Argparse callback'''
@@ -24,7 +25,7 @@ class DebugAction(argparse.Action):
             debug("Debug on")
 
 
-# Top level argument parsing
+# Argument parsing loading
 p_main = argparse.ArgumentParser()
 p_main.add_argument("-V", "--version", action="version", version=installsystems.version,
                     help="show installsystems version")
@@ -32,32 +33,26 @@ p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")
 p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
                     help="active quiet mode")
-p_main.add_argument("-I", "--image-repo", dest="image_path", type=str, default=None,
-                    help="remote image repository path")
-p_main.add_argument("-D", "--data-repo", dest="data_path", type=str, default=None,
-                    help="remote data repository path")
-p_main.add_argument("-C", "--cache-path", dest="cache_path", type=str,
-                    default="/var/cache/isinstall",
-                    help="local cache repository path")
+p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
+                    help="config file path")
 p_main.add_argument("-v", "--image-version", dest="image_version", type=int, default=None,
                     help="specific image version")
 p_main.add_argument("image_name", type=str,
                     help="image to install (path or name)")
-
-# program entry point
 try:
     # Partial parse
     args = p_main.parse_known_args()[0]
+    # load config
+    config = ConfigFile("isinstall", args.config)
     # looks if arguments is a file or image name
     image_name_type = istools.get_path_type(args.image_name)
     if image_name_type == "file":
         pkg = PackageImage(istools.complete_path(args.image_name))
     elif image_name_type == "name":
         # init repo cache object
-        repocache = RepositoryCache(args.cache_path, verbose=args.verbose)
-        # register command ligne repo
-        if args.image_path is not None:
-            repocache.register("cmdline", args.image_path, args.data_path)
+        repocache = RepositoryCache(config.cache, verbose=args.verbose)
+        # register repositories
+        repocache.register(config.repos)
         # update remote info
         repocache.update()
         # get image package

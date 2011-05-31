@@ -119,12 +119,15 @@ class RepositoryCache(object):
                 raise Exception("%s is not writable or executable" % path)
         self.verbose = verbose
         self.repos = dict()
+        debug("Repository cache is in %s" % self.base_path)
 
-    def register(self, name, image, data):
+    def register(self, iterepo):
         '''Register a repository to track'''
-        self.repos[name] = Repository(istools.complete_path(image),
-                                      istools.complete_path(data),
-                                      verbose=self.verbose)
+        for r in iterepo:
+            print r
+            self.repos[r[0]] = Repository(istools.complete_path(r[1]),
+                                          istools.complete_path(r[2]),
+                                          verbose=self.verbose)
 
     def update(self):
         '''Update cache info'''

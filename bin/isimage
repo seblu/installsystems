@@ -33,7 +33,7 @@ def init(args):
 def build(args):
     '''Create a package image'''
     try:
-        # start time
+        # build start time
         t0 = time.time()
         # load source image
         simg = SourceImage(args.path)

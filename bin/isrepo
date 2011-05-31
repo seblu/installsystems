@@ -12,7 +12,7 @@ import installsystems
 from installsystems.printer import *
 from installsystems.repository import Repository
 from installsystems.image import PackageImage
-
+from installsystems.config import ConfigFile
 
 class DebugAction(argparse.Action):
     '''Set installsystems in debug mode. Argparse callback'''
@@ -26,14 +26,14 @@ def init(args):
     '''Create an empty fresh repo tree'''
     # call init from library
     try:
-        Repository.create(args.image_path, args.data_path, args.verbose)
+        Repository.create(args.repo_image, args.repo_data, args.verbose)
     except Exception as e:
         error("init failed: %s." % e)
 
 def add(args):
     '''Add a package to repository'''
     try:
-        repo = Repository(args.image_path, args.data_path, args.verbose)
+        repo = Repository(args.repo_image, args.repo_data, args.verbose)
         pkg = PackageImage(args.path, args.verbose)
         pkg.check_md5()
         repo.add(pkg)
@@ -43,7 +43,7 @@ def add(args):
 def delete(args):
     '''Remove a package from repository'''
     try:
-        repo = Repository(args.image_path, args.data_path, args.verbose)
+        repo = Repository(args.repo_image, args.repo_data, args.verbose)
         repo.delete(args.image_name, args.image_version)
     except Exception as e:
         error("del failed: %s." % e)
@@ -56,17 +56,20 @@ p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")
 p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
                     help="active quiet mode")
-p_main.add_argument("-I", "--image-path", dest="image_path", type=str,
+p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
+                    help="config file path")
+p_main.add_argument("-r", "--repo-name", dest="repo_name", type=str, default=None,
+                    help="repository name")
+p_main.add_argument("-I", "--repo-image", dest="repo_image", type=str,
                     help="image repository path")
-p_main.add_argument("-D", "--data-path", dest="data_path", type=str,
+p_main.add_argument("-D", "--repo-data", dest="repo_data", type=str,
                     help="data repository path")
-
 subparsers = p_main.add_subparsers()
 # Init command parser
 p_init = subparsers.add_parser("init", help=init.__doc__.lower())
-p_init.add_argument("image_path", nargs="?", default=argparse.SUPPRESS,
+p_init.add_argument("repo_image", nargs="?", default=argparse.SUPPRESS,
                     help="Path of the new image directory")
-p_init.add_argument("data_path", nargs="?", default=argparse.SUPPRESS,
+p_init.add_argument("repo_data", nargs="?", default=argparse.SUPPRESS,
                     help="Path of the new data directory")
 p_init.set_defaults(func=init)
 # Add command parser
@@ -78,13 +81,29 @@ p_del =  subparsers.add_parser("del", help=delete.__doc__.lower())
 p_del.add_argument("image_name", type=str)
 p_del.add_argument("image_version", type=str)
 p_del.set_defaults(func=delete)
-# Parse and run
-args = p_main.parse_args()
-# Check global args
-if args.image_path is None:
+try:
+    # Parse and run
+    args = p_main.parse_args()
+    # load config
+    config = ConfigFile("isrepo", args.config)
+    # get config repository
+    c_repo = config.repo(args.repo_name)
+    # looks for image repository in config, if needed
+    if args.repo_image is None and c_repo is not None:
+        args.repo_image = c_repo[0]
+    # looks for data repository in config, if needed
+    if args.repo_data is None and c_repo is not None:
+        args.repo_data = c_repo[1]
+    # final check of existance
+    if args.repo_image is None:
+        raise Exception("image repository missing")
+    elif args.repo_data is None:
+        raise Exception("data repository missing")
+    debug("Image repo: %s" % args.repo_image)
+    debug("Data repo: %s" % args.repo_data)
+    args.func(args)
+except Exception as e:
     p_main.print_usage()
-    error("image path missing")
-elif args.data_path is None:
-    p_main.print_usage()
-    error("data path missing")
-args.func(args)
+    error(e)
+except KeyboardInterrupt:
+    warn("Keyboard Interrupted")

@@ -73,10 +73,10 @@ class Repository(object):
         '''Add a packaged image to repository'''
         # copy file to directory
         arrow("Adding file to directories", 1, self.verbose)
-        arrow("Adding %s" % os.path.basename(package.path), 2, self.verbose)
+        arrow("Adding %s" % os.path.relpath(package.path), 2, self.verbose)
         istools.copy(package.path, self.config.image,
                      self.config.chown, self.config.chgroup, self.config.fchmod)
-        for db in package.databalls():
+        for db in package.databalls:
             arrow("Adding %s" % os.path.basename(db), 2, self.verbose)
             istools.copy(db, self.config.data,
                          self.config.chown, self.config.chgroup, self.config.fchmod)
@@ -92,8 +92,8 @@ class Repository(object):
             error("Unable to find %s version %s in database" % (name, version))
         # removing script tarballs
         arrow("Removing script tarball", 1, self.verbose)
-        tpath = os.path.join(self.config.image, "%s-%s%s" % (name, version,
-                                                           Image.image_extension))
+        tpath = os.path.join(self.config.image,
+                             "%s-%s%s" % (name, version, Image.image_extension))
         if os.path.exists(tpath):
             os.unlink(tpath)
             arrow("%s removed" % os.path.basename(tpath), 2, self.verbose)
@@ -201,8 +201,8 @@ class RepositoryCache(object):
         arrow("Updating repositories", 1, self.verbose)
         for r in self.repos:
             debug("%s: remote_last: %s, local_last:%s" % (r,
-                                                           self.repos[r].last(),
-                                                           self.last(r)))
+                                                          self.repos[r].last(),
+                                                          self.last(r)))
             if self.repos[r].last() > self.last(r):
                 # copy last file
                 istools.copy(self.repos[r].last_path, os.path.join(self.last_path, r))

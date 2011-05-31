@@ -40,15 +40,24 @@ class Database(object):
     def add(self, package):
         '''Add a packaged image to a db'''
         arrow("Adding metadata to db", 1, self.verbose)
-        name = "%s.json" % package.name()
+        # naming
+        name = "%s.json" % package.name
         newdb_path = "%s.new" % self.path
+        # compute md5
+        arrow("Compute MD5 of %s" % os.path.relpath(package.path), 2, self.verbose)
+        md5 = package.md5
+        arrow("Formating metadata", 2, self.verbose)
+        desc = package.description
+        desc["md5"] = md5
+        jdesc = json.dumps(desc)
         try:
+            arrow("Adding to tarball", 2, self.verbose)
             db = Tarball.open(self.path, mode='r:bz2')
             newdb = Tarball.open(newdb_path, mode='w:bz2')
             for ti in db.getmembers():
                 if ti.name != name:
                     newdb.addfile(ti, db.extractfile(ti))
-            newdb.add_str(name, package.jdescription(), tarfile.REGTYPE, 0444)
+            newdb.add_str(name, jdesc, tarfile.REGTYPE, 0444)
             db.close()
             newdb.close()
             # preserve permission and stats when moving

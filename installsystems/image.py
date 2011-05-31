@@ -13,7 +13,6 @@ import json
 import StringIO
 import ConfigParser
 import subprocess
-import json
 import tarfile
 import re
 import installsystems.template as istemplate
@@ -267,6 +266,22 @@ class PackageImage(Image):
         self.tarball = Tarball.open(self.path, mode='r:bz2')
         self.parse()
 
+    @property
+    def md5(self):
+        '''Return md5sum of the current tarball'''
+        return istools.md5sum(self.path)
+
+    @property
+    def name(self):
+        '''Return image name'''
+        return "%s-%s" % (self.description["name"], self.description["version"])
+
+    @property
+    def databalls(self):
+        '''Create a dict of image and data tarballs'''
+        return [ os.path.join(self.base_path, d)
+                 for d in self.description["data"] ]
+
     def parse(self):
         '''Parse tarball and extract metadata'''
         # extract metadata
@@ -289,28 +304,12 @@ class PackageImage(Image):
         arrow("Check MD5", 1, self.verbose)
         databalls = self.description["data"]
         for databall in databalls:
-            arrow(databall, 2, self.verbose)
+            md5_path = os.path.join(self.base_path, databall)
+            arrow(os.path.relpath(md5_path), 2, self.verbose)
             md5_meta = databalls[databall]["md5"]
-            md5_file = istools.md5sum(os.path.join(self.base_path, databall))
+            md5_file = istools.md5sum(md5_path)
             if md5_meta != md5_file:
                 raise Exception("Invalid md5: %s" % databall)
-
-    def description(self):
-        '''Return metadatas of a tarball'''
-        return self.description
-
-    def jdescription(self):
-        '''Return json formated metadatas'''
-        return json.dumps(self.description)
-
-    def name(self):
-        '''Return image name'''
-        return "%s-%s" % (self.description["name"], self.description["version"])
-
-    def databalls(self):
-        '''Create a dict of image and data tarballs'''
-        return [ os.path.join(self.base_path, d)
-                 for d in self.description["data"] ]
 
     def run_parser(self, gl):
         '''Run parser scripts'''

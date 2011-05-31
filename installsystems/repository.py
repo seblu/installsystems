@@ -11,6 +11,7 @@ import time
 import shutil
 import pwd
 import grp
+import copy
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -176,61 +177,75 @@ class RepositoryCache(object):
     '''Local repository cache class'''
 
     def __init__(self, cache_path, verbose=True):
-        self.base_path = os.path.abspath(cache_path)
-        self.image_path = os.path.join(self.base_path, "image")
-        self.last_path = os.path.join(self.base_path, "last")
-        self.db_path = os.path.join(self.base_path, "db")
-        for path in (self.base_path, self.image_path, self.last_path, self.db_path):
-            if not os.path.exists(path):
-                os.mkdir(path)
-            if not os.access(path, os.W_OK | os.X_OK):
-                raise Exception("%s is not writable or executable" % path)
         self.verbose = verbose
-        self.repos = dict()
-        debug("Repository cache is in %s" % self.base_path)
+        self.repos = {}
+        self.path = os.path.abspath(cache_path)
+        # ensure cache directories are avaiblable
+        if not os.path.exists(self.path):
+            os.mkdir(self.path)
+        if not os.access(self.path, os.W_OK | os.X_OK):
+            raise Exception("%s is not writable or executable" % path)
+        debug("Repository cache is in %s" % self.path)
 
-    def register(self, iterepo):
-        '''Register a repository to track'''
-        for r in iterepo:
-            self.repos[r[0]] = Repository(istools.abspath(r[1]),
-                                          istools.abstpath(r[2]),
-                                          verbose=self.verbose)
+    def register(self, configs):
+        '''Register a list of repository from its config'''
+        for conf in configs:
+            self.repos[conf.name] = {}
+            # keep original repository conf
+            self.repos[conf.name]["orig"] = Repository(conf, self.verbose)
+            # change configuration to make remote repository in cache
+            cconf = copy.copy(conf)
+            cconf.image = os.path.join(self.path, conf.name)
+            cconf.data = "/dev/null"
+            self.repos[conf.name]["cache"] = Repository(cconf, self.verbose)
+            # create a local directory
+            if not os.path.exists(cconf.image):
+                os.mkdir(cconf.image)
 
     def update(self):
         '''Update cache info'''
         arrow("Updating repositories", 1, self.verbose)
         for r in self.repos:
-            debug("%s: remote_last: %s, local_last:%s" % (r,
-                                                          self.repos[r].last(),
-                                                          self.last(r)))
-            if self.repos[r].last() > self.last(r):
-                # copy last file
-                istools.copy(self.repos[r].last_path, os.path.join(self.last_path, r))
+            # last local
+            local_last = self.last(r)
+            # copy last file
+            arrow("Copying %s repository last" % r, 2, self.verbose)
+            istools.copy(self.repos[r]["orig"].last_path,
+                         self.repos[r]["cache"].last_path,)
+            # last after update
+            remote_last = self.last(r)
+            debug("%s: last: local: %s, remote:%s" % (r, local_last, remote_last))
+            # Updating db?
+            remote_db = self.repos[r]["orig"].db.path
+            local_db = self.repos[r]["cache"].db.path
+            if remote_last > local_last or not os.path.exists(local_db):
                 # copy db file
-                istools.copy(self.repos[r].db.path, os.path.join(self.db_path, r))
+                arrow("Copying %s repository db" % r, 2, self.verbose)
+                istools.copy(remote_db, local_db)
                 arrow("%s updated" % r, 2, self.verbose)
 
     def last(self, reponame):
         '''Return the last timestamp of a repo'''
-        last_path = os.path.join(self.last_path, reponame)
-        if os.path.exists(last_path):
+        last_path = os.path.join(self.path, reponame, "last")
+        try:
             return int(open(last_path, "r").read().rstrip())
-        return 0
+        except Exception:
+            return 0
 
     def get_image(self, reponame, imagename, imageversion):
         '''Obtain a local path in cache for a remote image in repo'''
         arrow("Getting image", 1, self.verbose)
         filename = "%s-%s%s" % (imagename, imageversion, Image.image_extension)
-        localpath = os.path.join(self.image_path, filename)
+        cachepath = os.path.join(self.repos[reponame]["cache"].config.image, filename)
         # return db path if exists
-        if os.path.exists(localpath):
+        if os.path.exists(cachepath):
             arrow("Found in cache", 2, self.verbose)
-            return localpath
-        # get remote image
-        remotepath = os.path.join(self.repos[reponame].image_path, filename)
-        arrow("Copying from repository", 2, self.verbose)
-        istools.copy(remotepath, localpath)
-        return localpath
+        else:
+            # get remote image
+            remotepath = os.path.join(self.repos[reponame]["orig"].config.image, filename)
+            arrow("Copying from repository", 2, self.verbose)
+            istools.copy(remotepath, cachepath)
+        return cachepath
 
     def find_image(self, name, version):
         '''Find an image in repositories'''
@@ -241,7 +256,7 @@ class RepositoryCache(object):
         img = None
         # search in all repositories
         for repo in self.repos:
-            tempdb = Database(os.path.join(self.db_path, repo), False)
+            tempdb = Database(self.repos[repo]["cache"].db.path, False)
             img = tempdb.find(name, version)
             if img is not None:
                 # \o/

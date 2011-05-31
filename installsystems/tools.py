@@ -9,6 +9,7 @@ InstallSystems Generic Tools Library
 import os
 import hashlib
 import shutil
+import urllib2
 
 def md5sum(path):
     '''Compute md5 of a file'''
@@ -16,20 +17,26 @@ def md5sum(path):
     m.update(open(path, "r").read())
     return m.hexdigest()
 
-def copy(source, destination, uid=None, gid=None, mode=None):
+def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
     '''Copy a source to destination. Take care of path type'''
     stype = pathtype(source)
     dtype = pathtype(destination)
+    # ensure destination is not a directory
+    if dtype == "file" and os.path.isdir(destination):
+        destination = os.path.join(destination, os.path.basename(source))
+    # trivial case
     if stype == dtype == "file":
         shutil.copy(source, destination)
+    elif stype == "http" and dtype == "file":
+        f_dest = open(destination, "w")
+        f_source = urllib2.urlopen(source, timeout=timeout)
+        f_dest.write(f_source.read())
     elif stype == "file" and dtype == "":
         raise NotImplementedError
     else:
         raise NotImplementedError
     # setting destination file rights
     if dtype == "file":
-        if os.path.isdir(destination):
-            destination = os.path.join(destination, os.path.basename(source))
         chrights(destination, uid, gid, mode)
 
 def mkdir(path, uid=None, gid=None, mode=None):

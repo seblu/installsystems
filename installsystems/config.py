@@ -32,7 +32,7 @@ class ConfigFile(object):
         '''Load/Reload config file'''
         # seting default config
         self._config = {}
-        self._repos = {}
+        self._repos = []
         # loading config file if exists
         if self.path is not None:
             debug("Loading config file: %s" % self.path)
@@ -49,7 +49,7 @@ class ConfigFile(object):
                     if "image" not in cp.options(rep):
                         continue
                     # get all options in repo
-                    self._repos[rep] = RepositoryConfig(rep, **dict(cp.items(rep)))
+                    self._repos.append( RepositoryConfig(rep, **dict(cp.items(rep))))
             except Exception as e:
                 raise
                 raise Exception("Unable load file %s: %s" % (self.path, e))
@@ -89,5 +89,6 @@ class ConfigFile(object):
 
     @property
     def repos(self):
-        '''Get a list of repository available'''
-        return self._repos.copy()
+        '''Get a dict of repository available'''
+        # deep copy
+        return list(self._repos)

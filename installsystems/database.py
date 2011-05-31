@@ -22,7 +22,7 @@ class Database(object):
     @classmethod
     def create(cls, path, verbose=True):
         arrow("Creating repository database", 1, verbose)
-        dbpath = os.path.abspath(path)
+        dbpath = istools.abspath(path)
         if os.path.exists(dbpath):
             raise Exception("db already exists")
         try:
@@ -34,7 +34,7 @@ class Database(object):
         return cls(path, verbose)
 
     def __init__(self, path, verbose=True):
-        self.path = os.path.abspath(path)
+        self.path = istools.abspath(path)
         self.verbose = verbose
 
     def add(self, package):

@@ -45,9 +45,9 @@ try:
     # load config
     config = ConfigFile("isinstall", args.config)
     # looks if arguments is a file or image name
-    image_name_type = istools.get_path_type(args.image_name)
+    image_name_type = istools.pathtype(args.image_name)
     if image_name_type == "file":
-        pkg = PackageImage(istools.complete_path(args.image_name))
+        pkg = PackageImage(istools.abspath(args.image_name))
     elif image_name_type == "name":
         # init repo cache object
         repocache = RepositoryCache(config.cache, verbose=args.verbose)

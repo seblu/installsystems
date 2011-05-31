@@ -7,12 +7,13 @@ InstallSystems Repository Manipulation Tool
 '''
 
 import os
-import argparse
 import installsystems
 from installsystems.printer import *
 from installsystems.repository import Repository
 from installsystems.image import PackageImage
 from installsystems.config import ConfigFile
+# The following import can be removed when min version will be python 2.7
+import installsystems.argparse as argparse
 
 class DebugAction(argparse.Action):
     '''Set installsystems in debug mode. Argparse callback'''

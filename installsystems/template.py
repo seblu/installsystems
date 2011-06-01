@@ -12,7 +12,7 @@ author =
 parser = """# -*- python -*-
 # -*- coding: utf-8 -*-
 
-parser.add_argument("-n", "--hostname", dest="hostname", type=str)
+parser.add_argument("-n", "--hostname", dest="hostname", type=str, required=True)
 
 # vim:set ts=2 sw=2 noet:
 """

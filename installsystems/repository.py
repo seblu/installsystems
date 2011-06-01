@@ -176,8 +176,9 @@ class RepositoryConfig(object):
 class RepositoryCache(object):
     '''Local repository cache class'''
 
-    def __init__(self, cache_path, verbose=True):
+    def __init__(self, cache_path, timeout=3, verbose=True):
         self.verbose = verbose
+        self.timeout = timeout
         self.repos = {}
         self.path = os.path.abspath(cache_path)
         # ensure cache directories are avaiblable
@@ -209,9 +210,9 @@ class RepositoryCache(object):
             # last local
             local_last = self.last(r)
             # copy last file
-            arrow("Copying %s repository last" % r, 2, self.verbose)
+            arrow("Checking %s repository last" % r, 2, self.verbose)
             istools.copy(self.repos[r]["orig"].last_path,
-                         self.repos[r]["cache"].last_path,)
+                         self.repos[r]["cache"].last_path, timeout=self.timeout)
             # last after update
             remote_last = self.last(r)
             debug("%s: last: local: %s, remote:%s" % (r, local_last, remote_last))
@@ -221,8 +222,7 @@ class RepositoryCache(object):
             if remote_last > local_last or not os.path.exists(local_db):
                 # copy db file
                 arrow("Copying %s repository db" % r, 2, self.verbose)
-                istools.copy(remote_db, local_db)
-                arrow("%s updated" % r, 2, self.verbose)
+                istools.copy(remote_db, local_db, timeout=self.timeout)
 
     def last(self, reponame):
         '''Return the last timestamp of a repo'''
@@ -244,7 +244,7 @@ class RepositoryCache(object):
             # get remote image
             remotepath = os.path.join(self.repos[reponame]["orig"].config.image, filename)
             arrow("Copying from repository", 2, self.verbose)
-            istools.copy(remotepath, cachepath)
+            istools.copy(remotepath, cachepath, timeout=self.timeout)
         return cachepath
 
     def find_image(self, name, version):

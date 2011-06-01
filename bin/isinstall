@@ -37,7 +37,9 @@ p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", defau
 p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
                     help="config file path")
 p_main.add_argument("-v", "--image-version", dest="image_version", type=int, default=None,
-                    help="specific image version")
+                    help="image version")
+p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
+                    help="download timeout")
 p_main.add_argument("image_name", type=str,
                     help="image to install (path or name)")
 try:
@@ -51,7 +53,7 @@ try:
         pkg = PackageImage(istools.abspath(args.image_name))
     elif image_name_type == "name":
         # init repo cache object
-        repocache = RepositoryCache(config.cache, verbose=args.verbose)
+        repocache = RepositoryCache(config.cache, timeout=args.timeout, verbose=args.verbose)
         # register repositories
         repocache.register(config.repos)
         # update remote info

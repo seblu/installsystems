@@ -61,7 +61,8 @@ class SourceImage(Image):
         arrow("Creating base directories", 1, verbose)
         try:
             for d in (path, parser_path, setup_path, data_path):
-                os.mkdir(d)
+                if not os.path.exists(d) or not os.path.isdir(d):
+                    os.mkdir(d)
         except Exception as e:
             raise Exception("Unable to create directory: %s: %s" % (d, e))
         # create example files

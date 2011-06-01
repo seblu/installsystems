@@ -49,7 +49,7 @@ class ConfigFile(object):
                     if "image" not in cp.options(rep):
                         continue
                     # get all options in repo
-                    self._repos.append( RepositoryConfig(rep, **dict(cp.items(rep))))
+                    self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))
             except Exception as e:
                 raise
                 raise Exception("Unable load file %s: %s" % (self.path, e))
@@ -89,6 +89,6 @@ class ConfigFile(object):
 
     @property
     def repos(self):
-        '''Get a dict of repository available'''
+        '''Get a list of repository available'''
         # deep copy
         return list(self._repos)

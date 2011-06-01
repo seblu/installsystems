@@ -83,12 +83,15 @@ try:
     args = p_main.parse_args()
     # load config
     config = ConfigFile("isrepo", args.config)
-    # get config repositories
-    repos = config.repos
+    # filtering on repository name if present
+    if args.repo_name is not None:
+        repos = filter(lambda x: x.name == args.repo_name, config.repos)
+    else:
+        repos = config.repos
     if len(repos) == 1:
-        args.repo = repos[repos.keys()[0]]
-    elif args.repo_name in repos.keys():
-        args.repo = repos[args.repo_name]
+        args.repo = repos[0]
+    elif len(repos) > 1:
+        raise Exception("Please select a repository with -r")
     else:
         raise Exception("No image repository found")
     debug("Image repo: %s" % args.repo.image)

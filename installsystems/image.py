@@ -329,7 +329,10 @@ class PackageImage(Image):
         # order matter!
         l_scripts.sort()
         # run scripts
-        for n_scripts in l_scripts:
-            arrow(os.path.basename(n_scripts), 2, self.verbose)
-            s_scripts = self.tarball.get_str(n_scripts)
-            exec(s_scripts, gl, dict())
+        try:
+            for n_scripts in l_scripts:
+                arrow(os.path.basename(n_scripts), 2, self.verbose)
+                s_scripts = self.tarball.get_str(n_scripts)
+                exec(s_scripts, gl, dict())
+        except Exception as e:
+            raise Exception("%s fail: %s" % (n_scripts, e))

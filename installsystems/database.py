@@ -26,7 +26,7 @@ class Database(object):
         if os.path.exists(dbpath):
             raise Exception("db already exists")
         try:
-            tarball = Tarball.open(dbpath, mode="w:bz2", dereference=True)
+            tarball = Tarball.open(dbpath, mode="w:gz", dereference=True)
             tarball.add_str("format", Database.db_format, tarfile.REGTYPE, 0444)
             tarball.close()
         except Exception as e:
@@ -52,8 +52,8 @@ class Database(object):
         jdesc = json.dumps(desc)
         try:
             arrow("Adding to tarball", 2, self.verbose)
-            db = Tarball.open(self.path, mode='r:bz2')
-            newdb = Tarball.open(newdb_path, mode='w:bz2')
+            db = Tarball.open(self.path, mode='r:gz')
+            newdb = Tarball.open(newdb_path, mode='w:gz')
             for ti in db.getmembers():
                 if ti.name != name:
                     newdb.addfile(ti, db.extractfile(ti))
@@ -72,8 +72,8 @@ class Database(object):
         newdb_path = "%s.new" % self.path
         fname = "%s-%s.json" % (name, version)
         try:
-            db = Tarball.open(self.path, mode='r:bz2')
-            newdb = Tarball.open(newdb_path, mode='w:bz2')
+            db = Tarball.open(self.path, mode='r:gz')
+            newdb = Tarball.open(newdb_path, mode='w:gz')
             for ti in db.getmembers():
                 if ti.name != fname:
                     newdb.addfile(ti, db.extractfile(ti))
@@ -88,7 +88,7 @@ class Database(object):
     def databalls(self, name, version):
         '''List data tarballs filenames'''
         try:
-            db = Tarball.open(self.path, mode='r:bz2')
+            db = Tarball.open(self.path, mode='r:gz')
             jdesc = json.loads(db.get_str("%s-%s.json" % (name, version)))
             db.close()
             return jdesc["data"]
@@ -98,7 +98,7 @@ class Database(object):
     def find(self, name, version=None):
         '''Find last version of an image'''
         try:
-            tarb = Tarball.open(self.path, mode='r:bz2')
+            tarb = Tarball.open(self.path, mode='r:gz')
             candidates = [ int((os.path.splitext(tpname)[0]).rsplit("-", 1)[1])
                            for tpname in tarb.getnames("%s-\d+.json" % name) ]
             tarb.close()

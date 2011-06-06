@@ -37,22 +37,11 @@ class Image(object):
         '''Check if @name is a valid image version'''
         return re.match("\d+", buf) is not None
 
-    def __init__(self, pbzip2=True):
-        self.pbzip2_path = self.path_search("pbzip2") if pbzip2 else None
-
-    def path_search(self, name, path=None):
-        '''Search in PATH for a binary'''
-        path = path or os.environ["PATH"]
-        for d in path.split(os.pathsep):
-            if os.path.exists(os.path.join(d, name)):
-                return os.path.join(os.path.abspath(d), name)
-        return None
-
 class SourceImage(Image):
     '''Image source manipulation class'''
 
     @classmethod
-    def create(cls, path, verbose=True, pbzip2=True):
+    def create(cls, path, verbose=True):
         '''Create an empty source image'''
         parser_path = os.path.join(path, "parser")
         setup_path = os.path.join(path, "setup")
@@ -90,10 +79,10 @@ class SourceImage(Image):
                     os.chmod(pf, 0777 & ~umask)
         except Exception as e:
             raise Exception("Unable to set rights on %s: %s" % (pf, e))
-        return cls(path, verbose, pbzip2)
+        return cls(path, verbose)
 
-    def __init__(self, path, verbose=True, pbzip2=True):
-        Image.__init__(self, pbzip2)
+    def __init__(self, path, verbose=True):
+        Image.__init__(self)
         self.base_path = path
         self.parser_path = os.path.join(path, "parser")
         self.setup_path = os.path.join(path, "setup")
@@ -122,11 +111,6 @@ class SourceImage(Image):
         # check if free to create script tarball
         if os.path.exists(tarpath) and overwrite == False:
             raise Exception("Tarball already exists. Remove it before")
-        # printing pbzip2 status
-        if self.pbzip2_path:
-            arrow("Parallel bzip2 enabled (%s)" % self.pbzip2_path, 1, self.verbose)
-        else:
-            arrow("Parallel bzip disabled", 1, self.verbose)
         #  Create data tarballs
         data_d = self.create_data_tarballs()
         # generate description.json
@@ -135,7 +119,7 @@ class SourceImage(Image):
         arrow("Creating scripts tarball", 1, self.verbose)
         arrow("Name %s" % os.path.relpath(tarpath), 2, self.verbose)
         try:
-            tarball = Tarball.open(tarpath, mode="w:bz2", dereference=True)
+            tarball = Tarball.open(tarpath, mode="w:gz", dereference=True)
         except Exception as e:
             raise Exception("Unable to create tarball %s: %s" % (tarpath, e))
         # add .description.json
@@ -190,26 +174,10 @@ class SourceImage(Image):
         ddref = False if os.path.isdir(data_path) else True
         try:
             # opening file
-            if self.pbzip2_path:
-                tb = open(tar_path, mode="w")
-                p = subprocess.Popen(self.pbzip2_path, shell=False, close_fds=True,
-                                     stdin=subprocess.PIPE, stdout=tb.fileno())
-                tarball = Tarball.open(mode="w|", dereference=ddref, fileobj=p.stdin)
-            else:
-                tarball = Tarball.open(tar_path, "w:bz2", dereference=ddref)
+            tarball = Tarball.open(tar_path, "w:gz", dereference=ddref)
             tarball.add(data_path, arcname=dname, recursive=True)
             # closing tarball file
             tarball.close()
-            if self.pbzip2_path:
-                # closing pipe, needed to end pbzip2
-                p.stdin.close()
-                # waiting pbzip to terminate
-                r = p.wait()
-                # cleaning openfile
-                tb.close()
-                # status
-                if r != 0:
-                    raise Exception("Data tarball %s creation return %s" % (tar_path, r))
         except Exception as e:
             raise Exception("Unable to create data tarball %s: %s" % (tar_path, e))
 
@@ -264,7 +232,7 @@ class PackageImage(Image):
         self.path = os.path.abspath(path)
         self.base_path = os.path.dirname(self.path)
         self.verbose = verbose
-        self.tarball = Tarball.open(self.path, mode='r:bz2')
+        self.tarball = Tarball.open(self.path, mode='r:gz')
         self.parse()
 
     @property

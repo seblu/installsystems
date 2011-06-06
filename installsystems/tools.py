@@ -101,7 +101,7 @@ def extractdata(image, name, target, filelist=None):
         raise Exception("No such data tarball in %s" % image.name)
     datainfo = image.datas[filename]
     fileobject = ropen(filename)
-    tarball = Tarball.open(fileobj=fileobject, mode="r|bz2")
+    tarball = Tarball.open(fileobj=fileobject, mode="r|gz")
     if filelist is None:
         tarball.extractall(target)
     else:

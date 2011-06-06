@@ -23,9 +23,9 @@ from installsystems.tarball import Tarball
 class Image(object):
     '''Abstract class of images'''
 
-    image_extension = ".isimage"
-    image_payload = ".isdata"
-    image_format = "1"
+    extension = ".isimage"
+    extension_data = ".isdata"
+    format = "1"
 
     @staticmethod
     def check_image_name(buf):
@@ -118,7 +118,7 @@ class SourceImage(Image):
         tarpath = os.path.join(self.base_path,
                                "%s-%s%s" % (self.description["name"],
                                             self.description["version"],
-                                            self.image_extension))
+                                            self.extension))
         # check if free to create script tarball
         if os.path.exists(tarpath) and overwrite == False:
             raise Exception("Tarball already exists. Remove it before")
@@ -143,7 +143,7 @@ class SourceImage(Image):
         tarball.add_str("description.json", jdesc, tarfile.REGTYPE, 0444)
         # add .format
         arrow("Add .format", 2, self.verbose)
-        tarball.add_str("format", self.image_format, tarfile.REGTYPE, 0444)
+        tarball.add_str("format", self.format, tarfile.REGTYPE, 0444)
         # add parser scripts
         arrow("Add parser scripts", 2, self.verbose)
         tarball.add(self.parser_path, arcname="parser",
@@ -162,7 +162,7 @@ class SourceImage(Image):
             filename = "%s-%s-%s%s" % (self.description["name"],
                                        self.description["version"],
                                        dname,
-                                       self.image_payload)
+                                       self.extension_data)
             databalls[filename] = os.path.abspath(os.path.join(self.data_path, dname))
         return databalls
 
@@ -273,15 +273,29 @@ class PackageImage(Image):
         return istools.md5sum(self.path)
 
     @property
-    def name(self):
-        '''Return image name'''
+    def id(self):
+        '''Return image versionned name / id'''
         return "%s-%s" % (self.description["name"], self.description["version"])
 
     @property
-    def databalls(self):
-        '''Create a dict of image and data tarballs'''
-        return [ os.path.join(self.base_path, d)
-                 for d in self.description["data"] ]
+    def name(self):
+        '''Return image name'''
+        return self.description["name"]
+
+    @property
+    def version(self):
+        '''Return image version'''
+        return self.description["version"]
+
+    @property
+    def filename(self):
+        '''Return image filename'''
+        return "%s%s" % (self.id, self.extension)
+
+    @property
+    def datas(self):
+        '''Create a dict of data tarballs'''
+        return dict(self.description["data"])
 
     def parse(self):
         '''Parse tarball and extract metadata'''
@@ -291,7 +305,7 @@ class PackageImage(Image):
         img_desc = self.tarball.get_str("description.json")
         # check format
         arrow("Read format", 2, self.verbose)
-        if img_format != self.image_format:
+        if img_format != self.format:
             raise Exception("Invalid tarball image format")
         # check description
         arrow("Read description", 2, self.verbose)
@@ -314,14 +328,14 @@ class PackageImage(Image):
 
     def run_parser(self, gl):
         '''Run parser scripts'''
-        self.run_scripts(gl, "parser")
+        self._run_scripts(gl, "parser")
 
     def run_setup(self, gl):
         '''Run setup scripts'''
         gl["image"] = self
-        self.run_scripts(gl, "setup")
+        self._run_scripts(gl, "setup")
 
-    def run_scripts(self, gl, directory):
+    def _run_scripts(self, gl, directory):
         '''Run scripts in a tarball directory'''
         arrow("Run %s" % directory, 1, self.verbose)
         # get list of parser scripts
@@ -335,4 +349,4 @@ class PackageImage(Image):
                 s_scripts = self.tarball.get_str(n_scripts)
                 exec(s_scripts, gl, dict())
         except Exception as e:
-            raise Exception("%s fail: %s" % (n_scripts, e))
+            raise Exception("%s fail: %s" % (os.path.basename(n_scripts), e))

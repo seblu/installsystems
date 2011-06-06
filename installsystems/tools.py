@@ -10,6 +10,7 @@ import os
 import hashlib
 import shutil
 import urllib2
+from installsystems.tarball import Tarball
 
 def md5sum(path):
     '''Compute md5 of a file'''
@@ -58,6 +59,8 @@ def pathtype(path):
     from installsystems.image import Image
     if path.startswith("http://") or path.startswith("https://"):
         return "http"
+    if path.startswith("ftp://") or path.startswith("ftps://"):
+        return "ftp"
     elif path.startswith("ssh://"):
         return "ssh"
     elif path.startswith("file://") or path.startswith("/") or os.path.exists(path):
@@ -77,3 +80,32 @@ def abspath(path):
         return os.path.abspath(path)
     else:
         return None
+
+def ropen(path):
+    '''Open a file which can be remote'''
+    ftype = pathtype(path)
+    if ftype == "file":
+        return open(path, "r")
+    elif ftype == "http" or ftype == "ftp":
+        return urllib2.urlopen(path)
+    else:
+        raise NotImplementedError
+
+def extractdata(image, name, target, filelist=None):
+    '''Extract a databall name into target
+    This will be done accross a forking to allow higher performance and
+    on the fly checksumming
+    '''
+    filename = "%s-%s%s" % (image.id, name, image.extension_data)
+    if filename not in image.datas.keys():
+        raise Exception("No such data tarball in %s" % image.name)
+    datainfo = image.datas[filename]
+    fileobject = ropen(filename)
+    tarball = Tarball.open(fileobj=fileobject, mode="r|bz2")
+    if filelist is None:
+        tarball.extractall(target)
+    else:
+        for f in filelist:
+            tarball.extract(f, target)
+    tarball.close()
+    fileobject.close()

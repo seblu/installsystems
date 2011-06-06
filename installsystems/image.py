@@ -185,7 +185,7 @@ class SourceImage(Image):
         '''Filter files which can be included in scripts tarball'''
         if not tinfo.name in ("parser", "setup") and os.path.splitext(tinfo.name)[1] != ".py":
             return None
-        tinfo.mode = 0555
+        tinfo.mode = 0755
         tinfo.uid = tinfo.gid = 0
         tinfo.uname = tinfo.gname = "root"
         return tinfo

@@ -46,7 +46,7 @@ class ConfigFile(object):
                 # each section is a repository
                 for rep in cp.sections():
                     # check if its a repo section
-                    if "image" not in cp.options(rep):
+                    if "path" not in cp.options(rep):
                         continue
                     # get all options in repo
                     self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))

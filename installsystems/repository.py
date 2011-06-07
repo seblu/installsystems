@@ -25,26 +25,27 @@ class Repository(object):
     def __init__(self, config, verbose=True):
         self.verbose = verbose
         self.config = config
-        self.db = Database(os.path.join(config.image, config.db), verbose=self.verbose)
-        self.last_path = os.path.join(config.image, config.last)
+        self.db = Database(os.path.join(config.path, config.dbname), verbose=self.verbose)
 
     @classmethod
     def create(cls, config, verbose=True):
         '''Create an empty base repository'''
+        # check local repository
+        if istools.pathtype(config.path) != "file":
+            raise NotImplementedError("Repository creation must be local")
         # create base directories
         arrow("Creating base directories", 1, verbose)
-        for d in (config.image, config.data):
-            try:
-                if os.path.exists(d):
-                    arrow("%s already exists" % d, 2, verbose)
-                else:
-                    istools.mkdir(d, config.chown, config.chgroup, config.dchmod)
-                    arrow("%s directory created" % d, 2, verbose)
-            except Exception as e:
-                raise
-                raise Exception("Unable to create directory %s: %s" % (d, e))
+        # creating local directory
+        try:
+            if os.path.exists(config.path):
+                arrow("%s already exists" % config.path, 2, verbose)
+            else:
+                istools.mkdir(config.path, config.chown, config.chgroup, config.dchmod)
+                arrow("%s directory created" % config.path, 2, verbose)
+        except Exception as e:
+            raise Exception("Unable to create directory %s: %s" % (config.path, e))
         # create database
-        dbpath = os.path.join(config.image, "db")
+        dbpath = os.path.join(config.path, config.dbname)
         d = Database.create(dbpath, verbose=verbose)
         istools.chrights(dbpath, config.chown, config.chgroup, config.fchmod)
         # create last file
@@ -55,46 +56,79 @@ class Repository(object):
 
     def update_last(self):
         '''Update last file to current time'''
+        # check local repository
+        if istools.pathtype(self.config.path) != "file":
+            raise NotImplementedError("Repository addition must be local")
         try:
-            open(self.last_path, "w").write("%s\n" % int(time.time()))
-            os.chown(self.last_path, self.config.chown, self.config.chgroup)
-            os.chmod(self.last_path, self.config.fchmod)
+            arrow("Updating last file", 1, self.verbose)
+            last_path = os.path.join(self.config.path, self.config.lastname)
+            open(last_path, "w").write("%s\n" % int(time.time()))
+            os.chown(last_path, self.config.chown, self.config.chgroup)
+            os.chmod(last_path, self.config.fchmod)
         except Exception as e:
             raise Exception("Update last file failed: %s" % e)
 
     def last(self):
         '''Return the last value'''
         try:
-            return int(open(self.last_path, "r").read().rstrip())
+            last_path = os.path.join(config.path, config.lastname)
+            return int(istools.uopen(last_path, "r").read().rstrip())
         except Exception as e:
             raise Exception("Read last file failed: %s" % e)
         return 0
 
     def add(self, package):
         '''Add a packaged image to repository'''
+        # check local repository
+        if istools.pathtype(self.config.path) != "file":
+            raise NotImplementedError("Repository addition must be local")
         # copy file to directory
-        arrow("Adding file to directories", 1, self.verbose)
-        arrow("Adding %s" % os.path.relpath(package.path), 2, self.verbose)
-        istools.copy(package.path, self.config.image,
-                     self.config.chown, self.config.chgroup, self.config.fchmod)
-        for db in package.databalls:
-            arrow("Adding %s" % os.path.basename(db), 2, self.verbose)
-            istools.copy(db, self.config.data,
-                         self.config.chown, self.config.chgroup, self.config.fchmod)
-        # add file to db
+        arrow("MD5summing tarballs", 1, self.verbose)
+        # build dict of file to add
+        filelist = dict()
+        # script tarball
+        arrow(package.filename, 2, self.verbose)
+        filelist[package.md5] = package.path
+        # data tarballs
+        datas = package.datas
+        for dt in datas:
+            dt_path = datas[dt]["path"]
+            old_md5 = datas[dt]["md5"]
+            arrow(os.path.relpath(dt_path), 2, self.verbose)
+            md5 = istools.md5sum(dt_path)
+            if md5 != old_md5:
+                raise Exception("MD5 mismatch on %s" % dt_path)
+            filelist[md5] = dt_path
+        # adding file to repository
+        arrow("Adding files to directory", 1, self.verbose)
+        for md5 in filelist:
+            dest = os.path.join(self.config.path, md5)
+            source = filelist[md5]
+            if os.path.exists(dest):
+                arrow("Skipping %s: already exists" % (os.path.basename(source)),
+                      2, self.verbose)
+            else:
+                arrow("Adding %s (%s)" % (os.path.basename(source), md5), 2, self.verbose)
+                istools.copy(source, dest,
+                             self.config.chown, self.config.chgroup, self.config.fchmod)
+        # add description to db
         self.db.add(package)
         # update last file
-        arrow("Updating last file", 1, self.verbose)
         self.update_last()
 
     def delete(self, name, version):
         '''Delete an image from repository'''
-        if self.db.find(name, version) is None:
+        raise NotImplementedError()
+        # check local repository
+        if istools.pathtype(self.config.path) != "file":
+            raise NotImplementedError("Repository deletion must be local")
+        desc = self.db.find(name, version)
+        if desc is None:
             error("Unable to find %s version %s in database" % (name, version))
         # removing script tarballs
         arrow("Removing script tarball", 1, self.verbose)
-        tpath = os.path.join(self.config.image,
-                             "%s-%s%s" % (name, version, Image.image_extension))
+        tpath = os.path.join(self.config.path,
+                             "%s-%s%s" % (name, version, Image.extension))
         if os.path.exists(tpath):
             os.unlink(tpath)
             arrow("%s removed" % os.path.basename(tpath), 2, self.verbose)
@@ -111,6 +145,10 @@ class Repository(object):
         arrow("Updating last file", 1, self.verbose)
         self.update_last()
 
+    def get(self, name, version):
+        '''return a package from a name and version of pakage'''
+        desc = self.db.get(name, version)
+        return PackageImage(os.path.join(self.config.path, desc["md5"]), verbose=self.verbose)
 
 class RepositoryConfig(object):
     '''Repository configuration container'''
@@ -118,10 +156,9 @@ class RepositoryConfig(object):
     def __init__(self, *args, **kwargs):
         # set default value for arguments
         self.name = args[0]
-        self.db = "db"
-        self.last = "last"
-        self.image = ""
-        self.data = ""
+        self.dbname = "db"
+        self.lastname = "last"
+        self.path = ""
         self.chown = os.getuid()
         self.chgroup = os.getgid()
         umask = os.umask(0)
@@ -131,8 +168,7 @@ class RepositoryConfig(object):
         self.update(**kwargs)
 
     def update(self, *args, **kwargs):
-        '''
-        Update attribute with checking value
+        '''Update attribute with checking value
         All attribute must already exists
         '''
         # autoset parameter in cmdline
@@ -172,6 +208,48 @@ class RepositoryConfig(object):
     def __contains__(self, key):
         return key in self.__dict__
 
+class RepositoryManager(object):
+    '''Manage multiple repostories'''
+
+    def __init__(self, timeout=None, verbose=True):
+        self.verbose = verbose
+        self.timeout = 3 if timeout is None else timeout
+        self.repos = {}
+
+    def register(self, configs):
+        '''Register a list of repository from its config'''
+        for conf in configs:
+            self.repos[conf.name] = Repository(conf, self.verbose)
+
+    def find_image(self, name, version):
+        '''Find a repository containing image'''
+        if version is None:
+            arrow("Serching last version of %s" % name, 1, self.verbose)
+        else:
+            arrow("Serching %s version %s " % (name, version), 1, self.verbose)
+        img = None
+        # search in all repositories
+        desc = None
+        for repo in self.repos:
+            desc = self.repos[repo].db.find(name, version)
+            if desc is not None:
+                # \o/
+                break
+        if desc is None:
+            arrow("Not found", 2, self.verbose)
+            if version is None:
+                error("Unable to find a version of image %s" % name)
+            else:
+                error("Unable to find image %s version %s" % (name, version))
+        arrow("Found %s version %s " % (desc["name"], desc["version"]), 2, self.verbose)
+        return (desc, self.repos[repo])
+
+    def get(self, name, version=None):
+        '''Return a package object from local cache'''
+        # find an image name/version in repository
+        (desc, repo) = self.find_image(name, version)
+        # get pkg object
+        return repo.get(desc["name"], desc["version"])
 
 class RepositoryCache(object):
     '''Local repository cache class'''

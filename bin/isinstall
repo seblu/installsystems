@@ -9,14 +9,14 @@ InstallSystems Installation Tool
 import os
 import time
 import datetime
+import argparse
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
-from installsystems.repository import RepositoryCache
+from installsystems.repository import RepositoryManager
 from installsystems.image import PackageImage
 from installsystems.config import ConfigFile
-# The following import can be removed when min version will be python 2.7
-import installsystems.argparse as argparse
+
 
 class DebugAction(argparse.Action):
     '''Set installsystems in debug mode. Argparse callback'''
@@ -38,7 +38,7 @@ p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
                     help="config file path")
 p_main.add_argument("-v", "--image-version", dest="image_version", type=int, default=None,
                     help="image version")
-p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
+p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
                     help="download timeout")
 p_main.add_argument("image_name", type=str,
                     help="image to install (path or name)")
@@ -53,13 +53,11 @@ try:
         pkg = PackageImage(istools.abspath(args.image_name))
     elif image_name_type == "name":
         # init repo cache object
-        repocache = RepositoryCache(config.cache, timeout=args.timeout, verbose=args.verbose)
+        repoman = RepositoryManager(timeout=args.timeout, verbose=args.verbose)
         # register repositories
-        repocache.register(config.repos)
-        # update remote info
-        repocache.update()
+        repoman.register(config.repos)
         # get image package
-        pkg = repocache.get(args.image_name, args.image_version)
+        pkg = repoman.get(args.image_name, args.image_version)
     else:
         p_main.print_usage()
         exit(1)

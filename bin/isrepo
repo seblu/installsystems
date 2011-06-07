@@ -7,13 +7,12 @@ InstallSystems Repository Manipulation Tool
 '''
 
 import os
+import argparse
 import installsystems
 from installsystems.printer import *
-from installsystems.repository import Repository
+from installsystems.repository import Repository, RepositoryConfig
 from installsystems.image import PackageImage
 from installsystems.config import ConfigFile
-# The following import can be removed when min version will be python 2.7
-import installsystems.argparse as argparse
 
 class DebugAction(argparse.Action):
     '''Set installsystems in debug mode. Argparse callback'''
@@ -27,24 +26,24 @@ def init(args):
     '''Create an empty fresh repo tree'''
     # call init from library
     try:
-        Repository.create(args.repo, args.verbose)
+        Repository.create(args.repository, args.verbose)
     except Exception as e:
         raise Exception("init failed: %s" % e)
 
 def add(args):
     '''Add a package to repository'''
     try:
-        repo = Repository(args.repo, args.verbose)
+        repo = Repository(args.repository, args.verbose)
         pkg = PackageImage(args.path, args.verbose)
-        pkg.check_md5()
         repo.add(pkg)
     except Exception as e:
+        raise
         raise Exception("add failed: %s" % e)
 
 def delete(args):
     '''Remove a package from repository'''
     try:
-        repo = Repository(args.repo, args.verbose)
+        repo = Repository(args.repository, args.verbose)
         repo.delete(args.image_name, args.image_version)
     except Exception as e:
         raise Exception("del failed: %s" % e)
@@ -60,24 +59,20 @@ p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", defau
 p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
                     help="config file path")
 p_main.add_argument("-r", "--repo-name", dest="repo_name", type=str, default=None,
-                    help="repository name")
+                    help="repository name in config file")
 subparsers = p_main.add_subparsers()
 # Init command parser
 p_init = subparsers.add_parser("init", help=init.__doc__.lower())
-p_init.add_argument("repo_image", nargs="?", default=argparse.SUPPRESS,
-                    help="Path of the new image directory")
-p_init.add_argument("repo_data", nargs="?", default=argparse.SUPPRESS,
-                    help="Path of the new data directory")
 p_init.set_defaults(func=init)
 # Add command parser
 p_add =  subparsers.add_parser("add", help=add.__doc__.lower())
 p_add.add_argument("path", type=str)
 p_add.set_defaults(func=add)
 # Del command parser
-p_del =  subparsers.add_parser("del", help=delete.__doc__.lower())
-p_del.add_argument("image_name", type=str)
-p_del.add_argument("image_version", type=str)
-p_del.set_defaults(func=delete)
+#p_del =  subparsers.add_parser("del", help=delete.__doc__.lower())
+#p_del.add_argument("image_name", type=str)
+#p_del.add_argument("image_version", type=str)
+#p_del.set_defaults(func=delete)
 try:
     # Parse and run
     args = p_main.parse_args()
@@ -89,13 +84,12 @@ try:
     else:
         repos = config.repos
     if len(repos) == 1:
-        args.repo = repos[0]
+        args.repository = repos[0]
     elif len(repos) > 1:
         raise Exception("Please select a repository with -r")
-    else:
+    if len(repos) == 0 or not isinstance(args.repository, RepositoryConfig):
         raise Exception("No image repository found")
-    debug("Image repo: %s" % args.repo.image)
-    debug("Data repo: %s" % args.repo.data)
+    debug("Repository: %s" % args.repository.path)
     args.func(args)
 except Exception as e:
     p_main.print_usage()

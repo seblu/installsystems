@@ -10,11 +10,12 @@ import os
 import stat
 import time
 import json
-import StringIO
 import ConfigParser
 import subprocess
 import tarfile
 import re
+import cStringIO
+import shutil
 import installsystems.template as istemplate
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -43,6 +44,10 @@ class SourceImage(Image):
     @classmethod
     def create(cls, path, verbose=True):
         '''Create an empty source image'''
+        # check local repository
+        if istools.pathtype(path) != "file":
+            raise NotImplementedError("SourceImage must be local")
+        # main path
         parser_path = os.path.join(path, "parser")
         setup_path = os.path.join(path, "setup")
         data_path = os.path.join(path, "data")
@@ -82,16 +87,19 @@ class SourceImage(Image):
         return cls(path, verbose)
 
     def __init__(self, path, verbose=True):
+        # check local repository
+        if istools.pathtype(path) != "file":
+            raise NotImplementedError("SourceImage must be local")
         Image.__init__(self)
         self.base_path = path
         self.parser_path = os.path.join(path, "parser")
         self.setup_path = os.path.join(path, "setup")
         self.data_path = os.path.join(path, "data")
         self.verbose = verbose
-        self.valid_source_image()
+        self.validate_source_image()
         self.description = self.parse_description()
 
-    def valid_source_image(self):
+    def validate_source_image(self):
         '''Check if we are a valid SourceImage'''
         for d in (self.base_path, self.parser_path, self.setup_path, self.data_path):
             if not os.path.exists(d):
@@ -112,7 +120,7 @@ class SourceImage(Image):
         if os.path.exists(tarpath) and overwrite == False:
             raise Exception("Tarball already exists. Remove it before")
         #  Create data tarballs
-        data_d = self.create_data_tarballs()
+        self.create_data_tarballs()
         # generate description.json
         jdesc = self.generate_json_description()
         # creating scripts tarball
@@ -139,6 +147,7 @@ class SourceImage(Image):
         # closing tarball file
         tarball.close()
 
+    @property
     def data_tarballs(self):
         '''List all data tarballs in data directory'''
         databalls = dict()
@@ -147,36 +156,41 @@ class SourceImage(Image):
                                        self.description["version"],
                                        dname,
                                        self.extension_data)
-            databalls[filename] = os.path.abspath(os.path.join(self.data_path, dname))
+            databalls[dname] = filename
         return databalls
 
     def create_data_tarballs(self):
-        '''Create all data tarballs in data directory'''
+        '''
+        Create all data tarballs in data directory
+        Doen't compute md5 during creation because tarball can
+        be created manually
+        '''
         arrow("Creating data tarballs", 1, self.verbose)
         # build list of data tarball candidate
-        candidates = self.data_tarballs()
+        candidates = self.data_tarballs
         if len(candidates) == 0:
             arrow("No data tarball", 2, self.verbose)
             return
         # create tarballs
-        for candidate in candidates:
-            path = os.path.join(self.base_path, candidate)
-            if os.path.exists(path):
-                arrow("Tarball %s already exists." % candidate, 2, self.verbose)
+        for (dn, df) in candidates.items():
+            source_path = os.path.join(self.data_path, dn)
+            dest_path = os.path.join(self.base_path, df)
+            if os.path.exists(dest_path):
+                arrow("Tarball %s already exists." % df, 2, self.verbose)
             else:
-                arrow("Creating tarball %s" % candidate, 2, self.verbose)
-                self.create_data_tarball(path, candidates[candidate])
+                arrow("Creating tarball %s" % df, 2, self.verbose)
+                self.create_data_tarball(dest_path, source_path)
 
     def create_data_tarball(self, tar_path, data_path):
         '''Create a data tarball'''
+        # compute dname to set as a base directory
         dname = os.path.basename(data_path)
         # not derefence for directory. Verbatim copy.
         ddref = False if os.path.isdir(data_path) else True
         try:
-            # opening file
+            # Tarballing
             tarball = Tarball.open(tar_path, "w:gz", dereference=ddref)
-            tarball.add(data_path, arcname=dname, recursive=True)
-            # closing tarball file
+            tarball.add(data_path, arcname="/", recursive=True)
             tarball.close()
         except Exception as e:
             raise Exception("Unable to create data tarball %s: %s" % (tar_path, e))
@@ -191,7 +205,7 @@ class SourceImage(Image):
         return tinfo
 
     def generate_json_description(self):
-        '''Generate a json description file'''
+        '''Generate a JSON description file'''
         arrow("Generating JSON description", 1, self.verbose)
         # copy description
         desc = self.description.copy()
@@ -200,13 +214,11 @@ class SourceImage(Image):
         desc["date"] = int(time.time())
         # append data tarballs info
         desc["data"] = dict()
-        for dt in self.data_tarballs():
-            arrow("Compute MD5 of %s" % dt, 2, self.verbose)
-            path = os.path.join(self.base_path, dt)
-            desc["data"][dt] = { "size": os.path.getsize(path),
-                                 "md5": istools.md5sum(path) }
-        # create file
-        filedesc = StringIO.StringIO()
+        for (dn, df) in self.data_tarballs.items():
+            arrow("Compute MD5 of %s" % df, 2, self.verbose)
+            tb_path = os.path.join(self.base_path, df)
+            desc["data"][dn] = { "size": os.path.getsize(tb_path),
+                                 "md5": istools.md5sum(tb_path) }
         # serialize
         return json.dumps(desc)
 
@@ -221,24 +233,36 @@ class SourceImage(Image):
             for n in ("name","version", "description", "author"):
                 d[n] = cp.get("image", n)
         except Exception as e:
-            raise Exception("description: %s" % e)
+            raise Exception("Invalid description: %s" % e)
         return d
+
 
 class PackageImage(Image):
     '''Packaged image manipulation class'''
 
     def __init__(self, path, verbose=True):
         Image.__init__(self)
-        self.path = os.path.abspath(path)
+        self.path = istools.abspath(path)
         self.base_path = os.path.dirname(self.path)
         self.verbose = verbose
-        self.tarball = Tarball.open(self.path, mode='r:gz')
+        # load image in memory
+        arrow("Loading tarball in memory", 1, verbose)
+        self.file = cStringIO.StringIO()
+        fo = istools.uopen(self.path)
+        shutil.copyfileobj(fo, self.file)
+        fo.close()
+        # set tarball fo
+        self.file.seek(0)
+        self.tarball = Tarball.open(fileobj=self.file, mode='r:gz')
         self.parse()
+        self._md5 = None
 
     @property
     def md5(self):
         '''Return md5sum of the current tarball'''
-        return istools.md5sum(self.path)
+        if self._md5 is None:
+            self._md5 = istools.md5sum(self.path)
+        return self._md5
 
     @property
     def id(self):
@@ -263,7 +287,12 @@ class PackageImage(Image):
     @property
     def datas(self):
         '''Create a dict of data tarballs'''
-        return dict(self.description["data"])
+        d = dict()
+        for dt in self.description["data"]:
+            d[dt] = dict(self.description["data"][dt])
+            d[dt]["filename"] = "%s-%s%s" % (self.id, dt, self.extension_data)
+            d[dt]["path"] = os.path.join(self.base_path, d[dt]["filename"])
+        return d
 
     def parse(self):
         '''Parse tarball and extract metadata'''
@@ -311,10 +340,56 @@ class PackageImage(Image):
         # order matter!
         l_scripts.sort()
         # run scripts
-        try:
-            for n_scripts in l_scripts:
-                arrow(os.path.basename(n_scripts), 2, self.verbose)
+        for n_scripts in l_scripts:
+            arrow(os.path.basename(n_scripts), 2, self.verbose)
+            try:
                 s_scripts = self.tarball.get_str(n_scripts)
+            except Exception as e:
+                raise Exception("Extracting script %s fail: %s" %
+                                (os.path.basename(n_scripts), e))
+            try:
                 exec(s_scripts, gl, dict())
+            except Exception as e:
+                raise
+                raise Exception("Execution script %s fail: %s" %
+                                (os.path.basename(n_scripts), e))
+
+    def extractdata(self, dataname, target, filelist=None):
+        '''Extract a data tarball into target'''
+        # check if dataname exists
+        if dataname not in self.description["data"].keys():
+            raise Exception("No such data")
+        # tarball info
+        tinfo = self.description["data"][dataname]
+        # build data tar paths
+        paths = [ os.path.join(self.base_path, tinfo["md5"]),
+                  os.path.join(self.base_path, "%s-%s%s" % (self.id,
+                                                            dataname,
+                                                            self.extension_data)) ]
+        # try to open path
+        fo = None
+        for path in paths:
+            try:
+                fo = istools.uopen(path)
+                break
+            except Exception:
+                pass
+        # error if no file is openned
+        if fo is None:
+            raise Exception("Unable to open data tarball")
+        try:
+            # create tar object
+            t = Tarball.open(fileobj=fo, mode="r|gz")
         except Exception as e:
-            raise Exception("%s fail: %s" % (os.path.basename(n_scripts), e))
+            raise Exception("Invalid data tarball: %s" % e)
+        # filter on file to extact
+        if filelist is not None:
+            members = []
+            for fi in filelist:
+                members += t.gettarinfo(name)
+        else:
+            members = None
+        try:
+            t.extractall(target, members)
+        except Exception as e:
+            raise Exception("Extracting failed: %s" % e)

@@ -81,8 +81,10 @@ def abspath(path):
     else:
         return None
 
-def ropen(path):
-    '''Open a file which can be remote'''
+def uopen(path):
+    '''Universal Open
+    Create a file-like object to a file which can be remote
+    '''
     ftype = pathtype(path)
     if ftype == "file":
         return open(path, "r")

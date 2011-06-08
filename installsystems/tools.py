@@ -12,10 +12,18 @@ import shutil
 import urllib2
 from installsystems.tarball import Tarball
 
-def md5sum(path):
+def md5sum(path=None, fileobj=None):
     '''Compute md5 of a file'''
+    if path is None and fileobj is None:
+        raise ValueError("No path or fileobj specified")
+    if fileobj is None:
+        fileobj = uopen(path)
     m = hashlib.md5()
-    m.update(open(path, "r").read())
+    while True:
+        buf = fileobj.read(1024 * m.block_size)
+        if len(buf) == 0:
+            break
+        m.update(buf)
     return m.hexdigest()
 
 def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
@@ -92,22 +100,3 @@ def uopen(path):
         return urllib2.urlopen(path)
     else:
         raise NotImplementedError
-
-def extractdata(image, name, target, filelist=None):
-    '''Extract a databall name into target
-    This will be done accross a forking to allow higher performance and
-    on the fly checksumming
-    '''
-    filename = "%s-%s%s" % (image.id, name, image.extension_data)
-    if filename not in image.datas.keys():
-        raise Exception("No such data tarball in %s" % image.name)
-    datainfo = image.datas[filename]
-    fileobject = ropen(filename)
-    tarball = Tarball.open(fileobj=fileobject, mode="r|gz")
-    if filelist is None:
-        tarball.extractall(target)
-    else:
-        for f in filelist:
-            tarball.extract(f, target)
-    tarball.close()
-    fileobject.close()

@@ -148,7 +148,10 @@ class Repository(object):
     def get(self, name, version):
         '''return a package from a name and version of pakage'''
         desc = self.db.get(name, version)
-        return PackageImage(os.path.join(self.config.path, desc["md5"]), verbose=self.verbose)
+        p = PackageImage(os.path.join(self.config.path, desc["md5"]), verbose=self.verbose)
+        if p.md5 != desc["md5"]:
+            raise Exception("Invalid package MD5")
+        return p
 
 class RepositoryConfig(object):
     '''Repository configuration container'''

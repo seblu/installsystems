@@ -227,9 +227,9 @@ class RepositoryManager(object):
     def find_image(self, name, version):
         '''Find a repository containing image'''
         if version is None:
-            arrow("Serching last version of %s" % name, 1, self.verbose)
+            arrow("Searching last version of %s" % name, 1, self.verbose)
         else:
-            arrow("Serching %s version %s " % (name, version), 1, self.verbose)
+            arrow("Searching %s version %s " % (name, version), 1, self.verbose)
         img = None
         # search in all repositories
         desc = None
@@ -331,9 +331,9 @@ class RepositoryCache(object):
     def find_image(self, name, version):
         '''Find an image in repositories'''
         if version is None:
-            arrow("Serching last version of %s" % name, 1, self.verbose)
+            arrow("Searching last version of %s" % name, 1, self.verbose)
         else:
-            arrow("Serching %s version %s " % (name, version), 1, self.verbose)
+            arrow("Searching %s version %s " % (name, version), 1, self.verbose)
         img = None
         # search in all repositories
         for repo in self.repos:

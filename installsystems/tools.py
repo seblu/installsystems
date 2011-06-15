@@ -63,7 +63,7 @@ def chrights(path, uid=None, gid=None, mode=None):
         os.chmod(path, mode)
 
 def pathtype(path):
-    '''Return path type. This is usefull to know what king of path is given'''
+    '''Return path type. This is usefull to know what kind of path is given'''
     from installsystems.image import Image
     if path.startswith("http://") or path.startswith("https://"):
         return "http"

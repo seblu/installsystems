@@ -162,7 +162,7 @@ class SourceImage(Image):
     def create_data_tarballs(self):
         '''
         Create all data tarballs in data directory
-        Doen't compute md5 during creation because tarball can
+        Doesn't compute md5 during creation because tarball can
         be created manually
         '''
         arrow("Creating data tarballs", 1, self.verbose)

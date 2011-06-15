@@ -96,7 +96,7 @@ class Database(object):
             raise Exception("Adding metadata fail: %s" % e)
 
     def delete(self, name, version):
-        '''Deltete a packaged image'''
+        '''Delete a packaged image'''
         arrow("Removing metadata from db", 1, self.verbose)
         # check locality
         if istools.pathtype(self.path) != "file":

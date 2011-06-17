@@ -83,7 +83,7 @@ class Repository(object):
         if istools.pathtype(self.config.path) != "file":
             raise NotImplementedError("Repository addition must be local")
         # checking data tarballs md5 before copy
-        package.tarcheck("Check tarballs before copy")
+        package.check("Check tarballs before copy")
         # adding file to repository
         arrow("Copying files", 1, self.verbose)
         for src,value in package.tarballs.items():
@@ -98,7 +98,7 @@ class Repository(object):
         r_package = PackageImage(os.path.join(self.config.path, package.md5),
                                  md5name=True, verbose=self.verbose)
         # checking data tarballs md5 after copy
-        r_package.tarcheck("Check tarballs after copy")
+        r_package.check("Check tarballs after copy")
         # add description to db
         self.db.add(r_package)
         # update last file
@@ -138,15 +138,14 @@ class Repository(object):
 
     def get(self, name, version):
         '''return a package from a name and version of pakage'''
-        debug("Getting %s v%s" % (name, version))
         # get file md5 from db
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name,version)).fetchone()
         if r is None:
             raise Exception("No such image %s version %s" % name, version)
-        return PackageImage(os.path.join(self.config.path, r[0]),
-                            md5name=True,
-                            verbose=self.verbose)
+        path = os.path.join(self.config.path, r[0])
+        debug("Getting %s v%s from %s" % (name, version, path))
+        return PackageImage(path, md5name=True, verbose=self.verbose)
 
     def last(self, name):
         '''Return last version of name in repo or -1 if not found'''

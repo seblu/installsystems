@@ -293,6 +293,12 @@ class PackageImage(Image):
         # FIXME: we should check valid information here
         return desc
 
+    def data_path(self, name):
+        '''Return a data filename from its internal name'''
+        if self.md5name:
+            return os.path.join(self.base_path, self._metadata["data"][name]["md5"])
+        return os.path.join(self.base_path, "%s-%s%s" % (self.id, name, self.extension_data))
+
     @property
     def tarballs(self):
         '''List path of all related tarballs'''
@@ -300,15 +306,10 @@ class PackageImage(Image):
         name = os.path.join(self.base_path, self.md5) if self.md5name else self.path
         d_d[name] = {"md5": self.md5, "size": self.size}
         for key, value in self._metadata["data"].items():
-            if self.md5name:
-                name = os.path.join(self.base_path, value["md5"])
-            else:
-                name = os.path.join(self.base_path,
-                                    "%s-%s%s" % (self.id, key, self.extension_data))
-            d_d[name] = {"md5": value["md5"], "size": value["size"]}
+            d_d[self.data_path(key)] = {"md5": value["md5"], "size": value["size"]}
         return d_d
 
-    def tarcheck(self, message="Check MD5"):
+    def check(self, message="Check MD5"):
         '''Check md5 and size of tarballs are correct'''
         arrow(message, 1, self.verbose)
         # open  /dev/null
@@ -368,33 +369,18 @@ class PackageImage(Image):
         # tarball info
         tinfo = self._metadata["data"][dataname]
         # build data tar paths
-        paths = [ os.path.join(self.base_path, tinfo["md5"]),
-                  os.path.join(self.base_path, "%s-%s%s" % (self.id,
-                                                            dataname,
-                                                            self.extension_data)) ]
-        # try to open path
-        fo = None
-        for path in paths:
-            try:
-                fo = istools.uopen(path)
-                break
-            except Exception:
-                pass
-        # error if no file is openned
-        if fo is None:
-            raise Exception("Unable to open data tarball")
+        path = self.data_path(dataname)
+        try:
+            fo = istools.uopen(path)
+        except Exception as e:
+            raise Exception("Unable to open data tarball %s" % path)
         try:
             # create tar object
             t = Tarball.open(fileobj=fo, mode="r|gz")
         except Exception as e:
             raise Exception("Invalid data tarball: %s" % e)
         # filter on file to extact
-        if filelist is not None:
-            members = []
-            for fi in filelist:
-                members += t.gettarinfo(name)
-        else:
-            members = None
+        members = None if filelist is None else [ t.gettarinfo(name) for name in filelist ]
         try:
             t.extractall(target, members)
         except Exception as e:

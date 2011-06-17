@@ -128,35 +128,3 @@ class Database(object):
             os.rename(newdb_path, self.path)
         except Exception as e:
             raise Exception("Removing metadata fail: %s" % e)
-
-    def databalls(self, name, version):
-        '''List data tarballs filenames'''
-        try:
-            self.file.seek(0)
-            db = Tarball.open(fileobj=self.file, mode='r:gz')
-            jdesc = json.loads(db.get_str("%s-%s.json" % (name, version)))
-            db.close()
-            return jdesc["data"]
-        except Exception as e:
-            raise Exception("List data tarballs fail: %s" % e)
-
-    def find(self, name, version=None):
-        '''Find last version of an image'''
-        try:
-            self.file.seek(0)
-            tarb = Tarball.open(fileobj=self.file, mode='r:gz')
-            candidates = [ int((os.path.splitext(tpname)[0]).rsplit("-", 1)[1])
-                           for tpname in tarb.getnames("%s-\d+" % name) ]
-            tarb.close()
-        except Exception as e:
-            raise Exception("Find in db %s fail: %s" % (self.path, e))
-        # no candidates => go west
-        if len(candidates) == 0:
-            return None
-        # get last version
-        if version is None:
-            version = max(candidates)
-        # check if version exists
-        if int(version) not in candidates:
-            return None
-        return self.get(name, version)

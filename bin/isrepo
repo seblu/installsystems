@@ -7,8 +7,8 @@ InstallSystems Repository Manipulation Tool
 '''
 
 import os
-import argparse
 import installsystems
+import installsystems.argparse as argparse # To remove when default to python 2.7
 from installsystems.printer import *
 from installsystems.repository import Repository, RepositoryConfig
 from installsystems.image import PackageImage

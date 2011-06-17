@@ -9,9 +9,9 @@ InstallSystems Installation Tool
 import os
 import time
 import datetime
-import argparse
 import installsystems
 import installsystems.tools as istools
+import installsystems.argparse as argparse # To remove when default to python 2.7
 from installsystems.printer import *
 from installsystems.repository import RepositoryManager, RepositoryConfig
 from installsystems.image import PackageImage

@@ -9,7 +9,6 @@ Database stuff
 import json
 import os
 import shutil
-import tarfile
 import cStringIO
 import sqlite3
 import installsystems.tools as istools

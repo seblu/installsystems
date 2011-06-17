@@ -28,3 +28,20 @@ image.extractdata("rootfs", args.target)
 
 # vim:set ts=2 sw=2 noet:
 """
+
+createdb = """
+CREATE TABLE image (md5 TEXT NOT NULL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    date INTEGER NOT NULL,
+                    author TEXT,
+                    description TEXT,
+                    size INTEGER NOT NULL,
+                    UNIQUE(name, version));
+
+CREATE TABLE data (md5 TEXT NOT NULL,
+                   image_md5 TEXT NOT NULL REFERENCES image(md5),
+                   name TEXT NOT NULL,
+                   size INTEGER NOT NULL,
+                   PRIMARY KEY(md5, image_md5));
+"""

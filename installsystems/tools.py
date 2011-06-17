@@ -26,6 +26,20 @@ def md5sum(path=None, fileobj=None):
         m.update(buf)
     return m.hexdigest()
 
+def copyfileobj(sfile, dfile):
+    """Copy data from sfile to dfile coputing length and md5 on the fly"""
+    f_sum = hashlib.md5()
+    f_len = 0
+    while True:
+        buf = sfile.read(1024 * f_sum.block_size)
+        buf_len = len(buf)
+        if buf_len == 0:
+            break
+        f_len += buf_len
+        f_sum.update(buf)
+        dfile.write(buf)
+    return (f_len , f_sum.hexdigest())
+
 def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
     '''Copy a source to destination. Take care of path type'''
     stype = pathtype(source)

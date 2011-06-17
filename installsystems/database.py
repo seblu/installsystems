@@ -11,12 +11,16 @@ import os
 import shutil
 import tarfile
 import cStringIO
+import sqlite3
 import installsystems.tools as istools
+import installsystems.template as istemplate
 from installsystems.tarball import Tarball
 from installsystems.printer import *
 
 class Database(object):
-    '''Abstract repo database stuff'''
+    '''  Abstract repo database stuff
+    It needs to be local cause of sqlite3 which need to open a file
+    '''
 
     db_format = "1"
 
@@ -26,23 +30,27 @@ class Database(object):
         # check locality
         if istools.pathtype(path) != "file":
             raise NotImplementedError("Database creation must be local")
-        dbpath = istools.abspath(path)
-        if os.path.exists(dbpath):
+        path = os.path.abspath(path)
+        if os.path.exists(path):
             raise Exception("Database already exists. Remove it before")
         try:
-            tarball = Tarball.open(dbpath, mode="w:gz", dereference=True)
-            tarball.add_str("format", Database.db_format, tarfile.REGTYPE, 0444)
-            tarball.close()
+            conn = sqlite3.connect(path, isolation_level=None)
+            conn.execute("PRAGMA foreign_keys = ON")
+            conn.executescript(istemplate.createdb)
+            conn.commit()
+            conn.close()
         except Exception as e:
             raise Exception("Create database failed: %s" % e)
         return cls(path, verbose)
 
     def __init__(self, path, verbose=True):
-        self.path = istools.abspath(path)
+        # check locality
+        if istools.pathtype(path) != "file":
+            raise NotImplementedError("Database creation must be local")
+        self.path = os.path.abspath(path)
         self.verbose = verbose
-        # load db in memory
-        self.file = cStringIO.StringIO()
-        shutil.copyfileobj(istools.uopen(self.path), self.file)
+        self.conn = sqlite3.connect(self.path, isolation_level=None)
+        self.conn.execute("PRAGMA foreign_keys = ON")
 
     def get(self, name, version):
         '''Return a description dict from a package name'''
@@ -55,44 +63,48 @@ class Database(object):
         except KeyError:
             raise Exception("No package %s version %s in metadata" % (name, version))
         except Exception as e:
-            raise Exception("Unable to read db %s version %s: e" % (name, version, e))
+            raise Exception("Unable to read db %s version %s: %s" % (name, version, e))
         # convert loaded data into dict (json parser)
         try:
             return json.loads(rdata)
         except Exception as e:
             raise Exception("Invalid metadata in package %s version %s: e" % (name, version, e))
 
+    def ask(self, sql, args=()):
+        '''Ask question to db'''
+        return self.conn.execute(sql, args)
+
     def add(self, package):
         '''Add a packaged image to a db'''
-        arrow("Adding metadata to db", 1, self.verbose)
-        # check locality
-        if istools.pathtype(self.path) != "file":
-            raise NotImplementedError("Database addition must be local")
-        # naming
-        newdb_path = "%s.new" % self.path
-        # compute md5
-        arrow("Formating metadata", 2, self.verbose)
-        desc = package.description
-        desc["md5"] = package.md5
-        jdesc = json.dumps(desc)
         try:
-            arrow("Adding metadata", 2, self.verbose)
-            self.file.seek(0)
-            newfile = cStringIO.StringIO()
-            db = Tarball.open(fileobj=self.file, mode='r:gz')
-            newdb = Tarball.open(fileobj=newfile, mode='w:gz')
-            for ti in db.getmembers():
-                if ti.name != package.id:
-                    newdb.addfile(ti, db.extractfile(ti))
-            newdb.add_str(package.id, jdesc, tarfile.REGTYPE, 0644)
-            db.close()
-            newdb.close()
-            # writing to disk
-            arrow("Writing to disk", 2, self.verbose)
-            self.file.close()
-            self.file = newfile
-            self.write()
+            # let's go
+            arrow("Begin transaction to db", 1, self.verbose)
+            self.conn.execute("BEGIN TRANSACTION")
+            # insert image information
+            arrow("Add image metadata", 2, self.verbose)
+            self.conn.execute("INSERT OR REPLACE INTO image values (?,?,?,?,?,?,?)",
+                              (package.md5,
+                               package.name,
+                               package.version,
+                               package.date,
+                               package.author,
+                               package.description,
+                               package.size,
+                               ))
+            # insert data informations
+            arrow("Add data metadata", 2, self.verbose)
+            for key,value in package.data.items():
+                self.conn.execute("INSERT OR REPLACE INTO data values (?,?,?,?)",
+                                  (value["md5"],
+                                   package.md5,
+                                   key,
+                                   value["size"]
+                                   ))
+            # on commit
+            arrow("Commit transaction to db", 1, self.verbose)
+            self.conn.execute("COMMIT TRANSACTION")
         except Exception as e:
+            raise
             raise Exception("Adding metadata fail: %s" % e)
 
     def delete(self, name, version):
@@ -148,14 +160,3 @@ class Database(object):
         if int(version) not in candidates:
             return None
         return self.get(name, version)
-
-    def write(self):
-        '''Write current dabatase into its file'''
-        if istools.pathtype(self.path) != "file":
-            raise NotImplementedError("Database writing must be local")
-        try:
-            dest = open(self.path, "w")
-            self.file.seek(0)
-            shutil.copyfileobj(self.file, dest)
-        except Exception as e:
-            raise Exception("Unable to write database: %s" % e)

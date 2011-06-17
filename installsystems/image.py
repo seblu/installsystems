@@ -240,88 +240,94 @@ class SourceImage(Image):
 class PackageImage(Image):
     '''Packaged image manipulation class'''
 
-    def __init__(self, path, verbose=True):
+    def __init__(self, path, md5name=False, verbose=True):
         Image.__init__(self)
         self.path = istools.abspath(path)
         self.base_path = os.path.dirname(self.path)
         self.verbose = verbose
+        # tarball are named by md5 and not by real name
+        self.md5name = md5name
         # load image in memory
         arrow("Loading tarball in memory", 1, verbose)
-        self.file = cStringIO.StringIO()
+        memfile = cStringIO.StringIO()
         fo = istools.uopen(self.path)
-        shutil.copyfileobj(fo, self.file)
+        (self.size, self.md5) = istools.copyfileobj(fo, memfile)
         fo.close()
         # set tarball fo
-        self.file.seek(0)
-        self.tarball = Tarball.open(fileobj=self.file, mode='r:gz')
-        self.parse()
-        self._md5 = None
+        memfile.seek(0)
+        self._tarball = Tarball.open(fileobj=memfile, mode='r:gz')
+        self._metadata = self.read_metadata()
 
-    @property
-    def md5(self):
-        '''Return md5sum of the current tarball'''
-        if self._md5 is None:
-            self._md5 = istools.md5sum(self.path)
-        return self._md5
+    def __getattr__(self, name):
+        """Give direct access to description field"""
+        if name in self._metadata:
+            return self._metadata[name]
+        raise AttributeError
 
     @property
     def id(self):
         '''Return image versionned name / id'''
-        return "%s-%s" % (self.description["name"], self.description["version"])
-
-    @property
-    def name(self):
-        '''Return image name'''
-        return self.description["name"]
-
-    @property
-    def version(self):
-        '''Return image version'''
-        return self.description["version"]
+        return "%s-%s" % (self._metadata["name"], self._metadata["version"])
 
     @property
     def filename(self):
         '''Return image filename'''
         return "%s%s" % (self.id, self.extension)
 
-    @property
-    def datas(self):
-        '''Create a dict of data tarballs'''
-        d = dict()
-        for dt in self.description["data"]:
-            d[dt] = dict(self.description["data"][dt])
-            d[dt]["filename"] = "%s-%s%s" % (self.id, dt, self.extension_data)
-            d[dt]["path"] = os.path.join(self.base_path, d[dt]["filename"])
-        return d
-
-    def parse(self):
-        '''Parse tarball and extract metadata'''
+    def read_metadata(self):
+        '''Parse tarball and return metadata dict'''
         # extract metadata
         arrow("Read tarball metadata", 1, self.verbose)
-        img_format = self.tarball.get_str("format")
-        img_desc = self.tarball.get_str("description.json")
+        img_format = self._tarball.get_str("format")
+        img_desc = self._tarball.get_str("description.json")
         # check format
-        arrow("Read format", 2, self.verbose)
+        arrow("Read format file", 2, self.verbose)
         if img_format != self.format:
             raise Exception("Invalid tarball image format")
         # check description
-        arrow("Read description", 2, self.verbose)
+        arrow("Read description file", 2, self.verbose)
         try:
-            self.description = json.loads(img_desc)
+            desc = json.loads(img_desc)
         except Exception as e:
             raise Exception("Invalid description: %s" % e1)
+        # FIXME: we should check valid information here
+        return desc
 
-    def check_md5(self):
-        '''Check if md5 of data tarballs are correct'''
-        arrow("Check MD5", 1, self.verbose)
-        databalls = self.description["data"]
-        for databall in databalls:
-            md5_path = os.path.join(self.base_path, databall)
-            arrow(os.path.relpath(md5_path), 2, self.verbose)
-            md5_meta = databalls[databall]["md5"]
-            md5_file = istools.md5sum(md5_path)
-            if md5_meta != md5_file:
-                raise Exception("Invalid md5: %s" % databall)
+    @property
+    def tarballs(self):
+        '''List path of all related tarballs'''
+        d_d = {}
+        name = os.path.join(self.base_path, self.md5) if self.md5name else self.path
+        d_d[name] = {"md5": self.md5, "size": self.size}
+        for key, value in self._metadata["data"].items():
+            if self.md5name:
+                name = os.path.join(self.base_path, value["md5"])
+            else:
+                name = os.path.join(self.base_path,
+                                    "%s-%s%s" % (self.id, key, self.extension_data))
+            d_d[name] = {"md5": value["md5"], "size": value["size"]}
+        return d_d
+
+    def tarcheck(self, message="Check MD5"):
+        '''Check md5 and size of tarballs are correct'''
+        arrow(message, 1, self.verbose)
+        # open  /dev/null
+        dn = open("/dev/null", "w")
+        for key,value in self.tarballs.items():
+            arrow(os.path.basename(key), 2, self.verbose)
+            # open tarball
+            tfo = istools.uopen(key)
+            # compute sum and md5 using copy function
+            size, md5 = istools.copyfileobj(tfo ,dn)
+            # close tarball fo
+            tfo.close()
+            # check md5
+            if md5 != value["md5"]:
+                raise Exception("Invalid md5: %s" % key)
+            # check size
+            if size != value["size"]:
+                raise Exception("Invalid size: %s" % key)
+        dn.close()
 
     def run_parser(self, gl):
         '''Run parser scripts'''
@@ -336,14 +342,14 @@ class PackageImage(Image):
         '''Run scripts in a tarball directory'''
         arrow("Run %s" % directory, 1, self.verbose)
         # get list of parser scripts
-        l_scripts = self.tarball.getnames("%s/.*\.py" % directory)
+        l_scripts = self._tarball.getnames("%s/.*\.py" % directory)
         # order matter!
         l_scripts.sort()
         # run scripts
         for n_scripts in l_scripts:
             arrow(os.path.basename(n_scripts), 2, self.verbose)
             try:
-                s_scripts = self.tarball.get_str(n_scripts)
+                s_scripts = self._tarball.get_str(n_scripts)
             except Exception as e:
                 raise Exception("Extracting script %s fail: %s" %
                                 (os.path.basename(n_scripts), e))
@@ -357,10 +363,10 @@ class PackageImage(Image):
     def extractdata(self, dataname, target, filelist=None):
         '''Extract a data tarball into target'''
         # check if dataname exists
-        if dataname not in self.description["data"].keys():
-            raise Exception("No such data")
+        if dataname not in self._metadata["data"].keys():
+            raise Exception("No such data: %s" % dataname)
         # tarball info
-        tinfo = self.description["data"][dataname]
+        tinfo = self._metadata["data"][dataname]
         # build data tar paths
         paths = [ os.path.join(self.base_path, tinfo["md5"]),
                   os.path.join(self.base_path, "%s-%s%s" % (self.id,

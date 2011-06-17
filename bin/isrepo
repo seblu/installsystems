@@ -26,24 +26,23 @@ def init(args):
     '''Create an empty fresh repo tree'''
     # call init from library
     try:
-        Repository.create(args.repository, args.verbose)
+        Repository.create(args.repository, verbose=args.verbose)
     except Exception as e:
         raise Exception("init failed: %s" % e)
 
 def add(args):
     '''Add a package to repository'''
     try:
-        repo = Repository(args.repository, args.verbose)
-        pkg = PackageImage(args.path, args.verbose)
+        repo = Repository(args.repository, verbose=args.verbose)
+        pkg = PackageImage(args.path, verbose=args.verbose)
         repo.add(pkg)
     except Exception as e:
-        raise
         raise Exception("add failed: %s" % e)
 
 def delete(args):
     '''Remove a package from repository'''
     try:
-        repo = Repository(args.repository, args.verbose)
+        repo = Repository(args.repository, verbose=args.verbose)
         repo.delete(args.image_name, args.image_version)
     except Exception as e:
         raise Exception("del failed: %s" % e)

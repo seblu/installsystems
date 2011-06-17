@@ -13,7 +13,7 @@ import argparse
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
-from installsystems.repository import RepositoryManager
+from installsystems.repository import RepositoryManager, RepositoryConfig
 from installsystems.image import PackageImage
 from installsystems.config import ConfigFile
 
@@ -34,12 +34,16 @@ p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
                     help="active debug mode")
 p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
                     help="active quiet mode")
+p_main.add_argument("--no-cache", action="store_false", default=False,
+                    help="Not use persistent db caching")
 p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
                     help="config file path")
 p_main.add_argument("-v", "--image-version", dest="image_version", type=int, default=None,
                     help="image version")
 p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
                     help="download timeout")
+p_main.add_argument("-r", "--repo", dest="repos", action="append", default=[],
+                    help="repository (can be specified more than one time)")
 p_main.add_argument("image_name", type=str,
                     help="image to install (path or name)")
 try:
@@ -52,10 +56,17 @@ try:
     if image_name_type == "file":
         pkg = PackageImage(istools.abspath(args.image_name))
     elif image_name_type == "name":
+        # remove cache is asked
+        if args.no_cache:
+            config.cache = None
         # init repo cache object
-        repoman = RepositoryManager(timeout=args.timeout, verbose=args.verbose)
-        # register repositories
-        repoman.register(config.repos)
+        repoman = RepositoryManager(config.cache, timeout=args.timeout, verbose=args.verbose)
+        # register config repositories
+        for crepo in config.repos:
+            repoman.register(crepo)
+        # register command line repositories
+        for rpath in args.repos:
+            repoman.register(RepositoryConfig(None, path=rpath))
         # get image package
         pkg = repoman.get(args.image_name, args.image_version)
     else:

@@ -58,7 +58,7 @@ class ConfigFile(object):
 
     def _cache_paths(self):
         '''List all candidates to cache directories. Alive or not'''
-        dirs = ["/var/tmp", "/tmp"]
+        dirs = [] # ["/var/tmp", "/tmp"]
         # we have a different behaviour if we are root
         dirs.insert(0, "/var/cache" if os.getuid() == 0 else os.path.expanduser("~/.cache"))
         return map(lambda x: os.path.join(x, self.prefix), dirs)

@@ -379,6 +379,7 @@ class PackageImage(Image):
         '''
         Run parser scripts
         '''
+        gl["image"] = self
         self._run_scripts(gl, "parser")
 
     def run_setup(self, gl):
@@ -392,7 +393,7 @@ class PackageImage(Image):
         '''
         Run scripts in a tarball directory
         '''
-        arrow("Run %s" % directory, 1, self.verbose)
+        arrow("Run %s scripts" % directory, 1, self.verbose)
         # get list of parser scripts
         l_scripts = self._tarball.getnames("%s/.*\.py" % directory)
         # order matter!

@@ -74,12 +74,17 @@ try:
         exit(1)
     # install start time
     t0 = time.time()
+    # global dict of execution context
+    gl_exec = { "parser": p_main }
     # run parser scripts
-    pkg.run_parser({ "parser": p_main })
+    pkg.run_parser(gl_exec)
     # call parser again, with extended attributes
+    arrow("Run parser", 1, args.verbose)
     args = p_main.parse_args()
+    # add parser result to global dict
+    gl_exec["args"] = args
     # run setup scripts
-    pkg.run_setup({"args": args})
+    pkg.run_setup(gl_exec)
     # compute building time
     t1 = time.time()
     dt = int(t1 - t0)

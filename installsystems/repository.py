@@ -77,30 +77,33 @@ class Repository(object):
             raise Exception("Read last file failed: %s" % e)
         return 0
 
-    def add(self, package):
+    def add(self, image):
         '''Add a packaged image to repository'''
         # check local repository
         if istools.pathtype(self.config.path) != "file":
             raise NotImplementedError("Repository addition must be local")
         # checking data tarballs md5 before copy
-        package.check("Check tarballs before copy")
+        image.check("Check image and payload before copy")
         # adding file to repository
-        arrow("Copying files", 1, self.verbose)
-        for src,value in package.tarballs.items():
-            dest = os.path.join(self.config.path, value["md5"])
-            basesrc = os.path.basename(src)
+        arrow("Copying images and payload", 1, self.verbose)
+        for obj in [ image ] + image.payload.values():
+            dest = os.path.join(self.config.path, obj.md5)
+            basesrc = os.path.basename(obj.path)
             if os.path.exists(dest):
                 arrow("Skipping %s: already exists" % basesrc, 2, self.verbose)
             else:
-                arrow("Adding %s (%s)" % (basesrc, value["md5"]), 2, self.verbose)
-                istools.copy(src, dest, self.config.uid, self.config.gid, self.config.fmod)
-        # copy is done. create a package inside repo
-        r_package = PackageImage(os.path.join(self.config.path, package.md5),
+                arrow("Adding %s (%s)" % (basesrc, obj.md5), 2, self.verbose)
+                istools.copy(obj.path, dest,
+                             self.config.uid, self.config.gid, self.config.fmod)
+        # copy is done. create a image inside repo
+        r_image = PackageImage(os.path.join(self.config.path, image.md5),
                                  md5name=True, verbose=self.verbose)
-        # checking data tarballs md5 after copy
-        r_package.check("Check tarballs after copy")
+        # checking must be done with original md5
+        r_image.md5 = image.md5
+        # checking image and payload after copy
+        r_image.check("Check image and payload after copy")
         # add description to db
-        self.db.add(r_package)
+        self.db.add(r_image)
         # update last file
         self.update_last()
 
@@ -137,7 +140,7 @@ class Repository(object):
         return self.db.ask("select name,version from image where name = ? and version = ? limit 1", (name,version)).fetchone() is not None
 
     def get(self, name, version):
-        '''return a package from a name and version of pakage'''
+        '''return a image from a name and version of pakage'''
         # get file md5 from db
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name,version)).fetchone()

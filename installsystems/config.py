@@ -51,7 +51,6 @@ class ConfigFile(object):
                     # get all options in repo
                     self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))
             except Exception as e:
-                raise
                 raise Exception("Unable load file %s: %s" % (self.path, e))
         else:
             debug("No config file found")

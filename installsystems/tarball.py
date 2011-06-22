@@ -36,3 +36,10 @@ class Tarball(tarfile.TarFile):
         else:
             return [ tpname for tpname in lorig
                      if re.match(reg_pattern, tpname) ]
+
+    def size(self):
+        '''Return real (uncompressed) size of the tarball'''
+        total_sz = 0
+        for ti in self.getmembers():
+            total_sz += ti.size
+        return total_sz

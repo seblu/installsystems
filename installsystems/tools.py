@@ -37,7 +37,8 @@ def copyfileobj(sfile, dfile):
             break
         f_len += buf_len
         f_sum.update(buf)
-        dfile.write(buf)
+        if dfile is not None:
+            dfile.write(buf)
     return (f_len , f_sum.hexdigest())
 
 def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
@@ -67,7 +68,7 @@ def mkdir(path, uid=None, gid=None, mode=None):
     os.mkdir(path)
     chrights(path, uid, gid, mode)
 
-def chrights(path, uid=None, gid=None, mode=None):
+def chrights(path, uid=None, gid=None, mode=None, mtime=None):
     '''Set rights on a file'''
     if uid is not None:
         os.chown(path, uid, -1)
@@ -75,6 +76,8 @@ def chrights(path, uid=None, gid=None, mode=None):
         os.chown(path, -1, gid)
     if mode is not None:
         os.chmod(path, mode)
+    if mtime is not None:
+        os.utime(path, (mtime, mtime))
 
 def pathtype(path):
     '''Return path type. This is usefull to know what kind of path is given'''
@@ -103,14 +106,26 @@ def abspath(path):
     else:
         return None
 
-def uopen(path):
+def uopen(path, mode="rb"):
     '''Universal Open
     Create a file-like object to a file which can be remote
     '''
     ftype = pathtype(path)
     if ftype == "file":
-        return open(path, "r")
+        return open(path, mode)
     elif ftype == "http" or ftype == "ftp":
         return urllib2.urlopen(path)
     else:
         raise NotImplementedError
+
+def getsize(path):
+    '''Get size of a path. Recurse if directory'''
+    total_sz = os.path.getsize(path)
+    if os.path.isdir(path):
+        for root, dirs, files in os.walk(path):
+            for filename in dirs + files:
+                filepath = os.path.join(root, filename)
+                filestat = os.lstat(filepath)
+                if stat.S_ISDIR(filestat.st_mode) or stat.S_ISREG(filestat.st_mode):
+                    total_sz += filestat.st_size
+    return total_sz

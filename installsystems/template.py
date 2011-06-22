@@ -24,7 +24,7 @@ setup = """# -*- python -*-
 
 print "hostname: %s" % args.hostname
 
-image.extractdata("rootfs", args.target)
+image.payload["rootfs"].extract(args.target)
 
 # vim:set ts=2 sw=2 noet:
 """
@@ -39,9 +39,10 @@ CREATE TABLE image (md5 TEXT NOT NULL PRIMARY KEY,
                     size INTEGER NOT NULL,
                     UNIQUE(name, version));
 
-CREATE TABLE data (md5 TEXT NOT NULL,
-                   image_md5 TEXT NOT NULL REFERENCES image(md5),
-                   name TEXT NOT NULL,
-                   size INTEGER NOT NULL,
-                   PRIMARY KEY(md5, image_md5));
+CREATE TABLE payload (md5 TEXT NOT NULL,
+                     image_md5 TEXT NOT NULL REFERENCES image(md5),
+                     name TEXT NOT NULL,
+                     isdir INTEGER NOT NULL,
+                     size INTEGER NOT NULL,
+                     PRIMARY KEY(md5, image_md5));
 """

@@ -52,7 +52,7 @@ class Database(object):
         self.conn.execute("PRAGMA foreign_keys = ON")
 
     def get(self, name, version):
-        '''Return a description dict from a package name'''
+        '''Return a description dict from a image name'''
         # parse tarball
         try:
             self.file.seek(0)
@@ -60,20 +60,20 @@ class Database(object):
             rdata = tarball.get_str("%s-%s" % (name, version))
             tarball.close()
         except KeyError:
-            raise Exception("No package %s version %s in metadata" % (name, version))
+            raise Exception("No image %s version %s in metadata" % (name, version))
         except Exception as e:
             raise Exception("Unable to read db %s version %s: %s" % (name, version, e))
         # convert loaded data into dict (json parser)
         try:
             return json.loads(rdata)
         except Exception as e:
-            raise Exception("Invalid metadata in package %s version %s: e" % (name, version, e))
+            raise Exception("Invalid metadata in image %s version %s: e" % (name, version, e))
 
     def ask(self, sql, args=()):
         '''Ask question to db'''
         return self.conn.execute(sql, args)
 
-    def add(self, package):
+    def add(self, image):
         '''Add a packaged image to a db'''
         try:
             # let's go
@@ -82,28 +82,28 @@ class Database(object):
             # insert image information
             arrow("Add image metadata", 2, self.verbose)
             self.conn.execute("INSERT OR REPLACE INTO image values (?,?,?,?,?,?,?)",
-                              (package.md5,
-                               package.name,
-                               package.version,
-                               package.date,
-                               package.author,
-                               package.description,
-                               package.size,
+                              (image.md5,
+                               image.name,
+                               image.version,
+                               image.date,
+                               image.author,
+                               image.description,
+                               image.size,
                                ))
             # insert data informations
-            arrow("Add data metadata", 2, self.verbose)
-            for key,value in package.data.items():
-                self.conn.execute("INSERT OR REPLACE INTO data values (?,?,?,?)",
-                                  (value["md5"],
-                                   package.md5,
-                                   key,
-                                   value["size"]
+            arrow("Add payload metadata", 2, self.verbose)
+            for name, obj in image.payload.items():
+                self.conn.execute("INSERT OR REPLACE INTO payload values (?,?,?,?,?)",
+                                  (obj.md5,
+                                   image.md5,
+                                   name,
+                                   obj.isdir,
+                                   obj.size,
                                    ))
             # on commit
             arrow("Commit transaction to db", 1, self.verbose)
             self.conn.execute("COMMIT TRANSACTION")
         except Exception as e:
-            raise
             raise Exception("Adding metadata fail: %s" % e)
 
     def delete(self, name, version):

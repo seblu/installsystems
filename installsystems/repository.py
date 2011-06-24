@@ -21,37 +21,39 @@ from installsystems.image import Image, PackageImage
 from installsystems.database import Database
 
 class Repository(object):
-    '''  Repository class
+    '''
+    Repository class
     '''
 
-    def __init__(self, config, verbose=True):
-        self.verbose = verbose
+    def __init__(self, config):
         self.config = config
-        self.db = Database(config.dbpath, verbose=self.verbose)
+        self.db = Database(config.dbpath)
 
     @classmethod
-    def create(cls, config, verbose=True):
+    def create(cls, config):
         '''Create an empty base repository'''
         # check local repository
         if istools.pathtype(config.path) != "file":
             raise NotImplementedError("Repository creation must be local")
         # create base directories
-        arrow("Creating base directories", 1, verbose)
+        arrow("Creating base directories")
+        arrowlevel(1)
         # creating local directory
         try:
             if os.path.exists(config.path):
-                arrow("%s already exists" % config.path, 2, verbose)
+                arrow("%s already exists" % config.path)
             else:
                 istools.mkdir(config.path, config.uid, config.gid, config.dmod)
-                arrow("%s directory created" % config.path, 2, verbose)
+                arrow("%s directory created" % config.path)
         except Exception as e:
             raise Exception("Unable to create directory %s: %s" % (config.path, e))
+        arrowlevel(-1)
         # create database
         dbpath = os.path.join(config.path, config.dbname)
-        d = Database.create(dbpath, verbose=verbose)
+        d = Database.create(dbpath)
         istools.chrights(dbpath, uid=config.uid, gid=config.gid, mode=config.fmod)
         # create last file
-        self = cls(config, verbose)
+        self = cls(config)
         self.update_last()
         return self
 
@@ -61,7 +63,7 @@ class Repository(object):
         if istools.pathtype(self.config.path) != "file":
             raise NotImplementedError("Repository addition must be local")
         try:
-            arrow("Updating last file", 1, self.verbose)
+            arrow("Updating last file")
             last_path = os.path.join(self.config.path, self.config.lastname)
             open(last_path, "w").write("%s\n" % int(time.time()))
             istools.chrights(last_path, self.config.uid, self.config.gid, self.config.fmod)
@@ -85,19 +87,21 @@ class Repository(object):
         # checking data tarballs md5 before copy
         image.check("Check image and payload before copy")
         # adding file to repository
-        arrow("Copying images and payload", 1, self.verbose)
+        arrow("Copying images and payload")
+        arrowlevel(1)
         for obj in [ image ] + image.payload.values():
             dest = os.path.join(self.config.path, obj.md5)
             basesrc = os.path.basename(obj.path)
             if os.path.exists(dest):
-                arrow("Skipping %s: already exists" % basesrc, 2, self.verbose)
+                arrow("Skipping %s: already exists" % basesrc)
             else:
-                arrow("Adding %s (%s)" % (basesrc, obj.md5), 2, self.verbose)
+                arrow("Adding %s (%s)" % (basesrc, obj.md5))
                 istools.copy(obj.path, dest,
                              self.config.uid, self.config.gid, self.config.fmod)
+        arrowlevel(-1)
         # copy is done. create a image inside repo
         r_image = PackageImage(os.path.join(self.config.path, image.md5),
-                                 md5name=True, verbose=self.verbose)
+                                 md5name=True)
         # checking must be done with original md5
         r_image.md5 = image.md5
         # checking image and payload after copy
@@ -117,23 +121,27 @@ class Repository(object):
         if desc is None:
             error("Unable to find %s version %s in database" % (name, version))
         # removing script tarballs
-        arrow("Removing script tarball", 1, self.verbose)
+        arrow("Removing script tarball")
+        arrowlevel(1)
         tpath = os.path.join(self.config.path,
                              "%s-%s%s" % (name, version, Image.extension))
         if os.path.exists(tpath):
             os.unlink(tpath)
-            arrow("%s removed" % os.path.basename(tpath), 2, self.verbose)
+            arrow("%s removed" % os.path.basename(tpath))
+        arrowlevel(1)
         # removing data tarballs
-        arrow("Removing data tarballs", 1, self.verbose)
+        arrow("Removing data tarballs")
+        arrowlevel(1)
         for tb in self.db.databalls(name, version):
             tpath = os.path.join(self.config.data, tb)
             if os.path.exists(tpath):
                 os.unlink(tpath)
-                arrow("%s removed" % tb, 2, self.verbose)
+                arrow("%s removed" % tb)
+        arrowlevel(-1)
         # removing metadata
         self.db.delete(name, version)
         # update last file
-        arrow("Updating last file", 1, self.verbose)
+        arrow("Updating last file")
         self.update_last()
 
     def has(self, name, version):
@@ -148,7 +156,7 @@ class Repository(object):
             raise Exception("No such image %s version %s" % name, version)
         path = os.path.join(self.config.path, r[0])
         debug("Getting %s v%s from %s" % (name, version, path))
-        return PackageImage(path, md5name=True, verbose=self.verbose)
+        return PackageImage(path, md5name=True)
 
     def last(self, name):
         '''Return last version of name in repo or -1 if not found'''
@@ -295,8 +303,7 @@ class RepositoryManager(object):
     This call implement a cache and a manager for multiple repositories
     '''
 
-    def __init__(self, cache_path=None, timeout=None, verbose=True):
-        self.verbose = verbose
+    def __init__(self, cache_path=None, timeout=None):
         self.timeout = 3 if timeout is None else timeout
         self.repos = []
         self.tempfiles = []
@@ -345,7 +352,7 @@ class RepositoryManager(object):
         llast = int(os.stat(filedest).st_mtime)
         # if repo is out of date, download it
         if rlast != llast:
-            arrow("Getting %s" % config.dbpath, 1, self.verbose)
+            arrow("Getting %s" % config.dbpath)
             istools.copy(config.dbpath, filedest,
                          uid=config.uid,
                          gid=config.gid,
@@ -353,7 +360,7 @@ class RepositoryManager(object):
                          timeout=self.timeout)
             os.utime(filedest, (rlast, rlast))
         config.dbpath = filedest
-        self.repos.append(Repository(config, self.verbose))
+        self.repos.append(Repository(config))
 
     def get(self, name, version=None):
         '''Crawl all repo to get the most recent image'''

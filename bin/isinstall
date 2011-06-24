@@ -17,22 +17,22 @@ from installsystems.repository import RepositoryManager, RepositoryConfig
 from installsystems.image import PackageImage
 from installsystems.config import ConfigFile
 
-
-class DebugAction(argparse.Action):
-    '''Set installsystems in debug mode. Argparse callback'''
+class ISAction(argparse.Action):
+    '''Set installsystems quiet/debug mode. Argparse callback'''
     def __call__(self, parser, namespace, values, option_string=None):
-        if installsystems.debug == False:
+        if option_string in ("-q", "--quiet"):
+            installsystems.debug = False
+        elif option_string in ("-d", "--debug"):
             installsystems.debug = True
-            debug("Debug on")
 
 
 # Argument parsing loading
 p_main = argparse.ArgumentParser()
 p_main.add_argument("-V", "--version", action="version", version=installsystems.version,
                     help="show installsystems version")
-p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
+p_main.add_argument('-d', "--debug", action=ISAction, nargs=0,
                     help="active debug mode")
-p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
+p_main.add_argument('-q', "--quiet", action=ISAction, nargs=0,
                     help="active quiet mode")
 p_main.add_argument("--no-cache", action="store_false", default=False,
                     help="Not use persistent db caching")
@@ -59,7 +59,7 @@ try:
         if args.no_cache:
             config.cache = None
         # init repo cache object
-        repoman = RepositoryManager(config.cache, timeout=args.timeout, verbose=args.verbose)
+        repoman = RepositoryManager(config.cache, timeout=args.timeout)
         # register config repositories
         for crepo in config.repos:
             repoman.register(crepo)
@@ -76,14 +76,14 @@ try:
     # run parser scripts with parser parser argument
     pkg.run_parser(parser=p_main)
     # call parser again, with extended attributes
-    arrow("Parsing arguments", 1, args.verbose)
-    args = p_main.parse_args()
+    arrow("Parsing arguments")
+    args = p_main.parse_args(namespace=args)
     # run setup scripts
     pkg.run_setup(namespace = args)
     # compute building time
     t1 = time.time()
     dt = int(t1 - t0)
-    arrow("Install time: %s" % datetime.timedelta(seconds=dt), 1, args.verbose)
+    arrow("Install time: %s" % datetime.timedelta(seconds=dt))
 except Exception as e:
     error(e)
 except KeyboardInterrupt:

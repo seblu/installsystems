@@ -14,27 +14,28 @@ from installsystems.repository import Repository, RepositoryConfig
 from installsystems.image import PackageImage
 from installsystems.config import ConfigFile
 
-class DebugAction(argparse.Action):
-    '''Set installsystems in debug mode. Argparse callback'''
+class ISAction(argparse.Action):
+    '''Set installsystems quiet/debug mode. Argparse callback'''
     def __call__(self, parser, namespace, values, option_string=None):
-        if installsystems.debug == False:
+        if option_string in ("-q", "--quiet"):
+            installsystems.quiet = True
+        elif option_string in ("-d", "--debug"):
             installsystems.debug = True
-            debug("Debug on")
 
 
 def init(args):
     '''Create an empty fresh repo tree'''
     # call init from library
     try:
-        Repository.create(args.repository, verbose=args.verbose)
+        Repository.create(args.repository)
     except Exception as e:
         raise Exception("init failed: %s" % e)
 
 def add(args):
     '''Add a package to repository'''
     try:
-        repo = Repository(args.repository, verbose=args.verbose)
-        pkg = PackageImage(args.path, verbose=args.verbose)
+        repo = Repository(args.repository)
+        pkg = PackageImage(args.path)
         repo.add(pkg)
     except Exception as e:
         raise Exception("add failed: %s" % e)
@@ -42,7 +43,7 @@ def add(args):
 def delete(args):
     '''Remove a package from repository'''
     try:
-        repo = Repository(args.repository, verbose=args.verbose)
+        repo = Repository(args.repository)
         repo.delete(args.image_name, args.image_version)
     except Exception as e:
         raise Exception("del failed: %s" % e)
@@ -51,9 +52,9 @@ def delete(args):
 p_main = argparse.ArgumentParser()
 p_main.add_argument("-V", "--version", action="version", version=installsystems.version,
                     help="show installsystems version")
-p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
+p_main.add_argument('-d', "--debug", action=ISAction, nargs=0,
                     help="active debug mode")
-p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
+p_main.add_argument('-q', "--quiet", action=ISAction, nargs=0,
                     help="active quiet mode")
 p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
                     help="config file path")

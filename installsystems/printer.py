@@ -27,6 +27,10 @@ color = {
     "reset": "\033[m",
     }
 
+# arrow_level is between 1 and 3
+# is the level of indentation of arrow
+_arrow_level = 1
+
 def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
     '''Print message colorised in fd ended by endl'''
     # color subsitution
@@ -59,18 +63,36 @@ def warn(message, fd=sys.stderr, endl=os.linesep):
     out("#light##yellow#Warning:#reset# #yellow#%s#reset#" % message, fd, endl)
 
 def info(message, fd=sys.stderr, endl=os.linesep):
-    out("#light#Info%s:#reset# %s" % message, fd, endl)
+    if not installsystems.quiet:
+        out("#light#Info%s:#reset# %s" % message, fd, endl)
 
 def debug(message, fd=sys.stderr, endl=os.linesep):
     if installsystems.debug:
         out("#light##black#%s#reset#" % message, fd, endl)
 
-def arrow(message, level=1, verbose=True, fd=sys.stdout, endl=os.linesep):
-    if not verbose:
+def arrowlevel(inc=None,level=None):
+    global _arrow_level
+    old_level = _arrow_level
+    if level is not None:
+        _arrow_level = max(1, min(4, level))
+    if inc is not None:
+        _arrow_level = max(1, min(4, _arrow_level + inc))
+    return old_level
+
+def arrow(message, level=None, fd=sys.stdout, endl=os.linesep):
+    if installsystems.quiet:
         return
-    if level == 1:
+    # set a one shot level
+    if level is not None:
+        old_level = arrowlevel(level=level)
+    if _arrow_level == 1:
         out("#light##red#=>#reset# %s" % message)
-    elif level == 2:
+    elif _arrow_level == 2:
         out(" #light##yellow#=>#reset# %s" % message)
-    elif level == 3:
-        out("  #light##purple#=>#reset# %s" % message)
+    elif _arrow_level == 3:
+        out("  #light##blue#=>#reset# %s" % message)
+    elif _arrow_level == 4:
+        out("  #light##green#=>#reset# %s" % message)
+    # restore old on one shot level
+    if level is not None:
+        arrowlevel(level=old_level)

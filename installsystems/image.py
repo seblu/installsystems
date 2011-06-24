@@ -52,7 +52,7 @@ class SourceImage(Image):
     '''
 
     @classmethod
-    def create(cls, path, verbose=True):
+    def create(cls, path):
         '''
         Create an empty source image
         '''
@@ -64,7 +64,7 @@ class SourceImage(Image):
         setup_path = os.path.join(path, "setup")
         payload_path = os.path.join(path, "payload")
         # create base directories
-        arrow("Creating base directories", 1, verbose)
+        arrow("Creating base directories")
         try:
             for d in (path, parser_path, setup_path, payload_path):
                 if not os.path.exists(d) or not os.path.isdir(d):
@@ -72,22 +72,23 @@ class SourceImage(Image):
         except Exception as e:
             raise Exception("Unable to create directory: %s: %s" % (d, e))
         # create example files
-        arrow("Creating examples", 1, verbose)
+        arrow("Creating examples")
+        arrowlevel(1)
         try:
             # create description example from template
-            arrow("Creating description example", 2, verbose)
+            arrow("Creating description example")
             open(os.path.join(path, "description"), "w").write(istemplate.description)
             # create parser example from template
-            arrow("Creating parser script example", 2, verbose)
+            arrow("Creating parser script example")
             open(os.path.join(parser_path, "01-parser.py"), "w").write(istemplate.parser)
             # create setup example from template
-            arrow("Creating setup script example", 2, verbose)
+            arrow("Creating setup script example")
             open(os.path.join(setup_path, "01-setup.py"), "w").write(istemplate.setup)
         except Exception as e:
             raise Exception("Unable to example file: %s" % e)
         try:
             # setting rights on files in setup and parser
-            arrow("Setting executable rights on scripts", 2, verbose)
+            arrow("Setting executable rights on scripts")
             umask = os.umask(0)
             os.umask(umask)
             for dpath in (parser_path, setup_path):
@@ -95,9 +96,10 @@ class SourceImage(Image):
                     istools.chrights(os.path.join(dpath, f), mode=0777 & ~umask)
         except Exception as e:
             raise Exception("Unable to set rights on %s: %s" % (pf, e))
-        return cls(path, verbose)
+        arrowlevel(-1)
+        return cls(path)
 
-    def __init__(self, path, verbose=True):
+    def __init__(self, path):
         # check local repository
         if istools.pathtype(path) != "file":
             raise NotImplementedError("SourceImage must be local")
@@ -106,7 +108,6 @@ class SourceImage(Image):
         self.parser_path = os.path.join(path, "parser")
         self.setup_path = os.path.join(path, "setup")
         self.payload_path = os.path.join(path, "payload")
-        self.verbose = verbose
         self.validate_source_files()
         self.description = self.parse_description()
         # script tarball path
@@ -147,28 +148,29 @@ class SourceImage(Image):
         Create a script tarball in current directory
         '''
         # create tarball
-        arrow("Creating image tarball", 1, self.verbose)
-        arrow("Name %s" % self.image_name, 2, self.verbose)
+        arrow("Creating image tarball")
+        arrowlevel(1)
+        arrow("Name %s" % self.image_name)
         try:
             tarball = Tarball.open(self.image_name, mode="w:gz", dereference=True)
         except Exception as e:
             raise Exception("Unable to create tarball %s: %s" % (self.image_name, e))
         # add .description.json
-        arrow("Add description.json", 2, self.verbose)
+        arrow("Add description.json")
         tarball.add_str("description.json", description, tarfile.REGTYPE, 0444)
         # add .format
-        arrow("Add format", 2, self.verbose)
+        arrow("Add format")
         tarball.add_str("format", self.format, tarfile.REGTYPE, 0444)
         # add parser scripts
-        arrow("Add parser scripts", 2, self.verbose)
+        arrow("Add parser scripts")
         tarball.add(self.parser_path, arcname="parser",
                     recursive=True, filter=self._tar_scripts_filter)
         # add setup scripts
-        arrow("Add setup scripts", 2, self.verbose)
         tarball.add(self.setup_path, arcname="setup",
                     recursive=True, filter=self._tar_scripts_filter)
         # closing tarball file
         tarball.close()
+        arrowlevel(-1)
 
     def _create_payloads(self):
         '''
@@ -176,11 +178,13 @@ class SourceImage(Image):
         Doesn't compute md5 during creation because tarball can
         be created manually
         '''
-        arrow("Creating payloads", 1, self.verbose)
+        arrow("Creating payloads")
+        arrowlevel(1)
         # build list of payload files
         candidates = os.listdir(self.payload_path)
         if len(candidates) == 0:
-            arrow("No payload", 2, self.verbose)
+            arrow("No payload")
+            arrowlevel(-1)
             return []
         # create payload files
         l_l = []
@@ -193,9 +197,9 @@ class SourceImage(Image):
             source_stat = os.stat(source_path)
             isdir = stat.S_ISDIR(source_stat.st_mode)
             if os.path.exists(dest_path):
-                arrow("Payload %s already exists" % dest_path, 2, self.verbose)
+                arrow("Payload %s already exists" % dest_path)
             else:
-                arrow("Creating payload %s" % dest_path, 2, self.verbose)
+                arrow("Creating payload %s" % dest_path)
                 if isdir:
                     self._create_payload_tarball(dest_path, source_path)
                 else:
@@ -207,6 +211,7 @@ class SourceImage(Image):
             payobj.mode = stat.S_IMODE(source_stat.st_mode)
             payobj.mtime = source_stat.st_mtime
             l_l.append(payobj)
+        arrowlevel(-1)
         return l_l
 
     def _create_payload_tarball(self, tar_path, data_path):
@@ -255,17 +260,19 @@ class SourceImage(Image):
         '''
         Generate a JSON description file
         '''
-        arrow("Generating JSON description", 1, self.verbose)
+        arrow("Generating JSON description")
+        arrowlevel(1)
         # copy description
         desc = self.description.copy()
         # timestamp image
-        arrow("Timestamping", 2, self.verbose)
+        arrow("Timestamping")
         desc["date"] = int(time.time())
         # append payload infos
-        arrow("Checksumming", 2, self.verbose)
+        arrow("Checksumming")
         desc["payload"] = {}
         for payload in payloads:
             desc["payload"][payload.name] = payload.info
+        arrowlevel(-1)
         # serialize
         return json.dumps(desc)
 
@@ -273,7 +280,7 @@ class SourceImage(Image):
         '''
         Raise an exception is description file is invalid and return vars to include
         '''
-        arrow("Parsing description", 1, self.verbose)
+        arrow("Parsing description")
         d = dict()
         try:
             descpath = os.path.join(self.base_path, "description")
@@ -291,15 +298,14 @@ class PackageImage(Image):
     Packaged image manipulation class
     '''
 
-    def __init__(self, path, md5name=False, verbose=True):
+    def __init__(self, path, md5name=False):
         Image.__init__(self)
         self.path = istools.abspath(path)
         self.base_path = os.path.dirname(self.path)
-        self.verbose = verbose
         # tarball are named by md5 and not by real name
         self.md5name = md5name
         # load image in memory
-        arrow("Loading tarball in memory", 1, verbose)
+        arrow("Loading tarball in memory")
         memfile = cStringIO.StringIO()
         fo = istools.uopen(self.path)
         (self.size, self.md5) = istools.copyfileobj(fo, memfile)
@@ -346,34 +352,38 @@ class PackageImage(Image):
         Parse tarball and return metadata dict
         '''
         # extract metadata
-        arrow("Read tarball metadata", 1, self.verbose)
+        arrow("Read tarball metadata", 1)
+        arrowlevel(1)
         img_format = self._tarball.get_str("format")
         img_desc = self._tarball.get_str("description.json")
         # check format
-        arrow("Read format file", 2, self.verbose)
+        arrow("Read format file")
         if img_format != self.format:
             raise Exception("Invalid tarball image format")
         # check description
-        arrow("Read image description", 2, self.verbose)
+        arrow("Read image description")
         try:
             desc = json.loads(img_desc)
         except Exception as e:
             raise Exception("Invalid description: %s" % e)
         # FIXME: we should check valid information here
+        arrowlevel(-1)
         return desc
 
     def check(self, message="Check MD5"):
         '''
         Check md5 and size of tarballs are correct
         '''
-        arrow(message, 1, self.verbose)
+        arrow(message)
+        arrowlevel(1)
         # check image
         if self.md5 != istools.md5sum(self.path):
             raise Exception("Invalid MD5 of image %s" % self.name)
         # check payloads
         for pay_name, pay_obj in self.payload.items():
-            arrow(pay_name, 2, self.verbose)
+            arrow(pay_name)
             pay_obj.check()
+        arrowlevel(-1)
 
     def run_parser(self, **kwargs):
         '''
@@ -391,14 +401,16 @@ class PackageImage(Image):
         '''
         Run scripts in a tarball directory
         '''
-        arrow("Run %s scripts" % directory, 1, self.verbose)
+        arrow("Run %s scripts" % directory)
+        arrowlevel(1)
         # get list of parser scripts
         l_scripts = self._tarball.getnames("%s/.*\.py" % directory)
         # order matter!
         l_scripts.sort()
         # run scripts
         for n_scripts in l_scripts:
-            arrow(os.path.basename(n_scripts), 2, self.verbose)
+            arrow(os.path.basename(n_scripts))
+            old_level = arrowlevel(1)
             # extract source code
             try:
                 s_scripts = self._tarball.get_str(n_scripts)
@@ -422,6 +434,8 @@ class PackageImage(Image):
             except Exception as e:
                 raise Exception("Execution script %s fail: %s" %
                                 (n_scripts, e))
+            arrowlevel(level=old_level)
+        arrowlevel(-1)
 
 
 class Payload(object):

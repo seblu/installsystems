@@ -24,8 +24,8 @@ class Database(object):
     db_format = "1"
 
     @classmethod
-    def create(cls, path, verbose=True):
-        arrow("Creating repository database", 1, verbose)
+    def create(cls, path):
+        arrow("Creating repository database")
         # check locality
         if istools.pathtype(path) != "file":
             raise NotImplementedError("Database creation must be local")
@@ -40,14 +40,13 @@ class Database(object):
             conn.close()
         except Exception as e:
             raise Exception("Create database failed: %s" % e)
-        return cls(path, verbose)
+        return cls(path)
 
-    def __init__(self, path, verbose=True):
+    def __init__(self, path):
         # check locality
         if istools.pathtype(path) != "file":
             raise NotImplementedError("Database creation must be local")
         self.path = os.path.abspath(path)
-        self.verbose = verbose
         self.conn = sqlite3.connect(self.path, isolation_level=None)
         self.conn.execute("PRAGMA foreign_keys = ON")
 
@@ -77,10 +76,11 @@ class Database(object):
         '''Add a packaged image to a db'''
         try:
             # let's go
-            arrow("Begin transaction to db", 1, self.verbose)
+            arrow("Begin transaction to db")
+            arrowlevel(1)
             self.conn.execute("BEGIN TRANSACTION")
             # insert image information
-            arrow("Add image metadata", 2, self.verbose)
+            arrow("Add image metadata")
             self.conn.execute("INSERT OR REPLACE INTO image values (?,?,?,?,?,?,?)",
                               (image.md5,
                                image.name,
@@ -91,7 +91,7 @@ class Database(object):
                                image.size,
                                ))
             # insert data informations
-            arrow("Add payload metadata", 2, self.verbose)
+            arrow("Add payload metadata")
             for name, obj in image.payload.items():
                 self.conn.execute("INSERT OR REPLACE INTO payload values (?,?,?,?,?)",
                                   (obj.md5,
@@ -101,14 +101,15 @@ class Database(object):
                                    obj.size,
                                    ))
             # on commit
-            arrow("Commit transaction to db", 1, self.verbose)
+            arrow("Commit transaction to db")
             self.conn.execute("COMMIT TRANSACTION")
+            arrowlevel(-1)
         except Exception as e:
             raise Exception("Adding metadata fail: %s" % e)
 
     def delete(self, name, version):
         '''Delete a packaged image'''
-        arrow("Removing metadata from db", 1, self.verbose)
+        arrow("Removing metadata from db")
         # check locality
         if istools.pathtype(self.path) != "file":
             raise NotImplementedError("Database deletion must be local")

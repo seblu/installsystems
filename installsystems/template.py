@@ -17,6 +17,7 @@ parser = """# -*- python -*-
 
 import os
 import installsystems.argparse as argparse
+from installsystems.printer import arrow
 
 class TargetAction(argparse.Action):
   def __call__(self, parser, namespace, values, option_string=None):
@@ -37,7 +38,9 @@ setup = """# -*- python -*-
 # image object is a reference to current image
 # namespace object is the persistant, it can be used to store data accross scripts
 
-print "hostname: %s" % namespace.hostname
+from installsystems.printer import arrow
+
+arrow("hostname: %s" % namespace.hostname)
 
 # uncomment to extract payload named root in namespace.target directory
 #image.payload["rootfs"].extract(namespace.target)

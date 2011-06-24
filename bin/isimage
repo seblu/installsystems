@@ -14,19 +14,20 @@ import installsystems.argparse as argparse # To remove when default to python 2.
 from installsystems.printer import *
 from installsystems.image import SourceImage
 
-class DebugAction(argparse.Action):
-    '''Set installsystems in debug mode. Argparse callback'''
+class ISAction(argparse.Action):
+    '''Set installsystems quiet/debug mode. Argparse callback'''
     def __call__(self, parser, namespace, values, option_string=None):
-        if installsystems.debug == False:
+        if option_string in ("-q", "--quiet"):
+            installsystems.quiet = True
+        elif option_string in ("-d", "--debug"):
             installsystems.debug = True
-            debug("Debug on")
 
 
 def init(args):
     '''Create an empty fresh source image tree'''
     # call init from library
     try:
-        simg = SourceImage.create(args.path, args.verbose)
+        simg = SourceImage.create(args.path)
     except Exception as e:
         error("init failed: %s." % e)
 
@@ -42,7 +43,7 @@ def build(args):
         # compute building time
         t1 = time.time()
         dt = int(t1 - t0)
-        arrow("Build time: %s" % datetime.timedelta(seconds=dt), 1, args.verbose)
+        arrow("Build time: %s" % datetime.timedelta(seconds=dt))
     except Exception as e:
         error("build failed: %s." % e)
 
@@ -50,9 +51,9 @@ def build(args):
 p_main = argparse.ArgumentParser()
 p_main.add_argument("-V", "--version", action="version", version=installsystems.version,
                     help="show installsystems version")
-p_main.add_argument('-d', "--debug", action=DebugAction, nargs=0,
+p_main.add_argument('-d', "--debug", action=ISAction, nargs=0,
                     help="active debug mode")
-p_main.add_argument('-q', "--quiet", action="store_false", dest="verbose", default=True,
+p_main.add_argument('-q', "--quiet", action=ISAction, nargs=0,
                     help="active quiet mode")
 
 subparsers = p_main.add_subparsers()

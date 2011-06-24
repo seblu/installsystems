@@ -9,5 +9,6 @@ InstallSystems module
 canonical_name="installsystems"
 version = "1-dev"
 debug = False
+quiet = False
 
 __all__ = []

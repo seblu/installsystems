@@ -52,10 +52,9 @@ try:
     # load config
     config = ConfigFile("isinstall", args.config)
     # looks if arguments is a file or image name
-    image_name_type = istools.pathtype(args.image_name)
-    if image_name_type == "file":
+    if istools.pathtype(args.image_name) == "file" and os.path.isfile(args.image_name):
         pkg = PackageImage(istools.abspath(args.image_name))
-    elif image_name_type == "name":
+    elif PackageImage.check_image_name(args.image_name):
         # remove cache is asked
         if args.no_cache:
             config.cache = None
@@ -74,17 +73,13 @@ try:
         exit(1)
     # install start time
     t0 = time.time()
-    # global dict of execution context
-    gl_exec = { "parser": p_main }
-    # run parser scripts
-    pkg.run_parser(gl_exec)
+    # run parser scripts with parser parser argument
+    pkg.run_parser(parser=p_main)
     # call parser again, with extended attributes
-    arrow("Run parser", 1, args.verbose)
+    arrow("Parsing arguments", 1, args.verbose)
     args = p_main.parse_args()
-    # add parser result to global dict
-    gl_exec["args"] = args
     # run setup scripts
-    pkg.run_setup(gl_exec)
+    pkg.run_setup(namespace = args)
     # compute building time
     t1 = time.time()
     dt = int(t1 - t0)

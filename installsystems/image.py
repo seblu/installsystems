@@ -375,21 +375,19 @@ class PackageImage(Image):
             arrow(pay_name, 2, self.verbose)
             pay_obj.check()
 
-    def run_parser(self, gl):
+    def run_parser(self, **kwargs):
         '''
         Run parser scripts
         '''
-        gl["image"] = self
-        self._run_scripts(gl, "parser")
+        self._run_scripts("parser", **kwargs)
 
-    def run_setup(self, gl):
+    def run_setup(self, **kwargs):
         '''
         Run setup scripts
         '''
-        gl["image"] = self
-        self._run_scripts(gl, "setup")
+        self._run_scripts("setup", **kwargs)
 
-    def _run_scripts(self, gl, directory):
+    def _run_scripts(self, directory, **kwargs):
         '''
         Run scripts in a tarball directory
         '''
@@ -401,16 +399,29 @@ class PackageImage(Image):
         # run scripts
         for n_scripts in l_scripts:
             arrow(os.path.basename(n_scripts), 2, self.verbose)
+            # extract source code
             try:
                 s_scripts = self._tarball.get_str(n_scripts)
             except Exception as e:
                 raise Exception("Extracting script %s fail: %s" %
-                                (os.path.basename(n_scripts), e))
+                                (n_scripts, e))
+            # compile source code
             try:
-                exec(s_scripts, gl, dict())
+                o_scripts = compile(s_scripts, n_scripts, "exec")
+            except Exception as e:
+                raise Exception("Unable to compile %s fail: %s" %
+                                (n_scripts, e))
+            # define execution context
+            gl = {}
+            for k in kwargs:
+                gl[k] = kwargs[k]
+            gl["image"] = self
+            # execute source code
+            try:
+                exec o_scripts in gl
             except Exception as e:
                 raise Exception("Execution script %s fail: %s" %
-                                (os.path.basename(n_scripts), e))
+                                (n_scripts, e))
 
 
 class Payload(object):
@@ -438,7 +449,7 @@ class Payload(object):
         raise AttributeError
 
     def __setattr__(self, name, value):
-        # set all value which exists have no underscore, but undesrcore exists
+        # set all value which exists have no underscore, but where undesrcore exists
         if name in self.legit_attr:
             object.__setattr__(self, "_%s" % name, value)
         else:

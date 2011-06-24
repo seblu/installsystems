@@ -81,18 +81,14 @@ def chrights(path, uid=None, gid=None, mode=None, mtime=None):
 
 def pathtype(path):
     '''Return path type. This is usefull to know what kind of path is given'''
-    from installsystems.image import Image
     if path.startswith("http://") or path.startswith("https://"):
         return "http"
     if path.startswith("ftp://") or path.startswith("ftps://"):
         return "ftp"
     elif path.startswith("ssh://"):
         return "ssh"
-    elif path.startswith("file://") or path.startswith("/") or os.path.exists(path):
+    else:
         return "file"
-    elif Image.check_image_name(path):
-        return "name"
-    return None
 
 def abspath(path):
     '''Format a path to be absolute'''

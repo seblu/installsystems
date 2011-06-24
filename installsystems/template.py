@@ -12,8 +12,20 @@ author =
 parser = """# -*- python -*-
 # -*- coding: utf-8 -*-
 
+# image object is a reference to current image
+# parser object is installsystems argument parser
+
+import os
+import installsystems.argparse as argparse
+
+class TargetAction(argparse.Action):
+  def __call__(self, parser, namespace, values, option_string=None):
+    if not os.path.isdir(values):
+      raise Exception("Invalid target directory %s" % values)
+    namespace.target = values
+
 parser.add_argument("-n", "--hostname", dest="hostname", type=str, required=True)
-parser.add_argument("target", type=str,
+parser.add_argument("target", type=str, action=TargetAction,
   help="target installation directory")
 
 # vim:set ts=2 sw=2 noet:
@@ -22,9 +34,13 @@ parser.add_argument("target", type=str,
 setup = """# -*- python -*-
 # -*- coding: utf-8 -*-
 
-print "hostname: %s" % args.hostname
+# image object is a reference to current image
+# namespace object is the persistant, it can be used to store data accross scripts
 
-image.payload["rootfs"].extract(args.target)
+print "hostname: %s" % namespace.hostname
+
+# uncomment to extract payload named root in namespace.target directory
+#image.payload["rootfs"].extract(namespace.target)
 
 # vim:set ts=2 sw=2 noet:
 """

@@ -244,7 +244,7 @@ class SourceImage(Image):
         '''
         Filter files which can be included in scripts tarball
         '''
-        if not tinfo.name in ("parser", "setup") and os.path.splitext(tinfo.name)[1] != ".py":
+        if not re.match("(parser|setup)(/\d+-.*\.py)?$", tinfo.name):
             return None
         tinfo.mode = 0755
         tinfo.uid = tinfo.gid = 0

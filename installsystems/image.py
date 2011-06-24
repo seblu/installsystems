@@ -358,7 +358,7 @@ class PackageImage(Image):
         try:
             desc = json.loads(img_desc)
         except Exception as e:
-            raise Exception("Invalid description: %s" % e1)
+            raise Exception("Invalid description: %s" % e)
         # FIXME: we should check valid information here
         return desc
 

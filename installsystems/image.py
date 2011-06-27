@@ -138,16 +138,16 @@ class SourceImage(Image):
             raise Exception("Tarball already exists. Remove it before")
         # Check python file
         if check:
-            self._check_scripts(self.parser_path)
-            self._check_scripts(self.setup_path)
+            self.check_scripts(self.parser_path)
+            self.check_scripts(self.setup_path)
         # Create payload files
-        payloads = self._create_payloads()
+        payloads = self.create_payloads()
         # generate a JSON description
         jdesc = self.generate_json_description(payloads)
         # creating scripts tarball
-        self._create_image(jdesc)
+        self.create_image(jdesc)
 
-    def _create_image(self, description):
+    def create_image(self, description):
         '''
         Create a script tarball in current directory
         '''
@@ -173,7 +173,7 @@ class SourceImage(Image):
         tarball.close()
         arrowlevel(-1)
 
-    def _create_payloads(self):
+    def create_payloads(self):
         '''
         Create all data payloads in current directory
         Doesn't compute md5 during creation because tarball can
@@ -275,7 +275,7 @@ class SourceImage(Image):
             arrow("%s added" % fi)
         arrowlevel(-1)
 
-    def _check_scripts(self, directory):
+    def check_scripts(self, directory):
         '''
         Check if scripts inside a directory can be compiled
         '''

@@ -129,14 +129,18 @@ class SourceImage(Image):
         if not os.path.exists(os.path.join(self.base_path, "description")):
             raise Exception("No description file")
 
-    def build(self, overwrite=False):
+    def build(self, force=False, check=True):
         '''
         Create packaged image
         '''
         # check if free to create script tarball
-        if os.path.exists(self.image_name) and overwrite == False:
+        if os.path.exists(self.image_name) and force == False:
             raise Exception("Tarball already exists. Remove it before")
-        #  Create payload files
+        # Check python file
+        if check:
+            self._check_scripts(self.parser_path)
+            self._check_scripts(self.setup_path)
+        # Create payload files
         payloads = self._create_payloads()
         # generate a JSON description
         jdesc = self.generate_json_description(payloads)
@@ -259,17 +263,35 @@ class SourceImage(Image):
         for fi in os.listdir(directory):
             # check name
             if not re.match("\d+-.*\.py$", fi):
-                debug("name %s skipped: invalid name" % fi)
+                debug("%s skipped: invalid name" % fi)
                 continue
             # adding file
             ti = tarball.gettarinfo(os.path.join(directory, fi),
-                                    arcname=os.path.join(basedirectory,
-                                                         os.path.basename(fi)))
+                                    arcname=os.path.join(basedirectory, fi))
             ti.mode = 0755
             ti.uid = ti.gid = 0
             ti.uname = ti.gname = "root"
             tarball.addfile(ti)
             arrow("%s added" % fi)
+        arrowlevel(-1)
+
+    def _check_scripts(self, directory):
+        '''
+        Check if scripts inside a directory can be compiled
+        '''
+        basedirectory = os.path.basename(directory)
+        arrow("Checking %s scripts" % basedirectory)
+        arrowlevel(1)
+        # checking each file
+        for fi in os.listdir(directory):
+            # check name
+            if not re.match("\d+-.*\.py$", fi):
+                debug("%s skipped: invalid name" % fi)
+                continue
+            # compiling file
+            fs = open(os.path.join(directory, fi), "rb").read()
+            compile(fs, fi, mode="exec")
+            arrow(fi)
         arrowlevel(-1)
 
     def generate_json_description(self, payloads):

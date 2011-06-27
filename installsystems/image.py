@@ -162,12 +162,9 @@ class SourceImage(Image):
         arrow("Add format")
         tarball.add_str("format", self.format, tarfile.REGTYPE, 0444)
         # add parser scripts
-        arrow("Add parser scripts")
-        tarball.add(self.parser_path, arcname="parser",
-                    recursive=True, filter=self._tar_scripts_filter)
+        self._add_scripts(tarball, self.parser_path)
         # add setup scripts
-        tarball.add(self.setup_path, arcname="setup",
-                    recursive=True, filter=self._tar_scripts_filter)
+        self._add_scripts(tarball, self.setup_path)
         # closing tarball file
         tarball.close()
         arrowlevel(-1)
@@ -245,16 +242,35 @@ class SourceImage(Image):
         fsource.close()
         fdest.close()
 
-    def _tar_scripts_filter(self, tinfo):
+    def _add_scripts(self, tarball, directory):
         '''
-        Filter files which can be included in scripts tarball
+        Add scripts inside a directory into a tarball
         '''
-        if not re.match("(parser|setup)(/\d+-.*\.py)?$", tinfo.name):
-            return None
-        tinfo.mode = 0755
-        tinfo.uid = tinfo.gid = 0
-        tinfo.uname = tinfo.gname = "root"
-        return tinfo
+        basedirectory = os.path.basename(directory)
+        arrow("Add %s scripts" % basedirectory)
+        arrowlevel(1)
+        # adding base directory
+        ti = tarball.gettarinfo(directory, arcname=basedirectory)
+        ti.mode = 0755
+        ti.uid = ti.gid = 0
+        ti.uname = ti.gname = "root"
+        tarball.addfile(ti)
+        # adding each file
+        for fi in os.listdir(directory):
+            # check name
+            if not re.match("\d+-.*\.py$", fi):
+                debug("name %s skipped: invalid name" % fi)
+                continue
+            # adding file
+            ti = tarball.gettarinfo(os.path.join(directory, fi),
+                                    arcname=os.path.join(basedirectory,
+                                                         os.path.basename(fi)))
+            ti.mode = 0755
+            ti.uid = ti.gid = 0
+            ti.uname = ti.gname = "root"
+            tarball.addfile(ti)
+            arrow("%s added" % fi)
+        arrowlevel(-1)
 
     def generate_json_description(self, payloads):
         '''

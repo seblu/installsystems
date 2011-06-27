@@ -261,17 +261,17 @@ class SourceImage(Image):
         tarball.addfile(ti)
         # adding each file
         for fi in os.listdir(directory):
+            fp = os.path.join(directory, fi)
             # check name
             if not re.match("\d+-.*\.py$", fi):
                 debug("%s skipped: invalid name" % fi)
                 continue
             # adding file
-            ti = tarball.gettarinfo(os.path.join(directory, fi),
-                                    arcname=os.path.join(basedirectory, fi))
+            ti = tarball.gettarinfo(fp, arcname=os.path.join(basedirectory, fi))
             ti.mode = 0755
             ti.uid = ti.gid = 0
             ti.uname = ti.gname = "root"
-            tarball.addfile(ti)
+            tarball.addfile(ti, open(fp, "rb"))
             arrow("%s added" % fi)
         arrowlevel(-1)
 

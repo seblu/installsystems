@@ -453,7 +453,8 @@ class Payload(object):
             setattr(self, attr, None)
         # set all named param
         for kwarg in kwargs:
-            if hasattr(self, kwarg):
+            # do not use hasattr which user getattr and so call md5 checksum...
+            if kwarg in self.legit_attr:
                 setattr(self, kwarg, kwargs[kwarg])
 
     def __getattr__(self, name):

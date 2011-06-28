@@ -3,26 +3,28 @@
 .PHONY: all tar deb clean cleanbuild buildd
 
 NAME=installsystems
+VERSION=$(shell sed -rn 's/version = "([^"]+)"/\1/p' installsystems/__init__.py)
 BUILD_DIR=__build__
 
 all:
 	echo all is better than nothing
 
-tar: cleanbuild
-	git clone "." $(BUILD_DIR)/$(NAME)
-	-dpkg-source -Zbzip2 -I -b $(BUILD_DIR)/$(NAME)
-	-rm -rf  $(BUILD_DIR)
+tar:
+	git archive --prefix=$(NAME)-$(VERSION)/ HEAD | gzip -9 > $(NAME)-$(VERSION).tar.gz
+
+dsc: cleanbuild tar
+	mkdir $(BUILD_DIR)
+	tar xfC $(NAME)-$(VERSION).tar.gz $(BUILD_DIR)
+	cd $(BUILD_DIR) && dpkg-source -I -b $(NAME)-$(VERSION)
 
 deb: cleanbuild
-	git clone "." $(BUILD_DIR)/$(NAME)
-	-cd $(BUILD_DIR)/$(NAME) && dpkg-buildpackage --source-option=-I
-	-rm -rf  $(BUILD_DIR)/$(NAME)
-	mv -vf $(BUILD_DIR)/* .
-	-rm -rf $(BUILD_DIR)
+	mkdir $(BUILD_DIR)
+	tar xfC $(NAME)-$(VERSION).tar.gz $(BUILD_DIR)
+	cd $(BUILD_DIR)/$(NAME)-$(VERSION) && dpkg-buildpackage --source-option=-I
 
-buildd: tar
-	chmod 644 $(NAME)_*.dsc $(NAME)_*.tar.bz2
-	scp $(NAME)_*.dsc $(NAME)_*.tar.bz2 incoming@buildd.fr.lan:squeeze
+buildd: dsc
+	chmod 644 $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz
+	scp $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz incoming@buildd.fr.lan:sid
 
 clean: clean_build
 

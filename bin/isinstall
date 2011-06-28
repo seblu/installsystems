@@ -77,6 +77,8 @@ try:
     else:
         p_main.print_usage()
         exit(1)
+    # Print setup information
+    arrow("Installing %s v%s" % (pkg.name, pkg.version))
     # install start time
     t0 = time.time()
     # run parser scripts with parser parser argument

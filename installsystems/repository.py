@@ -118,7 +118,31 @@ class Repository(object):
         # checking image and payload after copy
         r_image.check("Check image and payload after copy")
         # add description to db
-        self.db.add(r_image)
+        arrow("Adding metadata")
+        self.db.begin()
+        # insert image information
+        arrow("Image", 1)
+        self.db.ask("INSERT INTO image values (?,?,?,?,?,?,?)",
+                    (image.md5,
+                     image.name,
+                     image.version,
+                     image.date,
+                     image.author,
+                     image.description,
+                     image.size,
+                     ))
+        # insert data informations
+        arrow("Payloads", 1)
+        for name, obj in image.payload.items():
+            self.db.ask("INSERT INTO payload values (?,?,?,?,?)",
+                        (obj.md5,
+                         image.md5,
+                         name,
+                         obj.isdir,
+                         obj.size,
+                         ))
+        # on commit
+        self.db.commit()
         # update last file
         self.update_last()
 

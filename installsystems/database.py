@@ -68,38 +68,3 @@ class Database(object):
         Ask question to db
         '''
         return self.conn.execute(sql, args)
-
-    def add(self, image):
-        '''Add a packaged image to a db'''
-        try:
-            # let's go
-            arrow("Begin transaction to db")
-            arrowlevel(1)
-            self.conn.execute("BEGIN TRANSACTION")
-            # insert image information
-            arrow("Add image metadata")
-            self.conn.execute("INSERT INTO image values (?,?,?,?,?,?,?)",
-                              (image.md5,
-                               image.name,
-                               image.version,
-                               image.date,
-                               image.author,
-                               image.description,
-                               image.size,
-                               ))
-            # insert data informations
-            arrow("Add payload metadata")
-            for name, obj in image.payload.items():
-                self.conn.execute("INSERT INTO payload values (?,?,?,?,?)",
-                                  (obj.md5,
-                                   image.md5,
-                                   name,
-                                   obj.isdir,
-                                   obj.size,
-                                   ))
-            # on commit
-            arrow("Commit transaction to db")
-            self.conn.execute("COMMIT TRANSACTION")
-            arrowlevel(-1)
-        except Exception as e:
-            raise Exception("Adding metadata fail: %s" % e)

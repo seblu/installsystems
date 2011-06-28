@@ -15,10 +15,12 @@ import installsystems.argparse as argparse # To remove when default to python 2.
 from installsystems.printer import *
 from installsystems.repository import RepositoryManager, RepositoryConfig
 from installsystems.image import PackageImage
-from installsystems.config import ConfigFile
+from installsystems.config import MainConfigFile, RepoConfigFile
 
 class ISAction(argparse.Action):
-    '''Set installsystems quiet/debug mode. Argparse callback'''
+    '''
+    Set installsystems quiet/debug mode. Argparse callback
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         if option_string in ("-q", "--quiet"):
             installsystems.debug = False
@@ -28,29 +30,32 @@ class ISAction(argparse.Action):
 
 # Argument parsing loading
 p_main = argparse.ArgumentParser()
-p_main.add_argument("-V", "--version", action="version", version=installsystems.version,
-                    help="show installsystems version")
-p_main.add_argument('-d', "--debug", action=ISAction, nargs=0,
-                    help="active debug mode")
-p_main.add_argument('-q', "--quiet", action=ISAction, nargs=0,
-                    help="active quiet mode")
-p_main.add_argument("--no-cache", action="store_false", default=False,
-                    help="Not use persistent db caching")
-p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
-                    help="config file path")
-p_main.add_argument("-v", "--image-version", dest="image_version", type=int, default=None,
-                    help="image version")
-p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
-                    help="download timeout")
-p_main.add_argument("-r", "--repo", dest="repos", action="append", default=[],
-                    help="repository (can be specified more than one time)")
-p_main.add_argument("image_name", type=str,
-                    help="image to install (path or name)")
+p_main.add_argument("-V", "--version", action = "version",
+                    version = installsystems.version,
+                    help = "show installsystems version")
+p_main.add_argument('-d', "--debug", action = ISAction, nargs = 0,
+                    help = "active debug mode")
+p_main.add_argument('-q', "--quiet", action = ISAction, nargs = 0,
+                    help = "active quiet mode")
+p_main.add_argument("--no-cache", action = "store_false", default = False,
+                    help = "Not use persistent db caching")
+p_main.add_argument("-c", "--config", dest = "config", default = "isinstall",
+                    help = "config file path")
+p_main.add_argument("-v", "--image-version", type = int, default = None,
+                    help = "image version")
+p_main.add_argument("-t", "--timeout", dest = "timeout", type = int, default = None,
+                    help = "download timeout")
+p_main.add_argument("-r", "--repo-path", action = "append", default = [],
+                    help = "repository path")
+p_main.add_argument("-R", "--repo-config", action = "append", default = ["repository"],
+                    help = "repository config path (can be specified more than one time)")
+p_main.add_argument("image_name", help = "image to install (path or name)")
+
 try:
     # Partial parse
     args = p_main.parse_known_args()[0]
-    # load config
-    config = ConfigFile("isinstall", args.config)
+    # load main config
+    config = MainConfigFile(args.config)
     # looks if arguments is a file or image name
     if istools.pathtype(args.image_name) == "file" and os.path.isfile(args.image_name):
         pkg = PackageImage(istools.abspath(args.image_name))
@@ -60,12 +65,13 @@ try:
             config.cache = None
         # init repo cache object
         repoman = RepositoryManager(config.cache, timeout=args.timeout)
-        # register config repositories
-        for crepo in config.repos:
-            repoman.register(crepo)
-        # register command line repositories
-        for rpath in args.repos:
+        # register command line repositories (order matter)
+        for rpath in args.repo_path:
             repoman.register(RepositoryConfig(None, path=rpath))
+        # register config repositories
+        for r_config in args.repo_config:
+            for r_repo in RepoConfigFile(r_config).repos:
+                repoman.register(r_repo)
         # get image package
         pkg = repoman.get(args.image_name, args.image_version)
     else:

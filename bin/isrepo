@@ -8,14 +8,16 @@ InstallSystems Repository Manipulation Tool
 
 import os
 import installsystems
-import installsystems.argparse as argparse # To remove when default to python 2.7
+import installsystems.argparse as argparse # To Remove when python 2.7
 from installsystems.printer import *
 from installsystems.repository import Repository, RepositoryConfig
 from installsystems.image import PackageImage
-from installsystems.config import ConfigFile
+from installsystems.config import MainConfigFile, RepoConfigFile
 
 class ISAction(argparse.Action):
-    '''Set installsystems quiet/debug mode. Argparse callback'''
+    '''
+    Set installsystems quiet/debug mode. Argparse callback
+    '''
     def __call__(self, parser, namespace, values, option_string=None):
         if option_string in ("-q", "--quiet"):
             installsystems.quiet = True
@@ -24,7 +26,9 @@ class ISAction(argparse.Action):
 
 
 def init(args):
-    '''Create an empty fresh repo tree'''
+    '''
+    Create an empty fresh repo tree
+    '''
     # call init from library
     try:
         Repository.create(args.repository)
@@ -32,7 +36,9 @@ def init(args):
         raise Exception("init failed: %s" % e)
 
 def add(args):
-    '''Add a package to repository'''
+    '''
+    Add a package to repository
+    '''
     try:
         repo = Repository(args.repository)
         pkg = PackageImage(args.path)
@@ -41,7 +47,9 @@ def add(args):
         raise Exception("add failed: %s" % e)
 
 def delete(args):
-    '''Remove a package from repository'''
+    '''
+    Remove a package from repository
+    '''
     try:
         repo = Repository(args.repository)
         repo.delete(args.image_name, args.image_version)
@@ -50,24 +58,28 @@ def delete(args):
 
 # Top level argument parsing
 p_main = argparse.ArgumentParser()
-p_main.add_argument("-V", "--version", action="version", version=installsystems.version,
-                    help="show installsystems version")
-p_main.add_argument('-d', "--debug", action=ISAction, nargs=0,
-                    help="active debug mode")
-p_main.add_argument('-q', "--quiet", action=ISAction, nargs=0,
-                    help="active quiet mode")
-p_main.add_argument("-c", "--config", dest="config", type=str, default=None,
-                    help="config file path")
-p_main.add_argument("-r", "--repo-name", dest="repo_name", type=str, default=None,
-                    help="repository name in config file")
+p_main.add_argument("-V", "--version", action = "version",
+                    version = installsystems.version,
+                    help = "show installsystems version")
+p_main.add_argument('-d', "--debug", action = ISAction, nargs = 0,
+                    help = "active debug mode")
+p_main.add_argument('-q', "--quiet", action = ISAction, nargs = 0,
+                    help = "active quiet mode")
+p_main.add_argument("-c", "--config", default = "isrepo",
+                    help = "config file path")
+p_main.add_argument("-r", "--repo-name", default = None,
+                    help = "select repository by name in config files")
+p_main.add_argument("-R", "--repo-config", action = "append",
+                    default = ["repository"],
+                    help = "repository config (can be specified more than one time)")
 subparsers = p_main.add_subparsers()
 # Init command parser
-p_init = subparsers.add_parser("init", help=init.__doc__.lower())
-p_init.set_defaults(func=init)
+p_init = subparsers.add_parser("init", help = init.__doc__.lower())
+p_init.set_defaults(func = init)
 # Add command parser
-p_add =  subparsers.add_parser("add", help=add.__doc__.lower())
-p_add.add_argument("path", type=str)
-p_add.set_defaults(func=add)
+p_add =  subparsers.add_parser("add", help = add.__doc__.lower())
+p_add.add_argument("path")
+p_add.set_defaults(func = add)
 # Del command parser
 #p_del =  subparsers.add_parser("del", help=delete.__doc__.lower())
 #p_del.add_argument("image_name", type=str)
@@ -76,13 +88,16 @@ p_add.set_defaults(func=add)
 try:
     # Parse and run
     args = p_main.parse_args()
-    # load config
-    config = ConfigFile("isrepo", args.config)
+    # load isinstall config
+    config = MainConfigFile(args.config)
+    config.merge(args)
+    # load repo configs
+    repos = []
+    for r_config in args.repo_config:
+        repos += RepoConfigFile(r_config).repos
     # filtering on repository name if present
     if args.repo_name is not None:
-        repos = filter(lambda x: x.name == args.repo_name, config.repos)
-    else:
-        repos = config.repos
+        repos = filter(lambda x: x.name == args.repo_name, repos)
     if len(repos) == 1:
         args.repository = repos[0]
     elif len(repos) > 1:

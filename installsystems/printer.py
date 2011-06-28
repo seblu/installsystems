@@ -70,7 +70,7 @@ def debug(message, fd=sys.stderr, endl=os.linesep):
     if installsystems.debug:
         out("#light##black#%s#reset#" % message, fd, endl)
 
-def arrowlevel(inc=None,level=None):
+def arrowlevel(inc=None, level=None):
     global _arrow_level
     old_level = _arrow_level
     if level is not None:
@@ -79,12 +79,11 @@ def arrowlevel(inc=None,level=None):
         _arrow_level = max(1, min(4, _arrow_level + inc))
     return old_level
 
-def arrow(message, level=None, fd=sys.stdout, endl=os.linesep):
+def arrow(message, inclevel=None, level=None, fd=sys.stdout, endl=os.linesep):
     if installsystems.quiet:
         return
-    # set a one shot level
-    if level is not None:
-        old_level = arrowlevel(level=level)
+    # define new level
+    old_level = arrowlevel(inc=inclevel, level=level)
     if _arrow_level == 1:
         out("#light##red#=>#reset# %s" % message)
     elif _arrow_level == 2:
@@ -94,5 +93,4 @@ def arrow(message, level=None, fd=sys.stdout, endl=os.linesep):
     elif _arrow_level == 4:
         out("  #light##green#=>#reset# %s" % message)
     # restore old on one shot level
-    if level is not None:
-        arrowlevel(level=old_level)
+    arrowlevel(level = old_level)

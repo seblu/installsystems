@@ -50,26 +50,23 @@ class Database(object):
         self.conn = sqlite3.connect(self.path, isolation_level=None)
         self.conn.execute("PRAGMA foreign_keys = ON")
 
-    def get(self, name, version):
-        '''Return a description dict from a image name'''
-        # parse tarball
-        try:
-            self.file.seek(0)
-            tarball = Tarball.open(fileobj=self.file, mode="r:gz")
-            rdata = tarball.get_str("%s-%s" % (name, version))
-            tarball.close()
-        except KeyError:
-            raise Exception("No image %s version %s in metadata" % (name, version))
-        except Exception as e:
-            raise Exception("Unable to read db %s version %s: %s" % (name, version, e))
-        # convert loaded data into dict (json parser)
-        try:
-            return json.loads(rdata)
-        except Exception as e:
-            raise Exception("Invalid metadata in image %s version %s: e" % (name, version, e))
+    def begin(self):
+        '''
+        Start a db transaction
+        '''
+        self.conn.execute("BEGIN TRANSACTION")
+
+    def commit(self):
+        '''
+        Commit current db transaction
+        '''
+        self.conn.execute("COMMIT TRANSACTION")
+
 
     def ask(self, sql, args=()):
-        '''Ask question to db'''
+        '''
+        Ask question to db
+        '''
         return self.conn.execute(sql, args)
 
     def add(self, image):
@@ -81,7 +78,7 @@ class Database(object):
             self.conn.execute("BEGIN TRANSACTION")
             # insert image information
             arrow("Add image metadata")
-            self.conn.execute("INSERT OR REPLACE INTO image values (?,?,?,?,?,?,?)",
+            self.conn.execute("INSERT INTO image values (?,?,?,?,?,?,?)",
                               (image.md5,
                                image.name,
                                image.version,
@@ -93,7 +90,7 @@ class Database(object):
             # insert data informations
             arrow("Add payload metadata")
             for name, obj in image.payload.items():
-                self.conn.execute("INSERT OR REPLACE INTO payload values (?,?,?,?,?)",
+                self.conn.execute("INSERT INTO payload values (?,?,?,?,?)",
                                   (obj.md5,
                                    image.md5,
                                    name,
@@ -106,25 +103,3 @@ class Database(object):
             arrowlevel(-1)
         except Exception as e:
             raise Exception("Adding metadata fail: %s" % e)
-
-    def delete(self, name, version):
-        '''Delete a packaged image'''
-        arrow("Removing metadata from db")
-        # check locality
-        if istools.pathtype(self.path) != "file":
-            raise NotImplementedError("Database deletion must be local")
-        newdb_path = "%s.new" % self.path
-        fname = "%s-%s.json" % (name, version)
-        try:
-            db = Tarball.open(self.path, mode='r:gz')
-            newdb = Tarball.open(newdb_path, mode='w:gz')
-            for ti in db.getmembers():
-                if ti.name != fname:
-                    newdb.addfile(ti, db.extractfile(ti))
-            db.close()
-            newdb.close()
-            # preserve permission and stats when moving
-            shutil.copystat(self.path, newdb_path)
-            os.rename(newdb_path, self.path)
-        except Exception as e:
-            raise Exception("Removing metadata fail: %s" % e)

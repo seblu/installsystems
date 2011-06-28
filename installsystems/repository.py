@@ -31,10 +31,12 @@ class Repository(object):
 
     @classmethod
     def create(cls, config):
-        '''Create an empty base repository'''
+        '''
+        Create an empty base repository
+        '''
         # check local repository
         if istools.pathtype(config.path) != "file":
-            raise NotImplementedError("Repository creation must be local")
+            raise Exception("Repository creation must be local")
         # create base directories
         arrow("Creating base directories")
         arrowlevel(1)
@@ -58,10 +60,12 @@ class Repository(object):
         return self
 
     def update_last(self):
-        '''Update last file to current time'''
+        '''
+        Update last file to current time
+        '''
         # check local repository
         if istools.pathtype(self.config.path) != "file":
-            raise NotImplementedError("Repository addition must be local")
+            raise Exception("Repository addition must be local")
         try:
             arrow("Updating last file")
             last_path = os.path.join(self.config.path, self.config.lastname)
@@ -71,7 +75,9 @@ class Repository(object):
             raise Exception("Update last file failed: %s" % e)
 
     def last(self):
-        '''Return the last value'''
+        '''
+        Return the last value
+        '''
         try:
             last_path = os.path.join(config.path, config.lastname)
             return int(istools.uopen(last_path, "r").read().rstrip())
@@ -80,10 +86,15 @@ class Repository(object):
         return 0
 
     def add(self, image):
-        '''Add a packaged image to repository'''
+        '''
+        Add a packaged image to repository
+        '''
         # check local repository
         if istools.pathtype(self.config.path) != "file":
-            raise NotImplementedError("Repository addition must be local")
+            raise Exception("Repository addition must be local")
+        # cannot add already existant image
+        if self.has(image.name, image.version):
+            raise Exception("Image already in database, delete first!")
         # checking data tarballs md5 before copy
         image.check("Check image and payload before copy")
         # adding file to repository
@@ -112,43 +123,60 @@ class Repository(object):
         self.update_last()
 
     def delete(self, name, version):
-        '''Delete an image from repository'''
-        raise NotImplementedError()
+        '''
+        Delete an image from repository
+        '''
         # check local repository
         if istools.pathtype(self.config.path) != "file":
-            raise NotImplementedError("Repository deletion must be local")
-        desc = self.db.find(name, version)
-        if desc is None:
-            error("Unable to find %s version %s in database" % (name, version))
-        # removing script tarballs
-        arrow("Removing script tarball")
+            raise Exception("Repository deletion must be local")
+        # get md5 of files related to images (exception is raised if not exists
+        md5s = self.getmd5(name, version)
+        # cleaning db (must be done before cleaning)
+        arrow("Cleaning database")
+        arrow("Remove payloads from database", 1)
+        self.db.begin()
+        for md5 in md5s[1:]:
+            self.db.ask("DELETE FROM payload WHERE md5 = ? AND image_md5 = ?",
+                        (md5, md5s[0])).fetchone()
+        arrow("Remove image from database", 1)
+        self.db.ask("DELETE FROM image WHERE md5 = ?",
+                        (md5s[0],)).fetchone()
+        self.db.commit()
+        # Removing script image
+        arrow("Removing files from pool")
         arrowlevel(1)
-        tpath = os.path.join(self.config.path,
-                             "%s-%s%s" % (name, version, Image.extension))
-        if os.path.exists(tpath):
-            os.unlink(tpath)
-            arrow("%s removed" % os.path.basename(tpath))
-        arrowlevel(1)
-        # removing data tarballs
-        arrow("Removing data tarballs")
-        arrowlevel(1)
-        for tb in self.db.databalls(name, version):
-            tpath = os.path.join(self.config.data, tb)
-            if os.path.exists(tpath):
-                os.unlink(tpath)
-                arrow("%s removed" % tb)
+        for md5 in md5s:
+            self._remove_file(md5)
         arrowlevel(-1)
-        # removing metadata
-        self.db.delete(name, version)
         # update last file
-        arrow("Updating last file")
         self.update_last()
 
+    def _remove_file(self, filename):
+        '''
+        Remove a filename from pool. Check if it's not needed by db before
+        '''
+        # check existance in table image
+        have = False
+        for table in ("image", "payload"):
+            have = have or  self.db.ask("SELECT md5 FROM %s WHERE md5 = ? LIMIT 1" % table,
+                                        (filename,)).fetchone() is not None
+        # if no reference, delete!
+        if not have:
+            arrow("%s, deleted" % filename)
+            os.unlink(os.path.join(self.config.path, filename))
+        else:
+            arrow("%s, skipped" % filename)
+
     def has(self, name, version):
-        return self.db.ask("select name,version from image where name = ? and version = ? limit 1", (name,version)).fetchone() is not None
+        '''
+        Return the existance of a package
+        '''
+        return self.db.ask("SELECT name,version FROM image WHERE name = ? AND version = ? LIMIT 1", (name,version)).fetchone() is not None
 
     def get(self, name, version):
-        '''return a image from a name and version of pakage'''
+        '''
+        return a image from a name and version
+        '''
         # get file md5 from db
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name,version)).fetchone()
@@ -156,11 +184,29 @@ class Repository(object):
             raise Exception("No such image %s version %s" % name, version)
         path = os.path.join(self.config.path, r[0])
         debug("Getting %s v%s from %s" % (name, version, path))
-        return PackageImage(path, md5name=True)
+        pkg = PackageImage(path, md5name=True)
+        pkg.md5 = r[0]
+        return pkg
+
+    def getmd5(self, name, version):
+        '''
+        return a image md5 and payload md5 from name and version. Order matter !
+        image md5 will still be the first
+        '''
+        # get file md5 from db
+        a = self.db.ask("SELECT md5 FROM image WHERE name = ? AND version = ? LIMIT 1",
+                        (name,version)).fetchone()
+        if a is None:
+            raise Exception("No such image %s version %s" % name, version)
+        b = self.db.ask("SELECT md5 FROM payload WHERE image_md5 = ?",
+                        (a[0],)).fetchall()
+        return [ a[0] ] + [ x[0] for x in b ]
 
     def last(self, name):
-        '''Return last version of name in repo or -1 if not found'''
-        r = self.db.ask("select version from image where name = ? order by version desc limit 1", (name,)).fetchone()
+        '''
+        Return last version of name in repo or -1 if not found
+        '''
+        r = self.db.ask("SELECT version FROM image WHERE name = ? ORDER BY version DESC LIMIT 1", (name,)).fetchone()
         # no row => no way
         if r is None:
             return -1

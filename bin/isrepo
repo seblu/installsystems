@@ -81,10 +81,10 @@ p_add =  subparsers.add_parser("add", help = add.__doc__.lower())
 p_add.add_argument("path")
 p_add.set_defaults(func = add)
 # Del command parser
-#p_del =  subparsers.add_parser("del", help=delete.__doc__.lower())
-#p_del.add_argument("image_name", type=str)
-#p_del.add_argument("image_version", type=str)
-#p_del.set_defaults(func=delete)
+p_del =  subparsers.add_parser("del", help = delete.__doc__.lower())
+p_del.add_argument("image_name")
+p_del.add_argument("image_version")
+p_del.set_defaults(func = delete)
 try:
     # Parse and run
     args = p_main.parse_args()

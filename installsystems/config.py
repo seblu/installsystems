@@ -7,6 +7,7 @@ InstallSystems Configuration files class
 '''
 
 import os
+import sys
 from ConfigParser import RawConfigParser
 from installsystems.printer import *
 from installsystems.repository import RepositoryConfig
@@ -19,18 +20,13 @@ class ConfigFile(object):
 
     def __init__(self, filename):
         '''
-        filename can be name in config path
+        filename can be full path to config file or a name in config directory
         '''
         #try to get filename in  default config dir
-        if "/" not in filename:
-            path = self._config_path(filename)
-            if path is not None:
-                self.path = path
-        elif os.path.exists(filename):
-            self.path = filename
+        if os.path.exists(filename):
+            self.path = os.path.abspath(filename)
         else:
-            self.path = None
-            debug("No config file found: %s" % filename)
+            self.path = self._config_path(filename)
         self.reload()
 
     def reload():
@@ -49,32 +45,15 @@ class ConfigFile(object):
                 return cf
         return None
 
-    def _cache_paths(self, name):
-        '''
-        List all candidates to cache directories. Alive or not
-        '''
-        dirs = [] # ["/var/tmp", "/tmp"]
-        # we have a different behaviour if we are root
-        dirs.insert(0, "/var/cache" if os.getuid() == 0 else os.path.expanduser("~/.cache"))
-        return map(lambda x: os.path.join(x, name), dirs)
-
-    def _cache_path(self):
-        '''
-        Return path of the best cache directory
-        '''
-        # find a good directory
-        for di in self._cache_paths():
-            if (os.path.exists(di)
-                and os.path.isdir(di)
-                and os.access(di, os.R_OK|os.W_OK|os.X_OK)):
-                return di
-        return None
-
 
 class MainConfigFile(ConfigFile):
     '''
     Program configuration file
     '''
+
+    def __init__(self, filename, prefix=os.path.basename(sys.argv[0])):
+        self.prefix = prefix
+        ConfigFile.__init__(self, filename)
 
     def reload(self):
         '''
@@ -83,15 +62,15 @@ class MainConfigFile(ConfigFile):
         self._config = {}
         # loading config file if exists
         if self.path is None:
+            debug("No %s.conf file to load" % self.prefix)
             return
         debug("Loading config file: %s" % self.path)
         try:
             cp = RawConfigParser()
             cp.read(self.path)
             # main configuration
-            name = os.path.splitext(os.path.basename(self.path))[0]
-            if cp.has_section(name):
-                self._config = dict(cp.items(name))
+            if cp.has_section(self.prefix):
+                self._config = dict(cp.items(self.prefix))
         except Exception as e:
             raise Exception("Unable load file %s: %s" % (self.path, e))
 
@@ -104,6 +83,30 @@ class MainConfigFile(ConfigFile):
                 setattr(namespace, option, value)
             elif getattr(namespace, option) == None:
                 setattr(namespace, option, value)
+
+    def _cache_paths(self):
+        '''
+        List all candidates to cache directories. Alive or not
+        '''
+        dirs = ["/var/tmp", "/tmp"]
+        # we have a different behaviour if we are root
+        if os.getuid() == 0:
+            dirs.insert(0, "/var/cache")
+        else:
+            dirs.insert(0, os.path.expanduser("~/.cache"))
+        return map(lambda x: os.path.join(x, self.prefix), dirs)
+
+    def _cache_path(self):
+        '''
+        Return path of the best cache directory
+        '''
+        # find a good directory
+        for di in self._cache_paths():
+            if (os.path.exists(di)
+                and os.path.isdir(di)
+                and os.access(di, os.R_OK|os.W_OK|os.X_OK)):
+                return di
+        return None
 
     @property
     def cache(self):
@@ -134,23 +137,23 @@ class RepoConfigFile(ConfigFile):
         # seting default config
         self._config = {}
         self._repos = []
+        # if no file nothing to load
+        if self.path is None:
+            return
         # loading config file if exists
-        if self.path is not None:
-            debug("Loading config file: %s" % self.path)
-            try:
-                cp = RawConfigParser()
-                cp.read(self.path)
-                # each section is a repository
-                for rep in cp.sections():
-                    # check if its a repo section
-                    if "path" not in cp.options(rep):
-                        continue
-                    # get all options in repo
-                    self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))
-            except Exception as e:
-                raise Exception("Unable load file %s: %s" % (self.path, e))
-        else:
-            debug("No config file found")
+        debug("Loading config file: %s" % self.path)
+        try:
+            cp = RawConfigParser()
+            cp.read(self.path)
+            # each section is a repository
+            for rep in cp.sections():
+                # check if its a repo section
+                if "path" not in cp.options(rep):
+                    continue
+                # get all options in repo
+                self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))
+        except Exception as e:
+            raise Exception("Unable load file %s: %s" % (self.path, e))
 
     @property
     def repos(self):

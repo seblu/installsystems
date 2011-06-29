@@ -1,5 +1,5 @@
-installsystems (1) unstable; urgency=low
+installsystems (1-dev) unstable; urgency=low
 
-  * Initial release.
+  * version 1 dev package.
 
  -- Sebastien Luttringer <sebastien.luttringer@smartjog.com> Wed, 08 Jun 2011 12:30:02 +0200

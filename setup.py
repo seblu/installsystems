@@ -15,7 +15,7 @@ setup(
     author='Sebastien Luttringer',
     author_email='sebastien.luttringer@smartjog.com',
     license='GPL2', 
-    packages=[ 'installsystems'],
+    packages=[ 'installsystems' ],
     scripts=['bin/isrepo', 'bin/isinstall', 'bin/isimage'],
     classifiers=[
         'Operating System :: Unix',

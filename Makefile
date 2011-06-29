@@ -1,6 +1,6 @@
 ## Makefile
 
-.PHONY: all tar deb clean cleanbuild buildd
+.PHONY: all tar deb clean cleanbuild buildd dsc
 
 NAME=installsystems
 VERSION=$(shell sed -rn 's/version = "([^"]+)"/\1/p' installsystems/__init__.py)
@@ -26,7 +26,7 @@ buildd: dsc
 	chmod 644 $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz
 	scp $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz incoming@buildd.fr.lan:sid
 
-clean: clean_build
+clean: cleanbuild
 
 cleanbuild:
 	-rm -rf  $(BUILD_DIR)

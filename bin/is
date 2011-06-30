@@ -1,0 +1,264 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Started 30/06/2011 by Seblu <seblu@seblu.net>
+
+'''
+InstallSystems Command line Tool
+'''
+
+import os
+import time
+import datetime
+import installsystems
+import installsystems.argparse as argparse # To be removed when python 2.7
+import installsystems.tools as istools
+from installsystems.printer import *
+from installsystems.repository import Repository
+from installsystems.repository import RepositoryManager
+from installsystems.repository import RepositoryConfig
+from installsystems.image import PackageImage, SourceImage
+from installsystems.config import MainConfigFile, RepoConfigFile
+
+def load_repositories(args):
+    '''
+    Load repository on arg line
+    '''
+    # load repo configs
+    repos = []
+    for r_config in args.repo_config:
+        repos += RepoConfigFile(r_config).repos
+    # filtering on repository name if present
+    if args.repo_filter is not None:
+        repos = filter(lambda x: x.name == args.repo_filter, repos)
+    return repos
+
+def c_init_image(args):
+    '''
+    Create a new source image
+    '''
+    try:
+        simg = SourceImage.create(args.path)
+    except Exception as e:
+        error("init image failed: %s." % e)
+
+def c_init_repo(args):
+    '''
+    Create a empty repository
+    '''
+    try:
+        repos = load_repositories(args)
+        if len(repos) != 1:
+            raise Exception("Please select one repository")
+        Repository.create(repos[0])
+        debug("Repository: %s" % args[0])
+    except Exception as e:
+        raise Exception("init repo failed: %s" % e)
+
+def c_build(args):
+    '''
+    Build an image source
+    '''
+    try:
+        # build start time
+        t0 = time.time()
+        # load source image
+        simg = SourceImage(args.path)
+        # do the job
+        simg.build(force=args.force, check=not args.no_check)
+        # compute building time
+        t1 = time.time()
+        dt = int(t1 - t0)
+        arrow("Build time: %s" % datetime.timedelta(seconds=dt))
+    except Exception as e:
+        error("build failed: %s." % e)
+
+def c_add(args):
+    '''
+    Add an image package into a repository
+    '''
+    try:
+        repos = load_repositories(args)
+        if len(repos) != 1:
+            raise Exception("Please select one repository")
+        repo = Repository(repos[0])
+        pkg = PackageImage(args.path)
+        repo.add(pkg)
+    except Exception as e:
+        raise Exception("add failed: %s" % e)
+
+def c_del(args):
+    '''
+    Remove an image package from a repository
+    '''
+    try:
+        repos = load_repositories(args)
+        if len(repos) != 1:
+            raise Exception("Please select one repository")
+        repo = Repository(repos[0])
+        repo.delete(args.image_name, args.image_version)
+    except Exception as e:
+        raise Exception("del failed: %s" % e)
+
+def c_install(args):
+    '''
+    Install an image
+    '''
+    # looks if arguments is a file or image name
+    if istools.pathtype(args.image) == "file" and os.path.isfile(args.image):
+        pkg = PackageImage(istools.abspath(args.image))
+    elif PackageImage.check_image_name(args.image):
+        # remove cache is asked
+        if args.no_cache:
+            config.cache = None
+        # init repo cache object
+        repoman = RepositoryManager(config.cache, timeout=args.timeout)
+        # register command line repositories (order matter)
+        for rpath in args.repo_path:
+            repoman.register(RepositoryConfig(None, path=rpath))
+        # register config repositories
+        for r_config in args.repo_config:
+            for r_repo in RepoConfigFile(r_config).repos:
+                repoman.register(r_repo)
+        # get image package
+        pkg = repoman.get(args.image, args.image_version)
+    else:
+        args.subparser.print_usage()
+        exit(1)
+    # Print setup information
+    arrow("Installing %s v%s" % (pkg.name, pkg.version))
+    # install start time
+    t0 = time.time()
+    # run parser scripts with parser parser argument
+    pkg.run_parser(parser=args.subparser)
+    # call parser again, with extended attributes
+    arrow("Parsing arguments")
+    args = args.parser.parse_args(namespace=args)
+    # run setup scripts
+    pkg.run_setup(namespace=args)
+    # compute building time
+    t1 = time.time()
+    dt = int(t1 - t0)
+    arrow("Install time: %s" % datetime.timedelta(seconds=dt))
+
+def c_search(args):
+    '''
+    Search in repository
+    '''
+    raise NotImplementedError("Not yet implemented")
+
+def c_get(args):
+    '''
+    Get a remove image in current directory
+    '''
+    raise NotImplementedError("Not yet implemented")
+
+def c_clean(args):
+    '''
+    Clean a repository
+    '''
+    raise NotImplementedError("Not yet implemented")
+
+
+# Top level argument parsing
+p_main = argparse.ArgumentParser()
+p_main.add_argument("-V", "--version", action="version",
+                    version=installsystems.version,
+                    help="show installsystems version")
+# exclusive group on debug/quiet
+ex_group = p_main.add_mutually_exclusive_group()
+ex_group.add_argument('-d', "--debug", action="store_true",
+                      help="active debug mode")
+ex_group.add_argument('-q', "--quiet", action="store_true",
+                      help="active quiet mode")
+# common options
+p_main.add_argument("-c", "--config", default="is",
+                    help="config file path")
+p_main.add_argument("-f", "--repo-filter", default=None,
+                    help="select repository by name in config files")
+p_main.add_argument("-r", "--repo-path", action="append", default=[],
+                    help="repository path")
+p_main.add_argument("-R", "--repo-config", action="append",
+                    default=["repository"],
+                    help="repository config (can be specified more than one time)")
+p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
+                    help="download timeout")
+# create a subparsers for each command
+subparsers = p_main.add_subparsers()
+
+# init command parser
+p_init = subparsers.add_parser("init", help="initialize source image or repository")
+sp_init = p_init.add_subparsers()
+p_init_repo = sp_init.add_parser("repo", help=c_init_repo.__doc__.lower())
+p_init_repo.add_argument("repo_filter", nargs="?", default=argparse.SUPPRESS,
+                         help="Name or path of a repository to init")
+p_init_repo.set_defaults(func=c_init_repo)
+p_init_image = sp_init.add_parser("image", help=c_init_image.__doc__.lower())
+p_init_image.add_argument("path", help="Path of new image directory")
+p_init_image.set_defaults(func=c_init_image)
+
+# build command parser
+p_build = subparsers.add_parser("build", help=c_build.__doc__.lower())
+p_build.add_argument('-f', "--force", action="store_true", default=False,
+                     help="overwrite existing image")
+p_build.add_argument('-c', "--no-check", action="store_true", default=False,
+                     help="do not check compilation before adding scripts")
+p_build.add_argument("path", nargs="?", default=".")
+p_build.set_defaults(func=c_build)
+
+# add command parser
+p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())
+p_add.add_argument("path")
+p_add.set_defaults(func=c_add)
+
+# del command parser
+p_del =  subparsers.add_parser("del", help=c_del.__doc__.lower())
+p_del.add_argument("image_name")
+p_del.add_argument("image_version")
+p_del.set_defaults(func=c_del)
+
+# install command parser
+p_install = subparsers.add_parser("install", help=c_install.__doc__.lower())
+p_install.add_argument('-f', "--force", action="store_true", default=False,
+                       help="overwrite existing image")
+p_install.add_argument("-c", "--cache", default=None,
+                       help="Not use persistent db caching")
+p_install.add_argument("--no-cache", action="store_true", default=False,
+                       help="Not use persistent db caching")
+p_install.add_argument("-v", "--image-version", type=int, default=None,
+                       help="image version")
+p_install.add_argument("image", help="image to install (path or name)")
+p_install.set_defaults(func=c_install, parser=p_main, subparser=p_install)
+
+# get command parser
+p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
+p_get.set_defaults(func=c_get)
+
+# search command parser
+p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())
+p_search.set_defaults(func=c_search)
+
+# clean command parser
+p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())
+p_clean.set_defaults(func=c_clean)
+
+try:
+    # Parse and run
+    args = p_main.parse_known_args()[0]
+    # set debug and quiet mode before merge
+    installsystems.debug = args.debug
+    installsystems.quiet = args.quiet
+    # load isinstall config
+    config = MainConfigFile(args.config)
+    config.merge(args)
+    # set debug and quiet mode after merge
+    installsystems.debug = args.debug
+    installsystems.quiet = args.quiet
+    if not hasattr(args, "parser"):
+        args = p_main.parse_args(namespace=args)
+    # let's go
+    args.func(args)
+except Exception as e:
+    p_main.print_usage()
+    error(e)
+except KeyboardInterrupt:
+    warn("Keyboard Interrupted")

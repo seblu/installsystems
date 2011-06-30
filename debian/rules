@@ -9,7 +9,7 @@ include /usr/share/cdbs/1/rules/debhelper.mk
 include /usr/share/cdbs/1/class/python-distutils.mk
 
 
-PYTHON_PACKAGES := isinstall isimage isrepo python-installsystems
+PYTHON_PACKAGES := is python-installsystems
 
 $(patsubst %,binary-install/%,$(PYTHON_PACKAGES)) ::
 	dh_pycentral -p$(cdbs_curpkg)

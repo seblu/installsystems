@@ -62,7 +62,7 @@ class MainConfigFile(ConfigFile):
         self._config = {}
         # loading config file if exists
         if self.path is None:
-            debug("No %s.conf file to load" % self.prefix)
+            debug("No main config file to load")
             return
         debug("Loading config file: %s" % self.path)
         try:

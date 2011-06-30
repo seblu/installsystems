@@ -17,26 +17,15 @@ from installsystems.repository import RepositoryManager, RepositoryConfig
 from installsystems.image import PackageImage
 from installsystems.config import MainConfigFile, RepoConfigFile
 
-class ISAction(argparse.Action):
-    '''
-    Set installsystems quiet/debug mode. Argparse callback
-    '''
-    def __call__(self, parser, namespace, values, option_string=None):
-        if option_string in ("-q", "--quiet"):
-            installsystems.debug = False
-        elif option_string in ("-d", "--debug"):
-            installsystems.debug = True
-
-
 # Argument parsing loading
 p_main = argparse.ArgumentParser()
 p_main.add_argument("-V", "--version", action = "version",
                     version = installsystems.version,
                     help = "show installsystems version")
-p_main.add_argument('-d', "--debug", action = ISAction, nargs = 0,
-                    help = "active debug mode")
-p_main.add_argument('-q', "--quiet", action = ISAction, nargs = 0,
-                    help = "active quiet mode")
+p_main.add_argument('-d', "--debug", action="store_true",
+                    help="active debug mode")
+p_main.add_argument('-q', "--quiet", action="store_true",
+                    help="active quiet mode")
 p_main.add_argument("--no-cache", action = "store_false", default = False,
                     help = "Not use persistent db caching")
 p_main.add_argument("-c", "--config", dest = "config", default = "isinstall",
@@ -56,6 +45,10 @@ try:
     args = p_main.parse_known_args()[0]
     # load main config
     config = MainConfigFile(args.config)
+    config.merge(args)
+    # set debug and quiet mode after merge
+    installsystems.debug = args.debug
+    installsystems.quiet = args.quiet
     # looks if arguments is a file or image name
     if istools.pathtype(args.image_name) == "file" and os.path.isfile(args.image_name):
         pkg = PackageImage(istools.abspath(args.image_name))

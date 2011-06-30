@@ -8,22 +8,11 @@ InstallSystems Repository Manipulation Tool
 
 import os
 import installsystems
-import installsystems.argparse as argparse # To Remove when python 2.7
+import installsystems.argparse as argparse # To be removed when python 2.7
 from installsystems.printer import *
 from installsystems.repository import Repository, RepositoryConfig
 from installsystems.image import PackageImage
 from installsystems.config import MainConfigFile, RepoConfigFile
-
-class ISAction(argparse.Action):
-    '''
-    Set installsystems quiet/debug mode. Argparse callback
-    '''
-    def __call__(self, parser, namespace, values, option_string=None):
-        if option_string in ("-q", "--quiet"):
-            installsystems.quiet = True
-        elif option_string in ("-d", "--debug"):
-            installsystems.debug = True
-
 
 def init(args):
     '''
@@ -58,20 +47,20 @@ def delete(args):
 
 # Top level argument parsing
 p_main = argparse.ArgumentParser()
-p_main.add_argument("-V", "--version", action = "version",
-                    version = installsystems.version,
-                    help = "show installsystems version")
-p_main.add_argument('-d', "--debug", action = ISAction, nargs = 0,
-                    help = "active debug mode")
-p_main.add_argument('-q', "--quiet", action = ISAction, nargs = 0,
-                    help = "active quiet mode")
-p_main.add_argument("-c", "--config", default = "isrepo",
-                    help = "config file path")
-p_main.add_argument("-r", "--repo-name", default = None,
-                    help = "select repository by name in config files")
-p_main.add_argument("-R", "--repo-config", action = "append",
-                    default = ["repository"],
-                    help = "repository config (can be specified more than one time)")
+p_main.add_argument("-V", "--version", action="version",
+                    version=installsystems.version,
+                    help="show installsystems version")
+p_main.add_argument('-d', "--debug", action="store_true",
+                    help="active debug mode")
+p_main.add_argument('-q', "--quiet", action="store_true",
+                    help="active quiet mode")
+p_main.add_argument("-c", "--config", default="isrepo",
+                    help="config file path")
+p_main.add_argument("-r", "--repo-name", default=None,
+                    help="select repository by name in config files")
+p_main.add_argument("-R", "--repo-config", action="append",
+                    default=["repository"],
+                    help="repository config (can be specified more than one time)")
 subparsers = p_main.add_subparsers()
 # Init command parser
 p_init = subparsers.add_parser("init", help = init.__doc__.lower())
@@ -91,6 +80,9 @@ try:
     # load isinstall config
     config = MainConfigFile(args.config)
     config.merge(args)
+    # set debug and quiet mode after merge
+    installsystems.debug = args.debug
+    installsystems.quiet = args.quiet
     # load repo configs
     repos = []
     for r_config in args.repo_config:

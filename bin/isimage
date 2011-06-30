@@ -10,18 +10,9 @@ import os
 import time
 import datetime
 import installsystems
-import installsystems.argparse as argparse # To remove when default to python 2.7
+import installsystems.argparse as argparse # To be removed when python 2.7
 from installsystems.printer import *
 from installsystems.image import SourceImage
-
-class ISAction(argparse.Action):
-    '''Set installsystems quiet/debug mode. Argparse callback'''
-    def __call__(self, parser, namespace, values, option_string=None):
-        if option_string in ("-q", "--quiet"):
-            installsystems.quiet = True
-        elif option_string in ("-d", "--debug"):
-            installsystems.debug = True
-
 
 def init(args):
     '''Create an empty fresh source image tree'''
@@ -49,12 +40,12 @@ def build(args):
 
 # Top level argument parsing
 p_main = argparse.ArgumentParser()
-p_main.add_argument("-V", "--version", action = "version",
-                    version = installsystems.version,
+p_main.add_argument("-V", "--version", action="version",
+                    version=installsystems.version,
                     help="show installsystems version")
-p_main.add_argument('-d', "--debug", action = ISAction, nargs = 0,
+p_main.add_argument('-d', "--debug", action="store_true",
                     help="active debug mode")
-p_main.add_argument('-q', "--quiet", action = ISAction, nargs = 0,
+p_main.add_argument('-q', "--quiet", action="store_true",
                     help="active quiet mode")
 
 subparsers = p_main.add_subparsers()
@@ -73,4 +64,8 @@ p_build.add_argument("path", nargs = "?", default = ".")
 p_build.set_defaults(func = build)
 # Parse and run
 args = p_main.parse_args()
+# set debug and quiet mode
+installsystems.debug = args.debug
+installsystems.quiet = args.quiet
+# exectue subparser functions
 args.func(args)

@@ -171,7 +171,7 @@ ex_group.add_argument('-d', "--debug", action="store_true",
 ex_group.add_argument('-q', "--quiet", action="store_true",
                       help="active quiet mode")
 # common options
-p_main.add_argument("-c", "--config", default="is",
+p_main.add_argument("-c", "--config", default="installsystems",
                     help="config file path")
 p_main.add_argument("-f", "--repo-filter", default=None,
                     help="select repository by name in config files")
@@ -248,7 +248,7 @@ try:
     installsystems.debug = args.debug
     installsystems.quiet = args.quiet
     # load isinstall config
-    config = MainConfigFile(args.config)
+    config = MainConfigFile(args.config, "installsystems")
     config.merge(args)
     # set debug and quiet mode after merge
     installsystems.debug = args.debug

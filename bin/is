@@ -38,7 +38,7 @@ def load_repositories(args):
     debug("Loaded repositories: %s" % [ x.name for x in repos ])
     return repos
 
-def c_init_image(parser, args, config):
+def c_init_image(parser, args):
     '''
     Create a new source image
     '''
@@ -47,7 +47,7 @@ def c_init_image(parser, args, config):
     except Exception as e:
         error("init image failed: %s." % e)
 
-def c_init_repo(parser, args, config):
+def c_init_repo(parser, args):
     '''
     Create a empty repository
     '''
@@ -60,7 +60,7 @@ def c_init_repo(parser, args, config):
     except Exception as e:
         raise Exception("init repo failed: %s" % e)
 
-def c_build(parser, args, config):
+def c_build(parser, args):
     '''
     Build an image source
     '''
@@ -78,7 +78,7 @@ def c_build(parser, args, config):
     except Exception as e:
         error("build failed: %s." % e)
 
-def c_add(parser, args, config):
+def c_add(parser, args):
     '''
     Add an image package into a repository
     '''
@@ -92,7 +92,7 @@ def c_add(parser, args, config):
     except Exception as e:
         raise Exception("add failed: %s" % e)
 
-def c_del(parser, args, config):
+def c_del(parser, args):
     '''
     Remove an image package from a repository
     '''
@@ -105,7 +105,7 @@ def c_del(parser, args, config):
     except Exception as e:
         raise Exception("del failed: %s" % e)
 
-def c_install(parser, args, config):
+def c_install(parser, args):
     '''
     Install an image
     '''
@@ -115,9 +115,9 @@ def c_install(parser, args, config):
     elif PackageImage.check_image_name(args.image):
         # remove cache is asked
         if args.no_cache:
-            config.cache = None
+            args.cache = None
         # init repo cache object
-        repoman = RepositoryManager(config.cache, timeout=args.timeout)
+        repoman = RepositoryManager(args.cache, timeout=args.timeout)
         # load repositories
         repos_config = load_repositories(args)
         # register repositories (order matter)
@@ -144,19 +144,19 @@ def c_install(parser, args, config):
     dt = int(t1 - t0)
     arrow("Install time: %s" % datetime.timedelta(seconds=dt))
 
-def c_search(parser, args, config):
+def c_search(parser, args):
     '''
     Search in repository
     '''
     raise NotImplementedError("Not yet implemented")
 
-def c_get(parser, args, config):
+def c_get(parser, args):
     '''
     Get a remove image in current directory
     '''
     raise NotImplementedError("Not yet implemented")
 
-def c_clean(parser, args, config):
+def c_clean(parser, args):
     '''
     Clean a repository
     '''
@@ -259,7 +259,7 @@ try:
     if args.func is not c_install:
         args = p_main.parse_args(namespace=args)
     # let's go
-    args.func(p_main, args, config)
+    args.func(p_main, args)
 except Exception as e:
     p_main.print_usage()
     error(e)

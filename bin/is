@@ -261,7 +261,6 @@ try:
     # let's go
     args.func(p_main, args)
 except Exception as e:
-    p_main.print_usage()
     error(e)
 except KeyboardInterrupt:
     warn("Keyboard Interrupted")

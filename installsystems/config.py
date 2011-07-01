@@ -22,8 +22,8 @@ class ConfigFile(object):
         '''
         filename can be full path to config file or a name in config directory
         '''
-        #try to get filename in  default config dir
-        if os.path.exists(filename):
+        #try to get filename in default config dir
+        if os.path.isfile(filename):
             self.path = os.path.abspath(filename)
         else:
             self.path = self._config_path(filename)
@@ -41,7 +41,7 @@ class ConfigFile(object):
         '''
         for cf in [ os.path.join(os.path.expanduser("~/.config/installsystems/%s.conf" % name)),
                     "/etc/installsystems/%s.conf" % name ]:
-            if (os.path.exists(cf) and os.path.isfile(cf) and os.access(cf, os.R_OK)):
+            if (os.path.isfile(cf) and os.access(cf, os.R_OK)):
                 return cf
         return None
 

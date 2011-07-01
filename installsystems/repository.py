@@ -397,7 +397,7 @@ class RepositoryManager(object):
         # delete temporary files (used by db)
         for f in self.tempfiles:
             try:
-                debug("Removing %s" % f)
+                debug("Removing temporaty db file %s" % f)
                 os.unlink(f)
             except OSError:
                 pass

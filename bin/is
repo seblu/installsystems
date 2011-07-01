@@ -38,7 +38,7 @@ def load_repositories(args):
     debug("Loaded repositories: %s" % [ x.name for x in repos ])
     return repos
 
-def c_init_image(args):
+def c_init_image(parser, args, config):
     '''
     Create a new source image
     '''
@@ -47,7 +47,7 @@ def c_init_image(args):
     except Exception as e:
         error("init image failed: %s." % e)
 
-def c_init_repo(args):
+def c_init_repo(parser, args, config):
     '''
     Create a empty repository
     '''
@@ -60,7 +60,7 @@ def c_init_repo(args):
     except Exception as e:
         raise Exception("init repo failed: %s" % e)
 
-def c_build(args):
+def c_build(parser, args, config):
     '''
     Build an image source
     '''
@@ -78,7 +78,7 @@ def c_build(args):
     except Exception as e:
         error("build failed: %s." % e)
 
-def c_add(args):
+def c_add(parser, args, config):
     '''
     Add an image package into a repository
     '''
@@ -92,7 +92,7 @@ def c_add(args):
     except Exception as e:
         raise Exception("add failed: %s" % e)
 
-def c_del(args):
+def c_del(parser, args, config):
     '''
     Remove an image package from a repository
     '''
@@ -105,7 +105,7 @@ def c_del(args):
     except Exception as e:
         raise Exception("del failed: %s" % e)
 
-def c_install(args):
+def c_install(parser, args, config):
     '''
     Install an image
     '''
@@ -118,13 +118,11 @@ def c_install(args):
             config.cache = None
         # init repo cache object
         repoman = RepositoryManager(config.cache, timeout=args.timeout)
-        # register command line repositories (order matter)
-        for rpath in args.repo_path:
-            repoman.register(RepositoryConfig(None, path=rpath))
-        # register config repositories
-        for r_config in args.repo_config:
-            for r_repo in RepoConfigFile(r_config).repos:
-                repoman.register(r_repo)
+        # load repositories
+        repos_config = load_repositories(args)
+        # register repositories (order matter)
+        for repo_conf in repos_config:
+            repoman.register(repo_conf)
         # get image package
         pkg = repoman.get(args.image, args.image_version)
     else:
@@ -138,7 +136,7 @@ def c_install(args):
     pkg.run_parser(parser=args.subparser)
     # call parser again, with extended attributes
     arrow("Parsing arguments")
-    args = args.parser.parse_args(namespace=args)
+    args = parser.parse_args(namespace=args)
     # run setup scripts
     pkg.run_setup(namespace=args)
     # compute building time
@@ -146,19 +144,19 @@ def c_install(args):
     dt = int(t1 - t0)
     arrow("Install time: %s" % datetime.timedelta(seconds=dt))
 
-def c_search(args):
+def c_search(parser, args, config):
     '''
     Search in repository
     '''
     raise NotImplementedError("Not yet implemented")
 
-def c_get(args):
+def c_get(parser, args, config):
     '''
     Get a remove image in current directory
     '''
     raise NotImplementedError("Not yet implemented")
 
-def c_clean(args):
+def c_clean(parser, args, config):
     '''
     Clean a repository
     '''
@@ -232,7 +230,7 @@ p_install.add_argument("--no-cache", action="store_true", default=False,
 p_install.add_argument("-v", "--image-version", type=int, default=None,
                        help="image version")
 p_install.add_argument("image", help="image to install (path or name)")
-p_install.set_defaults(func=c_install, parser=p_main, subparser=p_install)
+p_install.set_defaults(func=c_install, subparser=p_install)
 
 # get command parser
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
@@ -258,10 +256,10 @@ try:
     # set debug and quiet mode after merge
     installsystems.debug = args.debug
     installsystems.quiet = args.quiet
-    if not hasattr(args, "parser"):
+    if args.func is not c_install:
         args = p_main.parse_args(namespace=args)
     # let's go
-    args.func(args)
+    args.func(p_main, args, config)
 except Exception as e:
     p_main.print_usage()
     error(e)

@@ -23,13 +23,19 @@ def load_repositories(args):
     '''
     Load repository on arg line
     '''
-    # load repo configs
     repos = []
-    for r_config in args.repo_config:
-        repos += RepoConfigFile(r_config).repos
-    # filtering on repository name if present
-    if args.repo_filter is not None:
-        repos = filter(lambda x: x.name == args.repo_filter, repos)
+    # load repo configs
+    if args.repo_path is not None:
+        # from command line
+        repos = [ RepositoryConfig(None, path=args.repo_path) ]
+    else:
+        # from config
+        repos += RepoConfigFile(args.repo_config).repos
+        # filtering on repository name if present
+        if args.repo_filter is not None:
+            repos = filter(lambda x: x.name == args.repo_filter, repos)
+    # print selected repositories
+    debug("Loaded repositories: %s" % [ x.name for x in repos ])
     return repos
 
 def c_init_image(args):
@@ -173,13 +179,12 @@ ex_group.add_argument('-q', "--quiet", action="store_true",
 # common options
 p_main.add_argument("-c", "--config", default="installsystems",
                     help="config file path")
+p_main.add_argument("-R", "--repo-config", default="repository",
+                    help="repository config file path")
 p_main.add_argument("-f", "--repo-filter", default=None,
                     help="select repository by name in config files")
-p_main.add_argument("-r", "--repo-path", action="append", default=[],
+p_main.add_argument("-r", "--repo-path", default=None,
                     help="repository path")
-p_main.add_argument("-R", "--repo-config", action="append",
-                    default=["repository"],
-                    help="repository config (can be specified more than one time)")
 p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
                     help="download timeout")
 # create a subparsers for each command

@@ -417,7 +417,6 @@ class RepositoryManager(object):
             if not os.path.exists(filedest):
                 open(filedest, "wb")
         # get remote last value
-        print config.lastpath
         rlast = int(istools.uopen(config.lastpath).read().strip())
         # get local last value
         llast = int(os.stat(filedest).st_mtime)

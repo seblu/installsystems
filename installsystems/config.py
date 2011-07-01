@@ -64,7 +64,7 @@ class MainConfigFile(ConfigFile):
         if self.path is None:
             debug("No main config file to load")
             return
-        debug("Loading config file: %s" % self.path)
+        debug("Loading main config file: %s" % self.path)
         try:
             cp = RawConfigParser()
             cp.read(self.path)
@@ -72,7 +72,7 @@ class MainConfigFile(ConfigFile):
             if cp.has_section(self.prefix):
                 self._config = dict(cp.items(self.prefix))
         except Exception as e:
-            raise Exception("Unable load file %s: %s" % (self.path, e))
+            raise Exception("Unable load main config file %s: %s" % (self.path, e))
 
     def merge(self, namespace):
         '''
@@ -141,7 +141,7 @@ class RepoConfigFile(ConfigFile):
         if self.path is None:
             return
         # loading config file if exists
-        debug("Loading config file: %s" % self.path)
+        debug("Loading repository config file: %s" % self.path)
         try:
             cp = RawConfigParser()
             cp.read(self.path)
@@ -153,7 +153,7 @@ class RepoConfigFile(ConfigFile):
                 # get all options in repo
                 self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))
         except Exception as e:
-            raise Exception("Unable load file %s: %s" % (self.path, e))
+            raise Exception("Unable to load repository file %s: %s" % (self.path, e))
 
     @property
     def repos(self):

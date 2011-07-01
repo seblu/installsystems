@@ -221,7 +221,7 @@ class Repository(object):
         a = self.db.ask("SELECT md5 FROM image WHERE name = ? AND version = ? LIMIT 1",
                         (name,version)).fetchone()
         if a is None:
-            raise Exception("No such image %s version %s" % name, version)
+            raise Exception("No such image %s version %s" % (name, version))
         b = self.db.ask("SELECT md5 FROM payload WHERE image_md5 = ?",
                         (a[0],)).fetchall()
         return [ a[0] ] + [ x[0] for x in b ]

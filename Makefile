@@ -29,6 +29,7 @@ buildd: dsc
 	scp $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz incoming@buildd.fr.lan:sid
 
 clean: cleanbuild
+	-rm -f $(NAME)-$(VERSION).tar.gz
 
 cleanbuild:
 	-rm -rf  $(BUILD_DIR)

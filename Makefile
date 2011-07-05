@@ -9,8 +9,10 @@ BUILD_DIR=__build__
 all:
 	echo all is better than nothing
 
-tar:
+$(NAME)-$(VERSION).tar.gz:
 	git archive --prefix=$(NAME)-$(VERSION)/ HEAD | gzip -9 > $(NAME)-$(VERSION).tar.gz
+
+tar: $(NAME)-$(VERSION).tar.gz
 
 dsc: cleanbuild tar
 	mkdir $(BUILD_DIR)

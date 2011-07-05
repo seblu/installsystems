@@ -1,5 +1,76 @@
-installsystems (1-dev) unstable; urgency=low
+installsystems (1) unstable; urgency=low
 
-  * version 1 dev package.
+  Aurélien Dunand
+    Fix typos
+    Config filename must be a file
+    Missing parenthesises
 
- -- Sebastien Luttringer <sebastien.luttringer@smartjog.com> Wed, 08 Jun 2011 12:30:02 +0200
+  Seblu (66)
+    Initial Commit
+    Add isimage binary and its module classes
+    Add isrepo and update common classes
+    Add isinstall and update common classes
+    isinstall update local cache only with -u
+    installsystems version is option -V not -v
+    isinstall can install local package
+    Introduce new module tools
+    Better detection of image name type
+    move md5sum into tools module
+    Fix bad deferencing in directory in /data of image
+    Generic improvment. Too many things to tell.
+    Fix stupid errors in tools module
+    Add tarfile from python 2.7
+    Fix repository deletion
+    Add config file
+    Add image data when running scripts
+    Remove pyxdg dependency
+    Allow chmod et chown, chgroup in repository config
+    Adding md5 of script tarball in repository
+    Improve remote cache. Http transport enabled
+    Add python 2.7 argparse in installsytems
+    Add timeout paramter to isinstall
+    Add configuration samples
+    isimage doesn't fail if image directory partially exists
+    Add required in default parser template
+    selecting of repo in isrepo is smarter
+    try..cactch in run scripts
+    Add extractdata method, which is an helper to extract content of tarball data
+    Compression is now gzip
+    script in tarball have now rights 755
+    Introduce RepositoryManager and extractdata
+    Donwloading image from repository verify md5
+    Add debian packaging
+    Change db format to sqlite3
+    Extract data compute name correctly
+    cleaning import
+    Introduce Payload
+    Keep global dict between parser and setup
+    arrow can be called without level and verbose
+    fix typo
+    script name must match the following regex \d+-.*\.py
+    Improve script execution
+    Improve arrow and printer
+    Fix downloading of all payloads to compute md5 when it's not needed
+    Adding script is now done one by one and not recursively
+    Check scripts syntax (by compiling) before adding
+    fix bad image file building
+    function name typo
+    New configuration style
+    Delete tarfile. We now don't use feature of last version
+    Add/Delete package in repository
+    handle db add in repo add
+    add message to explain which version is installe
+    Update makefile to easy publish
+    fix config file loading
+    Fix debian packaging
+    No more custom action to set debug and quiet mode
+    Merge command line tools into one
+    add a symlinks to is nammed installsystems
+    change installsytems default config file
+    Fix traceback cause to a debug message
+    fix config loading issue caused by argparse append
+    install command now use common loading repositories
+    Fix bad caching selection and disabling
+    Remove usage on error
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Tue, 05 Jul 2011 18:04:07 +0200

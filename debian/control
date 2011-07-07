@@ -8,7 +8,7 @@ Standards-Version: 3.9.1
 
 Package: installsystems
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, python-installsystems
+Depends: ${misc:Depends}, ${python:Depends}, python-installsystems (>= ${source:Version})
 XB-Python-Version: ${python:Versions}
 Description: InstallSytems Installer
  InstallSystems command line tool

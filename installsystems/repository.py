@@ -239,7 +239,9 @@ class Repository(object):
 
 
 class RepositoryConfig(object):
-    '''Repository configuration container'''
+    '''
+    Repository configuration container
+    '''
 
     def __init__(self, name, **kwargs):
         # set default value for arguments
@@ -274,26 +276,34 @@ class RepositoryConfig(object):
 
     @property
     def lastpath(self):
-        """return the last file complete path"""
+        '''
+        return the last file complete path
+        '''
         if self._lastpath is None:
             return os.path.join(self.path, self.lastname)
         return self._lastpath
 
     @lastpath.setter
     def lastpath(self, value):
-        '''Set last path'''
+        '''
+        Set last path
+        '''
         self._lastpath = value
 
     @property
     def dbpath(self):
-        """return the db complete path"""
+        '''
+        return the db complete path
+        '''
         if self._dbpath is None:
             return os.path.join(self.path, self.dbname)
         return self._dbpath
 
     @dbpath.setter
     def dbpath(self, value):
-        '''Set db path'''
+        '''
+        Set db path
+        '''
         # dbpath must be local, sqlite3 requirment
         if istools.pathtype(value) != "file":
             raise ValueError("Database path must be local")
@@ -301,12 +311,16 @@ class RepositoryConfig(object):
 
     @property
     def uid(self):
-        '''Return owner of repository'''
+        '''
+        Return owner of repository
+        '''
         return self._uid
 
     @uid.setter
     def uid(self, value):
-        '''Define user name owning repository'''
+        '''
+        Define user name owning repository
+        '''
         if not value.isdigit():
             self._uid = pwd.getpwnam(value).pw_uid
         else:
@@ -314,12 +328,16 @@ class RepositoryConfig(object):
 
     @property
     def gid(self):
-        '''Return group of the repository'''
+        '''
+        Return group of the repository
+        '''
         return self._gid
 
     @gid.setter
     def gid(self, value):
-        '''Define group owning repository'''
+        '''
+        Define group owning repository
+        '''
         if not value.isdigit():
             self._gid = grp.getgrnam(value).gr_gid
         else:
@@ -327,12 +345,16 @@ class RepositoryConfig(object):
 
     @property
     def fmod(self):
-        '''Return new file mode'''
+        '''
+        Return new file mode
+        '''
         return self._fmod
 
     @fmod.setter
     def fmod(self, value):
-        '''Define new file mode'''
+        '''
+        Define new file mode
+        '''
         if value.isdigit():
             self._fmod = int(value, 8)
         else:
@@ -340,19 +362,24 @@ class RepositoryConfig(object):
 
     @property
     def dmod(self):
-        '''Return new directory mode'''
+        '''
+        Return new directory mode
+        '''
         return self._dmod
 
     @dmod.setter
     def dmod(self, value):
-        '''Define new directory mode'''
+        '''
+        Define new directory mode
+        '''
         if value.isdigit():
             self._dmod = int(value, 8)
         else:
             raise ValueError("Directory mode must be an integer")
 
     def update(self, *args, **kwargs):
-        '''Update attribute with checking value
+        '''
+        Update attribute with checking value
         All attribute must already exists
         '''
         # autoset parameter in cmdline
@@ -403,7 +430,9 @@ class RepositoryManager(object):
                 pass
 
     def register(self, config):
-        '''Register a repository from its config'''
+        '''
+        Register a repository from its config
+        '''
         debug("Registering repository %s (%s)" % (config.path, config.name))
         # find destination file and load last info
         if config.name is None or self.cache_path is None:
@@ -433,7 +462,9 @@ class RepositoryManager(object):
         self.repos.append(Repository(config))
 
     def get(self, name, version=None):
-        '''Crawl all repo to get the most recent image'''
+        '''
+        Crawl all repo to get the most recent image
+        '''
         # search last version if needed
         if version is None:
             lv = -1

@@ -85,9 +85,10 @@ class Repository(object):
             raise Exception("Read last file failed: %s" % e)
         return 0
 
-    def add(self, image):
+    def add(self, image, delete=False):
         '''
         Add a packaged image to repository
+        if delete is true, remove original files
         '''
         # check local repository
         if istools.pathtype(self.config.path) != "file":
@@ -99,17 +100,15 @@ class Repository(object):
         image.check("Check image and payload before copy")
         # adding file to repository
         arrow("Copying images and payload")
-        arrowlevel(1)
         for obj in [ image ] + image.payload.values():
             dest = os.path.join(self.config.path, obj.md5)
             basesrc = os.path.basename(obj.path)
             if os.path.exists(dest):
-                arrow("Skipping %s: already exists" % basesrc)
+                arrow("Skipping %s: already exists" % basesrc, 1)
             else:
-                arrow("Adding %s (%s)" % (basesrc, obj.md5))
+                arrow("Adding %s (%s)" % (basesrc, obj.md5), 1)
                 istools.copy(obj.path, dest,
                              self.config.uid, self.config.gid, self.config.fmod)
-        arrowlevel(-1)
         # copy is done. create a image inside repo
         r_image = PackageImage(os.path.join(self.config.path, image.md5),
                                  md5name=True)
@@ -145,6 +144,12 @@ class Repository(object):
         self.db.commit()
         # update last file
         self.update_last()
+        # removing orginal files
+        if delete:
+            arrow("Removing original files")
+            for obj in [ image ] + image.payload.values():
+                arrow(os.path.basename(obj.path), 1)
+                os.unlink(obj.path)
 
     def delete(self, name, version):
         '''

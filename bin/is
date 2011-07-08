@@ -88,7 +88,7 @@ def c_add(parser, args):
             raise Exception("Please select one repository")
         repo = Repository(repos[0])
         pkg = PackageImage(args.path)
-        repo.add(pkg)
+        repo.add(pkg, delete=not args.preserve)
     except Exception as e:
         raise Exception("add failed: %s" % e)
 
@@ -210,6 +210,8 @@ p_build.set_defaults(func=c_build)
 
 # add command parser
 p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())
+p_add.add_argument('-p', "--preserve", action="store_true", default=False,
+                   help="don't remove image after adding to database")
 p_add.add_argument("path")
 p_add.set_defaults(func=c_add)
 

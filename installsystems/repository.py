@@ -451,7 +451,19 @@ class RepositoryManager(object):
         '''
         Register a repository from its config
         '''
-        debug("Registering repository %s (%s)" % (config.path, config.name))
+        # if path is local, no needs to create a cache
+        if istools.isfile(config.path):
+            debug("Registering direct repository %s (%s)" % (config.path, config.name))
+            self.repos.append(Repository(config))
+        else:
+            debug("Registering cached repository %s (%s)" % (config.path, config.name))
+            self.repos.append(self._cachify(config))
+
+
+    def _cachify(self, config):
+        '''
+        Return a config of a cached repository from an orignal config file
+        '''
         # find destination file and load last info
         if config.name is None or self.cache_path is None:
             # this is a forced temporary repository or without name repo
@@ -477,7 +489,7 @@ class RepositoryManager(object):
                          timeout=self.timeout)
             os.utime(filedest, (rlast, rlast))
         config.dbpath = filedest
-        self.repos.append(Repository(config))
+        return Repository(config)
 
     def get(self, name, version=None):
         '''

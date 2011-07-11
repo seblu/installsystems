@@ -42,7 +42,7 @@ def load_repositories(args):
             repoman.register(repoconf)
     return repoman
 
-def c_init_image(parser, args):
+def c_new(parser, args):
     '''
     Create a new source image
     '''
@@ -50,21 +50,6 @@ def c_init_image(parser, args):
         simg = SourceImage.create(args.path)
     except Exception as e:
         error("init image failed: %s." % e)
-
-def c_init_repo(parser, args):
-    '''
-    Create a empty repository
-    '''
-    try:
-        repoman = load_repositories(args)
-        if len(repoman) == 0:
-            raise Exception("No repository selected")
-        elif len(repoman) > 1:
-            raise Exception("Please select only one repository")
-        Repository.create(repoman[0])
-        debug("Repository: %s" % repoman[0])
-    except Exception as e:
-        raise Exception("init repo failed: %s" % e)
 
 def c_build(parser, args):
     '''
@@ -83,6 +68,21 @@ def c_build(parser, args):
         arrow("Build time: %s" % datetime.timedelta(seconds=dt))
     except Exception as e:
         error("build failed: %s." % e)
+
+def c_init(parser, args):
+    '''
+    Create a empty repository
+    '''
+    try:
+        repoman = load_repositories(args)
+        if len(repoman) == 0:
+            raise Exception("No repository selected")
+        elif len(repoman) > 1:
+            raise Exception("Please select only one repository")
+        Repository.create(repoman[0])
+        debug("Repository: %s" % repoman[0])
+    except Exception as e:
+        raise Exception("init repo failed: %s" % e)
 
 def c_add(parser, args):
     '''
@@ -194,16 +194,10 @@ p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
 # create a subparsers for each command
 subparsers = p_main.add_subparsers()
 
-# init command parser
-p_init = subparsers.add_parser("init", help="initialize source image or repository")
-sp_init = p_init.add_subparsers()
-p_init_repo = sp_init.add_parser("repo", help=c_init_repo.__doc__.lower())
-p_init_repo.add_argument("repo_filter", nargs="?", default=argparse.SUPPRESS,
-                         help="Name or path of a repository to init")
-p_init_repo.set_defaults(func=c_init_repo)
-p_init_image = sp_init.add_parser("image", help=c_init_image.__doc__.lower())
-p_init_image.add_argument("path", help="Path of new image directory")
-p_init_image.set_defaults(func=c_init_image)
+# new command parser
+p_new = subparsers.add_parser("new", help=c_new.__doc__.lower())
+p_new.add_argument("path", help="Path of new image directory")
+p_new.set_defaults(func=c_new)
 
 # build command parser
 p_build = subparsers.add_parser("build", help=c_build.__doc__.lower())
@@ -213,6 +207,12 @@ p_build.add_argument('-c', "--no-check", action="store_true", default=False,
                      help="do not check compilation before adding scripts")
 p_build.add_argument("path", nargs="?", default=".")
 p_build.set_defaults(func=c_build)
+
+# init command parser
+p_init = subparsers.add_parser("init", help=c_init.__doc__.lower())
+p_init.add_argument("repo_filter", nargs="?", default=argparse.SUPPRESS,
+                    help="Name or path of a repository to init")
+p_init.set_defaults(func=c_init)
 
 # add command parser
 p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())

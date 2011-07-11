@@ -67,13 +67,17 @@ def c_init(parser, args):
     '''
     Create a empty repository
     '''
-    repoman = load_repositories(args)
-    if len(repoman) == 0:
-        raise Exception("No repository selected")
-    elif len(repoman) > 1:
-        raise Exception("Please select only one repository")
-    Repository.create(repoman[0])
-    debug("Repository: %s" % repoman[0])
+    # we cannot use load_repositories because repo doesn't exists
+    if args.repo_path is not None:
+        # from command line
+        Repository.create(RepositoryConfig(None, path=args.repo_path))
+    else:
+        # from config
+        for repoconf in RepoConfigFile(args.repo_config).repos:
+            # filtering on repository name if present
+            if args.repo_filter is not None and repoconf.name != args.repo_filter:
+                continue
+            Repository.create(repoconf)
 
 def c_add(parser, args):
     '''

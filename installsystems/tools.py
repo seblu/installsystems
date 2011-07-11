@@ -13,7 +13,9 @@ import urllib2
 from installsystems.tarball import Tarball
 
 def md5sum(path=None, fileobj=None):
-    '''Compute md5 of a file'''
+    '''
+    Compute md5 of a file
+    '''
     if path is None and fileobj is None:
         raise ValueError("No path or fileobj specified")
     if fileobj is None:
@@ -27,7 +29,9 @@ def md5sum(path=None, fileobj=None):
     return m.hexdigest()
 
 def copyfileobj(sfile, dfile):
-    """Copy data from sfile to dfile coputing length and md5 on the fly"""
+    '''
+    Copy data from sfile to dfile coputing length and md5 on the fly
+    '''
     f_sum = hashlib.md5()
     f_len = 0
     while True:
@@ -42,7 +46,9 @@ def copyfileobj(sfile, dfile):
     return (f_len , f_sum.hexdigest())
 
 def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
-    '''Copy a source to destination. Take care of path type'''
+    '''
+    Copy a source to destination. Take care of path type
+    '''
     stype = pathtype(source)
     dtype = pathtype(destination)
     # ensure destination is not a directory
@@ -64,12 +70,16 @@ def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
         chrights(destination, uid, gid, mode)
 
 def mkdir(path, uid=None, gid=None, mode=None):
-    '''Create a directory and set rights'''
+    '''
+    Create a directory and set rights
+    '''
     os.mkdir(path)
     chrights(path, uid, gid, mode)
 
 def chrights(path, uid=None, gid=None, mode=None, mtime=None):
-    '''Set rights on a file'''
+    '''
+    Set rights on a file
+    '''
     if uid is not None:
         os.chown(path, uid, -1)
     if gid is not None:
@@ -80,7 +90,9 @@ def chrights(path, uid=None, gid=None, mode=None, mtime=None):
         os.utime(path, (mtime, mtime))
 
 def pathtype(path):
-    '''Return path type. This is usefull to know what kind of path is given'''
+    '''
+    Return path type. This is usefull to know what kind of path is given
+    '''
     if path.startswith("http://") or path.startswith("https://"):
         return "http"
     if path.startswith("ftp://") or path.startswith("ftps://"):
@@ -90,8 +102,16 @@ def pathtype(path):
     else:
         return "file"
 
+def isfile(path):
+    '''
+    Return True if path is of type file
+    '''
+    return pathtype(path) == "file"
+
 def abspath(path):
-    '''Format a path to be absolute'''
+    '''
+    Format a path to be absolute
+    '''
     ptype = pathtype(path)
     if ptype in ("http", "ssh"):
         return path
@@ -103,7 +123,8 @@ def abspath(path):
         return None
 
 def uopen(path, mode="rb"):
-    '''Universal Open
+    '''
+    Universal Open
     Create a file-like object to a file which can be remote
     '''
     ftype = pathtype(path)
@@ -115,7 +136,9 @@ def uopen(path, mode="rb"):
         raise NotImplementedError
 
 def getsize(path):
-    '''Get size of a path. Recurse if directory'''
+    '''
+    Get size of a path. Recurse if directory
+    '''
     total_sz = os.path.getsize(path)
     if os.path.isdir(path):
         for root, dirs, files in os.walk(path):

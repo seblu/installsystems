@@ -434,6 +434,19 @@ class RepositoryManager(object):
             except OSError:
                 pass
 
+    def __len__(self):
+        '''
+        Return the number of repository registered
+        '''
+        return len(self.repos)
+
+
+    def __getitem__(self, key):
+        '''
+        Return a repostiory by its possition in list
+        '''
+        return self.repos[key]
+
     def register(self, config):
         '''
         Register a repository from its config

@@ -21,22 +21,26 @@ from installsystems.config import MainConfigFile, RepoConfigFile
 
 def load_repositories(args):
     '''
-    Load repository on arg line
+    Load repositories on a repository manager
     '''
-    repos = []
+    # remove cache is asked
+    if args.no_cache:
+        args.cache = None
+    # init repo cache object
+    repoman = RepositoryManager(args.cache, timeout=args.timeout)
+    # register repositories (order matter)
     # load repo configs
     if args.repo_path is not None:
         # from command line
-        repos = [ RepositoryConfig(None, path=args.repo_path) ]
+        repoman.register(RepositoryConfig(None, path=args.repo_path))
     else:
         # from config
-        repos += RepoConfigFile(args.repo_config).repos
-        # filtering on repository name if present
-        if args.repo_filter is not None:
-            repos = filter(lambda x: x.name == args.repo_filter, repos)
-    # print selected repositories
-    debug("Loaded repositories: %s" % [ x.name for x in repos ])
-    return repos
+        for repoconf in RepoConfigFile(args.repo_config).repos:
+            # filtering on repository name if present
+            if args.repo_filter is not None and repoconf.name != args.repo_filter:
+                continue
+            repoman.register(repoconf)
+    return repoman
 
 def c_init_image(parser, args):
     '''
@@ -52,11 +56,13 @@ def c_init_repo(parser, args):
     Create a empty repository
     '''
     try:
-        repos = load_repositories(args)
-        if len(repos) != 1:
-            raise Exception("Please select one repository")
-        Repository.create(repos[0])
-        debug("Repository: %s" % repos[0])
+        repoman = load_repositories(args)
+        if len(repoman) == 0:
+            raise Exception("No repository selected")
+        elif len(repoman) > 1:
+            raise Exception("Please select only one repository")
+        Repository.create(repoman[0])
+        debug("Repository: %s" % repoman[0])
     except Exception as e:
         raise Exception("init repo failed: %s" % e)
 
@@ -83,10 +89,12 @@ def c_add(parser, args):
     Add an image package into a repository
     '''
     try:
-        repos = load_repositories(args)
-        if len(repos) != 1:
-            raise Exception("Please select one repository")
-        repo = Repository(repos[0])
+        repoman = load_repositories(args)
+        if len(repoman) == 0:
+            raise Exception("No repository selected")
+        elif len(repoman) > 1:
+            raise Exception("Please select only one repository")
+        repo = repoman[0]
         pkg = PackageImage(args.path)
         repo.add(pkg, delete=not args.preserve)
     except Exception as e:
@@ -97,10 +105,12 @@ def c_del(parser, args):
     Remove an image package from a repository
     '''
     try:
-        repos = load_repositories(args)
-        if len(repos) != 1:
-            raise Exception("Please select one repository")
-        repo = Repository(repos[0])
+        repoman = load_repositories(args)
+        if len(repoman) == 0:
+            raise Exception("No repository selected")
+        elif len(repoman) > 1:
+            raise Exception("Please select only one repository")
+        repo = repoman[0]
         repo.delete(args.image_name, args.image_version)
     except Exception as e:
         raise Exception("del failed: %s" % e)
@@ -113,17 +123,8 @@ def c_install(parser, args):
     if istools.pathtype(args.image) == "file" and os.path.isfile(args.image):
         pkg = PackageImage(istools.abspath(args.image))
     elif PackageImage.check_image_name(args.image):
-        # remove cache is asked
-        if args.no_cache:
-            args.cache = None
-        # init repo cache object
-        repoman = RepositoryManager(args.cache, timeout=args.timeout)
-        # load repositories
-        repos_config = load_repositories(args)
-        # register repositories (order matter)
-        for repo_conf in repos_config:
-            repoman.register(repo_conf)
         # get image package
+        repoman = load_repositories(args)
         pkg = repoman.get(args.image, args.image_version)
     else:
         args.subparser.print_usage()
@@ -183,8 +184,13 @@ p_main.add_argument("-f", "--repo-filter", default=None,
                     help="select repository by name in config files")
 p_main.add_argument("-r", "--repo-path", default=None,
                     help="repository path")
-p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
-                    help="download timeout")
+p_main.add_argument("-C", "--cache", default=None,
+                    help="path of the repository cache")
+p_main.add_argument("--no-cache", action="store_true", default=False,
+                    help="Not use persistent db caching")
+p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
+                    help="download timeout (default 3)")
+
 # create a subparsers for each command
 subparsers = p_main.add_subparsers()
 
@@ -225,10 +231,6 @@ p_del.set_defaults(func=c_del)
 p_install = subparsers.add_parser("install", help=c_install.__doc__.lower())
 p_install.add_argument('-f', "--force", action="store_true", default=False,
                        help="overwrite existing image")
-p_install.add_argument("-c", "--cache", default=None,
-                       help="Not use persistent db caching")
-p_install.add_argument("--no-cache", action="store_true", default=False,
-                       help="Not use persistent db caching")
 p_install.add_argument("-v", "--image-version", type=int, default=None,
                        help="image version")
 p_install.add_argument("image", help="image to install (path or name)")

@@ -46,74 +46,59 @@ def c_new(parser, args):
     '''
     Create a new source image
     '''
-    try:
-        simg = SourceImage.create(args.path)
-    except Exception as e:
-        error("init image failed: %s." % e)
+    simg = SourceImage.create(args.path)
 
 def c_build(parser, args):
     '''
     Build an image source
     '''
-    try:
-        # build start time
-        t0 = time.time()
-        # load source image
-        simg = SourceImage(args.path)
-        # do the job
-        simg.build(force=args.force, check=not args.no_check)
-        # compute building time
-        t1 = time.time()
-        dt = int(t1 - t0)
-        arrow("Build time: %s" % datetime.timedelta(seconds=dt))
-    except Exception as e:
-        error("build failed: %s." % e)
+    # build start time
+    t0 = time.time()
+    # load source image
+    simg = SourceImage(args.path)
+    # do the job
+    simg.build(force=args.force, check=not args.no_check)
+    # compute building time
+    t1 = time.time()
+    dt = int(t1 - t0)
+    arrow("Build time: %s" % datetime.timedelta(seconds=dt))
 
 def c_init(parser, args):
     '''
     Create a empty repository
     '''
-    try:
-        repoman = load_repositories(args)
-        if len(repoman) == 0:
-            raise Exception("No repository selected")
-        elif len(repoman) > 1:
-            raise Exception("Please select only one repository")
-        Repository.create(repoman[0])
-        debug("Repository: %s" % repoman[0])
-    except Exception as e:
-        raise Exception("init repo failed: %s" % e)
+    repoman = load_repositories(args)
+    if len(repoman) == 0:
+        raise Exception("No repository selected")
+    elif len(repoman) > 1:
+        raise Exception("Please select only one repository")
+    Repository.create(repoman[0])
+    debug("Repository: %s" % repoman[0])
 
 def c_add(parser, args):
     '''
     Add an image package into a repository
     '''
-    try:
-        repoman = load_repositories(args)
-        if len(repoman) == 0:
-            raise Exception("No repository selected")
-        elif len(repoman) > 1:
-            raise Exception("Please select only one repository")
-        repo = repoman[0]
-        pkg = PackageImage(args.path)
-        repo.add(pkg, delete=not args.preserve)
-    except Exception as e:
-        raise Exception("add failed: %s" % e)
+    repoman = load_repositories(args)
+    if len(repoman) == 0:
+        raise Exception("No repository selected")
+    elif len(repoman) > 1:
+        raise Exception("Please select only one repository")
+    repo = repoman[0]
+    pkg = PackageImage(args.path)
+    repo.add(pkg, delete=not args.preserve)
 
 def c_del(parser, args):
     '''
     Remove an image package from a repository
     '''
-    try:
-        repoman = load_repositories(args)
-        if len(repoman) == 0:
-            raise Exception("No repository selected")
-        elif len(repoman) > 1:
-            raise Exception("Please select only one repository")
-        repo = repoman[0]
-        repo.delete(args.image_name, args.image_version)
-    except Exception as e:
-        raise Exception("del failed: %s" % e)
+    repoman = load_repositories(args)
+    if len(repoman) == 0:
+        raise Exception("No repository selected")
+    elif len(repoman) > 1:
+        raise Exception("Please select only one repository")
+    repo = repoman[0]
+    repo.delete(args.image_name, args.image_version)
 
 def c_install(parser, args):
     '''

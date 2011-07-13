@@ -422,7 +422,7 @@ class RepositoryManager(object):
                 os.mkdir(self.cache_path)
             # ensure directories are avaiblable
             if not os.access(self.cache_path, os.W_OK | os.X_OK):
-                raise Exception("%s is not writable or executable" % t_path)
+                raise Exception("%s is not writable or executable" % self.cache_path)
             debug("Repository cache is in %s" % self.cache_path)
 
     def __del__(self):

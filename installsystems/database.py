@@ -6,7 +6,6 @@
 Database stuff
 '''
 
-import json
 import os
 import shutil
 import cStringIO

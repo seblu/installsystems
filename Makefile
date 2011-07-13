@@ -22,7 +22,7 @@ dsc: cleanbuild $(NAME)-$(VERSION).tar.gz
 deb: cleanbuild $(NAME)-$(VERSION).tar.gz
 	mkdir $(BUILD_DIR)
 	tar xfC $(NAME)-$(VERSION).tar.gz $(BUILD_DIR)
-	cd $(BUILD_DIR)/$(NAME)-$(VERSION) && dpkg-buildpackage --source-option=-I
+	cd $(BUILD_DIR)/$(NAME)-$(VERSION) && dpkg-buildpackage --source-option=-I -us -uc
 
 buildd: dsc
 	chmod 644 $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz

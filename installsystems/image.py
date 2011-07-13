@@ -628,7 +628,7 @@ class Payload(object):
             raise Exception("Unable to open payload file %s" % self.path)
         # try to open tarball on payload
         try:
-            t = Tarball.open(fileobj=fo, mode="r|gz")
+            t = Tarball.open(fileobj=fo, mode="r|gz", ignore_zeros=True)
         except Exception as e:
             raise Exception("Invalid payload tarball: %s" % e)
         # filter on file to extact

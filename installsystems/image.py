@@ -225,10 +225,20 @@ class SourceImage(Image):
         try:
             # Tarballing
             tarball = Tarball.open(tar_path, "w:gz", dereference=False)
-            tarball.add(data_path, arcname="/", recursive=True)
+            tarball.add(data_path, arcname="/", recursive=True,
+                        filter=self._create_payload_tarball_filter)
             tarball.close()
         except Exception as e:
             raise Exception("Unable to create payload tarball %s: %s" % (tar_path, e))
+
+    def _create_payload_tarball_filter(self, tarinfo):
+        '''
+        Have the same behaviour as --numeric-owner on gnu tar
+        Remove string name and group to escape weird translation
+        '''
+        tarinfo.uname = ""
+        tarinfo.gname = ""
+        return tarinfo
 
     def _create_payload_file(self, dest, source):
         '''

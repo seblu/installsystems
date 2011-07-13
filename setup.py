@@ -14,9 +14,13 @@ setup(
     long_description=ldesc,
     author='Sebastien Luttringer',
     author_email='sebastien.luttringer@smartjog.com',
-    license='GPL2', 
+    license='GPL2',
     packages=[ 'installsystems' ],
     scripts=[ 'bin/is' ],
+    data_files=(
+        ('/etc/installsystems/', ('samples/repository.conf',
+                                  'samples/installsystems.conf')),
+        ),
     classifiers=[
         'Operating System :: Unix',
         'Programming Language :: Python',

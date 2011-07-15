@@ -148,3 +148,13 @@ def getsize(path):
                 if stat.S_ISDIR(filestat.st_mode) or stat.S_ISREG(filestat.st_mode):
                     total_sz += filestat.st_size
     return total_sz
+
+def human_size(num):
+    '''
+    Return human readable size
+    '''
+    for x in ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']:
+        if num < 1024.0:
+            return "%3.1f%s" % (num, x)
+        num /= 1024.0
+    return "%3.1f%s" % (num, x)

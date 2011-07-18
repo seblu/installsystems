@@ -35,4 +35,4 @@ cleanbuild:
 	-rm -rf  $(BUILD_DIR)
 
 cleantar:
-	-rm -f $(NAME)-$(VERSION).tar.gz
+	-rm -f $(NAME)-*.tar.gz

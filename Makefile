@@ -5,6 +5,7 @@
 NAME=installsystems
 VERSION=$(shell sed -rn 's/version = "([^"]+)"/\1/p' installsystems/__init__.py)
 BUILD_DIR=__build__
+DISTRO=sid
 
 all:
 	echo all is better than nothing
@@ -26,7 +27,7 @@ deb: cleanbuild $(NAME)-$(VERSION).tar.gz
 
 buildd: dsc
 	chmod 644 $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz
-	scp $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz incoming@buildd.fr.lan:sid
+	scp $(BUILD_DIR)/$(NAME)_*.dsc $(BUILD_DIR)/$(NAME)_*.gz incoming@buildd.fr.lan:$(DISTRO)
 
 clean: cleantar cleanbuild
 

@@ -153,6 +153,12 @@ def c_clean(parser, args):
     raise NotImplementedError("Not yet implemented")
 
 
+def c_version(parser, args):
+    '''
+    Print installsystems version
+    '''
+    out(installsystems.version)
+
 # Top level argument parsing
 p_main = argparse.ArgumentParser()
 p_main.add_argument("-V", "--version", action="version",
@@ -237,6 +243,10 @@ p_search.set_defaults(func=c_search)
 # clean command parser
 p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())
 p_clean.set_defaults(func=c_clean)
+
+# version command parser
+p_version = subparsers.add_parser("version", help=c_version.__doc__.lower())
+p_version.set_defaults(func=c_version)
 
 try:
     # Parse and run

@@ -1,17 +1,46 @@
-installsystems (2~dev0) unstable; urgency=low
+installsystems (2) unstable; urgency=low
 
-  Version 2 devel
+  Aurélien Dunand (3):
+    Remove unused import
+    Fix typo in var name
+    Add human_size function
 
- -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Tue, 05 Jul 2011 18:04:07 +0200
+  Seblu (24):
+      bump v2 devel
+      make clean remove tarball
+      installsystems package depends on same version of python-installsystems
+      Fix docstring bad format
+      Remove original file after adding to db
+      repoman is always used to handle repositories from is
+      Update argparse to python 2.7.2
+      add gzip to installsystems because python 2.6 doesn't have mtime optio
+      add isfile method
+      local repository are not cached by repomanager
+      init image and init repo splited in new and init command
+      remove exception in subcommand
+      init repository must not use load_repositories
+      Revert "Update argparse to python 2.7.2"
+      Python 2.7 is a minium requirement
+      setup install config files
+      make tar always recreate tarball
+      make deb doesn't sign package
+      fix debian dependancy to python2.7
+      Asking help with install display help including options from image
+      Fix extraction of broken tarball
+      Payloads are now created like --numeric-owner with tar
+      debian control needs an explicit python version
+      let make buildd distro be choose when calling make
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Mon, 18 Jul 2011 13:01:31 +0200
 
 installsystems (1) unstable; urgency=low
 
-  Aurélien Dunand
+  Aurélien Dunand (3):
     Fix typos
     Config filename must be a file
     Missing parenthesises
 
-  Seblu (66)
+  Seblu (66):
     Initial Commit
     Add isimage binary and its module classes
     Add isrepo and update common classes

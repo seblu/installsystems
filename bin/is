@@ -152,6 +152,11 @@ def c_clean(parser, args):
     '''
     raise NotImplementedError("Not yet implemented")
 
+def c_help(parser, args):
+    '''
+    Show help
+    '''
+    parser.print_help()
 
 def c_version(parser, args):
     '''
@@ -243,6 +248,10 @@ p_search.set_defaults(func=c_search)
 # clean command parser
 p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())
 p_clean.set_defaults(func=c_clean)
+
+# version command parser
+p_help = subparsers.add_parser("help", help=c_help.__doc__.lower())
+p_help.set_defaults(func=c_help)
 
 # version command parser
 p_version = subparsers.add_parser("version", help=c_version.__doc__.lower())

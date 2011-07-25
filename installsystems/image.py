@@ -45,7 +45,6 @@ class Image(object):
         '''
         return re.match("\d+", buf) is not None
 
-
 class SourceImage(Image):
     '''
     Image source manipulation class
@@ -417,6 +416,31 @@ class PackageImage(Image):
         # FIXME: we should check valid information here
         arrowlevel(-1)
         return desc
+
+    def show(self, verbose=False, list=False):
+        '''
+        Display image content
+        '''
+        out('Name        : %s' % self.name)
+        out('Version     : %s' % self.version)
+        out('Date        : %s' % time.asctime(time.gmtime(self.date)))
+        if verbose:
+            out('Description : %s' % self.description)
+            out('Author      : %s' % self.author)
+            out('MD5         : %s' % self.md5 )
+            out('Payload :')
+            payloads = self.payload
+            for payload_name in payloads:
+                payload = payloads[payload_name]
+                out('   Name : %s' % payload_name)
+                out('   Date : %s' % time.asctime(time.gmtime(payload.mtime)))
+                out('   Size : %s' % (istools.human_size(payload.size)))
+                out('   MD5  : %s' % payload.md5)
+                out('')
+        out('')
+        if list:
+            out('Content : ')
+            self._tarball.list(verbose)
 
     def check(self, message="Check MD5"):
         '''

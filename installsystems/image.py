@@ -417,30 +417,26 @@ class PackageImage(Image):
         arrowlevel(-1)
         return desc
 
-    def show(self, verbose=False, list=False):
+    def show(self, verbose=False):
         '''
         Display image content
         '''
-        out('Name        : %s' % self.name)
-        out('Version     : %s' % self.version)
-        out('Date        : %s' % time.asctime(time.gmtime(self.date)))
+        out('#light##yellow#Name:#reset# %s' % self.name)
+        out('#light##yellow#Version:#reset# %s' % self.version)
+        out('#yellow#Date:#reset# %s' % time.asctime(time.gmtime(self.date)))
+        out('#yellow#Description:#reset# %s' % self.description)
+        out('#yellow#Author:#reset# %s' % self.author)
+        out('#yellow#MD5:#reset# %s' % self.md5)
         if verbose:
-            out('Description : %s' % self.description)
-            out('Author      : %s' % self.author)
-            out('MD5         : %s' % self.md5 )
-            out('Payload :')
             payloads = self.payload
             for payload_name in payloads:
                 payload = payloads[payload_name]
-                out('   Name : %s' % payload_name)
-                out('   Date : %s' % time.asctime(time.gmtime(payload.mtime)))
-                out('   Size : %s' % (istools.human_size(payload.size)))
-                out('   MD5  : %s' % payload.md5)
-                out('')
-        out('')
-        if list:
-            out('Content : ')
-            self._tarball.list(verbose)
+                out('#light##yellow#Payload:#reset# %s' % payload_name)
+                out('  #yellow#Date:#reset# %s' % time.asctime(time.gmtime(payload.mtime)))
+                out('  #yellow#Size:#reset# %s' % (istools.human_size(payload.size)))
+                out('  #yellow#MD5:#reset# %s' % payload.md5)
+        out('#light##yellow#Content:#reset#')
+        self._tarball.list(verbose)
 
     def check(self, message="Check MD5"):
         '''

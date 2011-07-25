@@ -185,26 +185,22 @@ class Repository(object):
         List images in repository
         '''
         images = self.db.ask("SELECT md5, name, version, date,\
-                author, description, size FROM image").fetchall()
+                author, description, size FROM image ORDER BY name, version").fetchall()
 
-        for image_md5, image_name, image_version, image_date, image_author,\
-        image_description, image_size in images:
-            out('Name        : %s' % image_name)
-            out('Version     : %s' % image_version)
-            out('Date        : %s' % time.asctime(time.gmtime(image_date)))
+        for (image_md5, image_name, image_version, image_date, image_author,
+             image_description, image_size) in images:
+            out('#light##yellow#%s #reset#v%s' % (image_name, image_version))
             if verbose:
-                out('Description : %s' % image_description)
-                out('Author      : %s' % image_author)
-                out('MD5         : %s' % image_md5)
-                out('Payload :')
+                out('  #yellow#Date:#reset# %s' % time.asctime(time.gmtime(image_date)))
+                out('  #yellow#Description:#reset# %s' % image_description)
+                out('  #yellow#Author:#reset# %s' % image_author)
+                out('  #yellow#MD5:#reset# %s' % image_md5)
                 payloads = self.db.ask("SELECT md5, name, size FROM payload\
                                     WHERE image_md5 = ?", (image_md5,)).fetchall()
                 for payload_md5, payload_name, payload_size in payloads:
-                    out('   Name : %s' % payload_name)
-                    out('   Size : %s' % (istools.human_size(payload_size)))
-                    out('   MD5  : %s' % payload_md5)
-                    out('')
-            out('')
+                    out('  #light##yellow#Payload:#reset# %s' % payload_name)
+                    out('    #yellow#Size:#reset# %s' % (istools.human_size(payload_size)))
+                    out('    #yellow#MD5:#reset# %s' % payload_md5)
 
     def _remove_file(self, filename):
         '''
@@ -534,3 +530,14 @@ class RepositoryManager(object):
             if repo.has(name, version):
                 return repo.get(name, version)
         raise Exception("Unable to find %s v%s" % (name, version))
+
+    def show(self, verbose=False):
+        '''
+        Show repository inside manager
+        '''
+        for repo in self.repos:
+            repo.config.name
+            s = "#light##blue#%s#reset#"% repo.config.name
+            if verbose:
+                s += ' (%s)' % repo.config.path
+            out(s)

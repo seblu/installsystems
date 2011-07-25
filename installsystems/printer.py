@@ -91,6 +91,6 @@ def arrow(message, inclevel=None, level=None, fd=sys.stdout, endl=os.linesep):
     elif _arrow_level == 3:
         out("  #light##blue#=>#reset# %s" % message)
     elif _arrow_level == 4:
-        out("  #light##green#=>#reset# %s" % message)
+        out("   #light##green#=>#reset# %s" % message)
     # restore old on one shot level
     arrowlevel(level = old_level)

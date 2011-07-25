@@ -457,9 +457,9 @@ class PackageImage(Image):
             pay_obj.check()
         arrowlevel(-1)
 
-    def cat(self, file):
-        fd = self._tarball.extractfile(file)
-        arrow("%s v%s : %s" % (self.name, self.version, file))
+    def cat(self, filename):
+        fd = self._tarball.extractfile(filename)
+        arrow(filename)
         out(fd.read())
 
     def run_parser(self, **kwargs):

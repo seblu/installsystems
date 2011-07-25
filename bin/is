@@ -168,6 +168,9 @@ def c_list(parser, args):
         args.repo_filter = args.list_args[0]
         args.image = args.list_args[1]
         args.image_version = args.list_args[2]
+    else:
+        args.subparser.print_usage()
+        exit(1)
     # display content of image accross a repositories
     repoman = load_repositories(args)
     pkg = repoman.get(args.image, args.image_version)
@@ -296,7 +299,7 @@ p_cat.add_argument("-v", "--image-version", type=int, default=None,
                        help="image version")
 p_cat.add_argument("image", help="image (path or name)")
 p_cat.add_argument("file", help="file to cat")
-p_cat.set_defaults(func=c_cat, subparser=p_cat)
+p_cat.set_defaults(func=c_cat)
 
 # get command parser
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
@@ -307,7 +310,7 @@ p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
 p_list.add_argument("-l", action="store_true", dest='detail',
                     default=False, help='detailled list output')
 p_list.add_argument("list_args", nargs="*", help="list content of image or repositories")
-p_list.set_defaults(func=c_list)
+p_list.set_defaults(func=c_list, subparser=p_list)
 
 # search command parser
 p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())

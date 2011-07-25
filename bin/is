@@ -134,6 +134,61 @@ def c_install(parser, args):
     dt = int(t1 - t0)
     arrow("Install time: %s" % datetime.timedelta(seconds=dt))
 
+def c_list(parser, args):
+    '''
+    List images in repository or image content
+    '''
+    args.repo_filter = None
+    if len(args.list_args) == 0:
+        # List available repository
+        repoman = load_repositories(args)
+        arrow('#light##green#[Repos]#reset#')
+        for repo in repoman:
+            out(repo.config.name)
+    # <repo> | <image> | <image file>
+    elif len(args.list_args) == 1:
+        # <image file>
+        if istools.pathtype(args.list_args[0]) == 'file' and\
+                os.path.isfile(args.list_args[0]):
+            pkg = PackageImage(istools.abspath(args.list_args[0]))
+            arrow('#light##green#[Image]#reset# %s' % pkg.name)
+            pkg.show(verbose=args.verbose_list, list=True)
+        else:
+            args.repo_filter = args.list_args[0]
+            repoman = load_repositories(args)
+            # <repo>
+            if len(repoman) != 0:
+                for repo in repoman:
+                    arrow('#light##green#[Repo]#reset# %s' % repo.config.name)
+                    repo.show(args.verbose_list)
+            # <image>
+            else:
+                args.repo_filter = None
+                args.image = args.list_args[0]
+                args.image_version = None
+    # <repo> <image> | <image> <version>
+    elif len(args.list_args) == 2:
+        # <repo> <image>
+        if not PackageImage.check_image_version(args.list_args[1]):
+            args.repo_filter = args.list_args[0]
+            args.image = args.list_args[1]
+            args.image_version = None
+        # <image> <version>
+        else:
+            args.image = args.list_args[0]
+            args.image_version = args.list_args[1]
+    # <repo> <image> <version>
+    elif len(args.list_args) == 3:
+        args.repo_filter = args.list_args[0]
+        args.image = args.list_args[1]
+        args.image_version = args.list_args[2]
+
+    if hasattr(args, 'image'):
+        repoman = load_repositories(args)
+        pkg = repoman.get(args.image, args.image_version)
+        arrow('#light##green#[Image]#reset# %s' % pkg.name)
+        pkg.show(verbose=args.verbose_list, list=True)
+
 def c_search(parser, args):
     '''
     Search in repository
@@ -240,6 +295,13 @@ p_install.set_defaults(func=c_install, subparser=p_install)
 # get command parser
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
 p_get.set_defaults(func=c_get)
+
+# list command parser
+p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
+p_list.add_argument("-l", action="store_true", dest='verbose_list',
+                       default=False, help='Detailled list output')
+p_list.add_argument("list_args", nargs="*", help="Repo or image to list")
+p_list.set_defaults(func=c_list)
 
 # search command parser
 p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())

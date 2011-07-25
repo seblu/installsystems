@@ -189,6 +189,19 @@ def c_list(parser, args):
         arrow('#light##green#[Image]#reset# %s' % pkg.name)
         pkg.show(verbose=args.verbose_list, list=True)
 
+def c_cat(parser, args):
+    '''
+    Display image's file
+    '''
+    # looks if arguments is a file or image name
+    if istools.pathtype(args.image) == "file" and os.path.isfile(args.image):
+        pkg = PackageImage(istools.abspath(args.image))
+    elif PackageImage.check_image_name(args.image):
+        # get image package
+        repoman = load_repositories(args)
+        pkg = repoman.get(args.image, args.image_version)
+    pkg.cat(args.file)
+
 def c_search(parser, args):
     '''
     Search in repository
@@ -291,6 +304,15 @@ p_install.add_argument("-v", "--image-version", type=int, default=None,
                        help="image version")
 p_install.add_argument("image", help="image to install (path or name)")
 p_install.set_defaults(func=c_install, subparser=p_install)
+
+# cat command parser
+p_cat = subparsers.add_parser("cat", help=c_cat.__doc__.lower())
+
+p_cat.add_argument("-v", "--image-version", type=int, default=None,
+                       help="image version")
+p_cat.add_argument("image", help="image (path or name)")
+p_cat.add_argument("file", help="file to cat")
+p_cat.set_defaults(func=c_cat, subparser=p_cat)
 
 # get command parser
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())

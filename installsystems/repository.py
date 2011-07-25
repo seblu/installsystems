@@ -180,6 +180,32 @@ class Repository(object):
         # update last file
         self.update_last()
 
+    def show(self, verbose=False):
+        '''
+        List images in repository
+        '''
+        images = self.db.ask("SELECT md5, name, version, date,\
+                author, description, size FROM image").fetchall()
+
+        for image_md5, image_name, image_version, image_date, image_author,\
+        image_description, image_size in images:
+            out('Name        : %s' % image_name)
+            out('Version     : %s' % image_version)
+            out('Date        : %s' % time.asctime(time.gmtime(image_date)))
+            if verbose:
+                out('Description : %s' % image_description)
+                out('Author      : %s' % image_author)
+                out('MD5         : %s' % image_md5)
+                out('Payload :')
+                payloads = self.db.ask("SELECT md5, name, size FROM payload\
+                                    WHERE image_md5 = ?", (image_md5,)).fetchall()
+                for payload_md5, payload_name, payload_size in payloads:
+                    out('   Name : %s' % payload_name)
+                    out('   Size : %s' % (istools.human_size(payload_size)))
+                    out('   MD5  : %s' % payload_md5)
+                    out('')
+            out('')
+
     def _remove_file(self, filename):
         '''
         Remove a filename from pool. Check if it's not needed by db before

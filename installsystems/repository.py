@@ -201,6 +201,7 @@ class Repository(object):
                     out('  #light##yellow#Payload:#reset# %s' % payload_name)
                     out('    #yellow#Size:#reset# %s' % (istools.human_size(payload_size)))
                     out('    #yellow#MD5:#reset# %s' % payload_md5)
+                out()
 
     def _remove_file(self, filename):
         '''

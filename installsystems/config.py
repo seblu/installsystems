@@ -60,6 +60,8 @@ class MainConfigFile(ConfigFile):
         Load/Reload config file
         '''
         self._config = {}
+        # loading default options
+        self._config["cache"] = self.cache
         # loading config file if exists
         if self.path is None:
             debug("No main config file to load")
@@ -70,7 +72,7 @@ class MainConfigFile(ConfigFile):
             cp.read(self.path)
             # main configuration
             if cp.has_section(self.prefix):
-                self._config = dict(cp.items(self.prefix))
+                self._config.update(cp.items(self.prefix))
         except Exception as e:
             raise Exception("Unable load main config file %s: %s" % (self.path, e))
 
@@ -88,12 +90,10 @@ class MainConfigFile(ConfigFile):
         '''
         List all candidates to cache directories. Alive or not
         '''
-        dirs = ["/var/tmp", "/tmp"]
-        # we have a different behaviour if we are root
+        dirs = [os.path.expanduser("~/.cache"), "/var/tmp", "/tmp"]
+        # we have an additional directry if we are root
         if os.getuid() == 0:
             dirs.insert(0, "/var/cache")
-        else:
-            dirs.insert(0, os.path.expanduser("~/.cache"))
         return map(lambda x: os.path.join(x, self.prefix), dirs)
 
     def _cache_path(self):

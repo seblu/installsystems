@@ -662,8 +662,8 @@ class Payload(object):
             dest = os.path.join(dest, self.name)
         # check validity of dest
         if os.path.exists(dest):
-            if not os.path.isfile(dest):
-                raise Exception("Destination %s is not a file" % dest)
+            if os.path.isdir(dest):
+                raise Exception("Destination %s is a directory" % dest)
             if not force:
                 raise Exception("File %s already exists" % dest)
         # opening destination

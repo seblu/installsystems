@@ -142,6 +142,7 @@ def c_list(parser, args):
     # List available repositories
     if len(args.list_args) == 0:
         repoman = load_repositories(args)
+        arrow("Repositories")
         repoman.show(verbose=args.detail)
         return
     # list direct image or reposity content
@@ -150,12 +151,14 @@ def c_list(parser, args):
         if (istools.pathtype(args.list_args[0]) == 'file' and
             os.path.isfile(args.list_args[0])):
             pkg = PackageImage(args.list_args[0])
+            arrow("Image %s v%s" % (pkg.name, pkg.version))
             pkg.show(verbose=args.detail)
         # list repository content
         else:
             args.repo_filter = args.list_args[0]
             repoman = load_repositories(args)
             for repo in repoman:
+                arrow("Image in %s" % repo.config.name)
                 repo.show(args.detail)
         return
     # list last image version
@@ -174,6 +177,7 @@ def c_list(parser, args):
     # display content of image accross a repositories
     repoman = load_repositories(args)
     pkg = repoman.get(args.image, args.image_version)
+    arrow("Image %s v%s" % (pkg.name, pkg.version))
     pkg.show(verbose=args.detail)
 
 def c_cat(parser, args):

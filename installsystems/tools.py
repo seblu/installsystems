@@ -117,7 +117,7 @@ def abspath(path):
         return path
     elif ptype == "file":
         if path.startswith("file://"):
-            path = path[len("file://")]
+            path = path[len("file://"):]
         return os.path.abspath(path)
     else:
         return None

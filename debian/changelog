@@ -1,3 +1,9 @@
+installsystems (4~dev) unstable; urgency=low
+
+  dev version
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Tue, 26 Jul 2011 12:28:49 +0200
+
 installsystems (3) unstable; urgency=low
 
   Aurélien Dunand (7):
@@ -27,7 +33,6 @@ installsystems (3) unstable; urgency=low
       check args boundary on command list
       fix bad cache loading
       more info before displaying content
-
 
  -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Tue, 26 Jul 2011 12:28:49 +0200
 

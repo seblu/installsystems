@@ -17,6 +17,7 @@ import re
 import cStringIO
 import shutil
 import gzip
+import fnmatch
 import installsystems.template as istemplate
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -454,9 +455,15 @@ class PackageImage(Image):
         arrowlevel(-1)
 
     def cat(self, filename):
-        fd = self._tarball.extractfile(filename)
-        arrow(filename)
-        out(fd.read())
+        '''
+        Display filename in the tarball
+        '''
+        for filename in fnmatch.filter(self._tarball.getnames(), filename):
+            fd = self._tarball.extractfile(filename)
+            if fd is not None:
+                arrow(filename)
+                out(fd.read())
+                fd.close()
 
     def run_parser(self, **kwargs):
         '''

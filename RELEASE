@@ -9,7 +9,5 @@
 
 # squeeze backport
 1) create a squeeze branch
-2) add ~squeeze0 in version in installsystems/__init__.py
-3) add ~squeeze0 in version in debian/changelog 
-4) make VERSION="2~squeeze0" tar
-5) make DISTRO=squeeze buildd
+2) add ~squeeze0 in version in debian/changelog 
+4) make VERSION=3~squeeze0 DISTRO=squeeze tar buildd

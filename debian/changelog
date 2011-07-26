@@ -1,8 +1,35 @@
-installsystems (3~dev0) unstable; urgency=low
+installsystems (3) unstable; urgency=low
 
-  v3 dev
+  Aurélien Dunand (7):
+      Add function to display packaged image content
+      Add function to display repository content
+      Add list command
+      Add cat command
+      Fix missing colon
+      cat command can display several files
+      Add update command
 
- -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Mon, 18 Jul 2011 13:01:31 +0200
+  Seblu (17):
+      update release method
+      version 3~dev0
+      clean tar remove all tarball, not only current version
+      add version command
+      add help command
+      fix missing config files in debian package
+      fix typo
+      fix some python header
+      fix bad detection of destination file type during extraction
+      add emacs python header
+      change display of cat command
+      fix arrow spacing
+      change list behaviour
+      more spacing in list detail mode
+      check args boundary on command list
+      fix bad cache loading
+      more info before displaying content
+
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Tue, 26 Jul 2011 12:28:49 +0200
 
 installsystems (2) unstable; urgency=low
 

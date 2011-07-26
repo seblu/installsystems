@@ -1,9 +1,11 @@
 # release
 1) edit version in installsystems/__init__.py 
 2) edit debian/changelog
-3) make tar
-4) upload tarball to forge
-5) make builld
+3) commit
+4) tag
+5) make tar
+6) upload tarball to forge
+7) make builld
 
 # squeeze backport
 1) create a squeeze branch

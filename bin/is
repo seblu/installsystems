@@ -90,8 +90,9 @@ def c_add(parser, args):
     elif len(repoman) > 1:
         raise Exception("Please select only one repository")
     repo = repoman[0]
-    pkg = PackageImage(args.path)
-    repo.add(pkg, delete=not args.preserve)
+    for image in args.path:
+        pkg = PackageImage(image)
+        repo.add(pkg, delete=not args.preserve)
 
 def c_del(parser, args):
     '''
@@ -298,7 +299,7 @@ p_init.set_defaults(func=c_init)
 p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())
 p_add.add_argument('-p', "--preserve", action="store_true", default=False,
                    help="don't remove image after adding to database")
-p_add.add_argument("path")
+p_add.add_argument("path", nargs="+")
 p_add.set_defaults(func=c_add)
 
 # del command parser

@@ -202,6 +202,22 @@ class Repository(object):
                     out('    #yellow#MD5:#reset# %s' % payload_md5)
                 out()
 
+    def search(self, pattern):
+        '''
+        Search pattern in a repository
+        '''
+        images = self.db.ask("SELECT name, version, author, description\
+                              FROM image\
+                              WHERE name LIKE ? OR\
+                              description LIKE ? OR\
+                              author LIKE ?",
+                             tuple( ["%%%s%%" % pattern ] * 3)
+                             ).fetchall()
+        for name, version, author, description in images:
+            arrow("%s v%s" % (name, version), 1)
+            out("   #yellow#Author:#reset# %s" % author)
+            out("   #yellow#Description:#reset# %s" % description)
+
     def _remove_file(self, filename):
         '''
         Remove a filename from pool. Check if it's not needed by db before

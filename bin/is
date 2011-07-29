@@ -221,7 +221,10 @@ def c_search(parser, args):
     '''
     Search in repository
     '''
-    raise NotImplementedError("Not yet implemented")
+    repoman = load_repositories(args)
+    for repo in repoman:
+        arrow(repo.config.name)
+        repo.search(args.pattern)
 
 def c_get(parser, args):
     '''
@@ -351,6 +354,7 @@ p_cat.set_defaults(func=c_cat)
 
 # search command parser
 p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())
+p_search.add_argument("pattern", help="search pattern in repository")
 p_search.set_defaults(func=c_search)
 
 # get command parser

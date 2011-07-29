@@ -32,7 +32,9 @@ color = {
 _arrow_level = 1
 
 def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
-    '''Print message colorised in fd ended by endl'''
+    '''
+    Print message colorised in fd ended by endl
+    '''
     # color subsitution
     for c in color:
         message = message.replace("#%s#" % c, color[c])
@@ -42,7 +44,9 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
         fd.flush()
 
 def err(message, fd=sys.stderr, endl=os.linesep):
-    '''Print a message on stderr'''
+    '''
+    Print a message on stderr
+    '''
     out(message, fd, endl)
 
 def fatal(message, quit=True, fd=sys.stderr, endl=os.linesep):

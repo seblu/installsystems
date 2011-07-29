@@ -615,7 +615,7 @@ class Payload(object):
     @property
     def info(self):
         '''
-        return a dict of info about current payload
+        Return a dict of info about current payload
         '''
         return {"md5": self.md5,
                 "size": self.size,

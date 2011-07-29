@@ -227,7 +227,7 @@ class Repository(object):
 
     def get(self, name, version):
         '''
-        return a image from a name and version
+        Return an image from a name and version
         '''
         # get file md5 from db
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
@@ -242,8 +242,8 @@ class Repository(object):
 
     def getmd5(self, name, version):
         '''
-        return a image md5 and payload md5 from name and version. Order matter !
-        image md5 will still be the first
+        Return an image md5 and payload md5 from name and version. Order matter !
+        Image md5 will still be the first
         '''
         # get file md5 from db
         a = self.db.ask("SELECT md5 FROM image WHERE name = ? AND version = ? LIMIT 1",
@@ -305,7 +305,7 @@ class RepositoryConfig(object):
     @property
     def lastpath(self):
         '''
-        return the last file complete path
+        Return the last file complete path
         '''
         if self._lastpath is None:
             return os.path.join(self.path, self.lastname)
@@ -321,7 +321,7 @@ class RepositoryConfig(object):
     @property
     def dbpath(self):
         '''
-        return the db complete path
+        Return the db complete path
         '''
         if self._dbpath is None:
             return os.path.join(self.path, self.dbname)
@@ -452,7 +452,7 @@ class RepositoryManager(object):
         # delete temporary files (used by db)
         for f in self.tempfiles:
             try:
-                debug("Removing temporaty db file %s" % f)
+                debug("Removing temporary db file %s" % f)
                 os.unlink(f)
             except OSError:
                 pass
@@ -466,7 +466,7 @@ class RepositoryManager(object):
 
     def __getitem__(self, key):
         '''
-        Return a repostiory by its possition in list
+        Return a repostiory by its position in list
         '''
         return self.repos[key]
 

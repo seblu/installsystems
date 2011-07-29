@@ -30,7 +30,7 @@ def md5sum(path=None, fileobj=None):
 
 def copyfileobj(sfile, dfile):
     '''
-    Copy data from sfile to dfile coputing length and md5 on the fly
+    Copy data from sfile to dfile computing length and md5 on the fly
     '''
     f_sum = hashlib.md5()
     f_len = 0

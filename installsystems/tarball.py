@@ -14,7 +14,9 @@ import re
 
 class Tarball(tarfile.TarFile):
     def add_str(self, name, content, ftype, mode):
-        '''Add a string in memory as a file in tarball'''
+        '''
+        Add a string in memory as a file in tarball
+        '''
         ti = tarfile.TarInfo(name)
         ti.type = ftype
         ti.mode = mode
@@ -25,7 +27,9 @@ class Tarball(tarfile.TarFile):
         self.addfile(ti, StringIO.StringIO(content))
 
     def get_str(self, name):
-        '''Return a string from a filename in a tarball'''
+        '''
+        Return a string from a filename in a tarball
+        '''
         ti = self.getmember(name)
         return self.extractfile(ti).read()
 
@@ -38,7 +42,9 @@ class Tarball(tarfile.TarFile):
                      if re.match(reg_pattern, tpname) ]
 
     def size(self):
-        '''Return real (uncompressed) size of the tarball'''
+        '''
+        Return real (uncompressed) size of the tarball
+        '''
         total_sz = 0
         for ti in self.getmembers():
             total_sz += ti.size

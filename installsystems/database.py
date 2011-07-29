@@ -16,7 +16,8 @@ from installsystems.tarball import Tarball
 from installsystems.printer import *
 
 class Database(object):
-    '''  Abstract repo database stuff
+    '''
+    Abstract repo database stuff
     It needs to be local cause of sqlite3 which need to open a file
     '''
 

@@ -233,7 +233,7 @@ class Repository(object):
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name,version)).fetchone()
         if r is None:
-            raise Exception("No such image %s version %s" % name, version)
+            raise Exception("No such image %s version %s" % (name, version))
         path = os.path.join(self.config.path, r[0])
         debug("Getting %s v%s from %s" % (name, version, path))
         pkg = PackageImage(path, md5name=True)

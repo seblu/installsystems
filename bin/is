@@ -9,6 +9,7 @@ InstallSystems Command line Tool
 
 import os
 import time
+import fnmatch
 import datetime
 import argparse
 import installsystems
@@ -37,10 +38,11 @@ def load_repositories(args):
     else:
         # from config
         for repoconf in RepoConfigFile(args.repo_config).repos:
-            # filtering on repository name if present
-            if args.repo_filter is not None and repoconf.name != args.repo_filter:
-                continue
-            repoman.register(repoconf)
+            if args.repo_filter is None:
+                repoman.register(repoconf)
+            else:
+                if len(fnmatch.filter([repoconf.name], args.repo_filter)) > 0:
+                    repoman.register(repoconf)
     return repoman
 
 def c_new(parser, args):

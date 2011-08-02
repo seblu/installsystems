@@ -238,6 +238,36 @@ def c_clean(parser, args):
     '''
     raise NotImplementedError("Not yet implemented")
 
+def c_copy(parser, args):
+    '''
+    Copy an image from a repository to another one
+    '''
+    args.repo_filter = args.repo_src
+    repoman = load_repositories(args)
+    if len(repoman) == 0:
+        raise Exception("No repository selected")
+    elif len(repoman) > 1:
+        raise Exception("Please select only one repository")
+    repo_src = repoman[0]
+    args.repo_filter = args.repo_dst
+    repoman = load_repositories(args)
+    if len(repoman) == 0:
+        raise Exception("No repository selected")
+    elif len(repoman) > 1:
+        raise Exception("Please select only one repository")
+    repo_dst = repoman[0]
+    if args.image_version is None:
+        args.image_version = repo_src.last(args.image)
+        if args.image_version == -1:
+            raise Exception("Unable to find last version of %s" % args.image)
+    arrow("Copying %s v%s from %s to %s" % (args.image, args.image_version,
+                                   repo_src.config.name, repo_dst.config.name))
+    arrowlevel(1)
+    pkg = repo_src.get(args.image, args.image_version)
+    repo_dst.add(pkg)
+    arrowlevel(-1)
+    arrow("Done")
+
 def c_help(parser, args):
     '''
     Show help
@@ -365,6 +395,14 @@ p_get.set_defaults(func=c_get)
 # clean command parser
 p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())
 p_clean.set_defaults(func=c_clean)
+
+# copy command parser
+p_copy = subparsers.add_parser("copy", help=c_copy.__doc__.lower())
+p_copy.add_argument("repo_src", help="name of source repository")
+p_copy.add_argument("repo_dst", help="name of destination repository")
+p_copy.add_argument("image", help="image name")
+p_copy.add_argument("image_version", nargs="?", help="image version")
+p_copy.set_defaults(func=c_copy)
 
 # help command parser
 p_help = subparsers.add_parser("help", help=c_help.__doc__.lower())

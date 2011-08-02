@@ -60,7 +60,7 @@ def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
     elif (stype == "http" or stype == "ftp") and dtype == "file":
         f_dest = open(destination, "w")
         f_source = urllib2.urlopen(source, timeout=timeout)
-        f_dest.write(f_source.read())
+        copyfileobj(f_source, f_dest)
     elif stype == "file" and dtype == "":
         raise NotImplementedError
     else:

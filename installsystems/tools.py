@@ -57,7 +57,7 @@ def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
     # trivial case
     if stype == dtype == "file":
         shutil.copy(source, destination)
-    elif stype == "http" and dtype == "file":
+    elif (stype == "http" or stype == "ftp") and dtype == "file":
         f_dest = open(destination, "w")
         f_source = urllib2.urlopen(source, timeout=timeout)
         f_dest.write(f_source.read())
@@ -113,7 +113,7 @@ def abspath(path):
     Format a path to be absolute
     '''
     ptype = pathtype(path)
-    if ptype in ("http", "ssh"):
+    if ptype in ("http", "ftp", "ssh"):
         return path
     elif ptype == "file":
         if path.startswith("file://"):

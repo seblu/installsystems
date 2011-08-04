@@ -143,37 +143,37 @@ def c_list(parser, args):
     List images in repository or image content
     '''
     # List available repositories
-    if len(args.list_args) == 0:
+    if len(args.values) == 0:
         repoman = load_repositories(args)
         arrow("Repositories")
         repoman.show(verbose=args.detail)
         return
     # list direct image or reposity content
-    elif len(args.list_args) == 1:
+    elif len(args.values) == 1:
         # list image file content
-        if (istools.pathtype(args.list_args[0]) == "file" and
-            os.path.isfile(args.list_args[0])):
-            pkg = PackageImage(args.list_args[0])
+        if (istools.pathtype(args.values[0]) == "file" and
+            os.path.isfile(args.values[0])):
+            pkg = PackageImage(args.values[0])
             arrow("Image %s v%s" % (pkg.name, pkg.version))
             pkg.show(verbose=args.detail)
         # list repository content
         else:
-            args.repo_filter = args.list_args[0]
+            args.repo_filter = args.values[0]
             repoman = load_repositories(args)
             for repo in repoman:
                 arrow("Image in %s" % repo.config.name)
                 repo.show(args.detail)
         return
     # list last image version
-    elif len(args.list_args) == 2:
-        args.repo_filter = args.list_args[0]
-        args.image = args.list_args[1]
+    elif len(args.values) == 2:
+        args.repo_filter = args.values[0]
+        args.image = args.values[1]
         args.image_version = None
     # list specific image version
-    elif len(args.list_args) == 3:
-        args.repo_filter = args.list_args[0]
-        args.image = args.list_args[1]
-        args.image_version = args.list_args[2]
+    elif len(args.values) == 3:
+        args.repo_filter = args.values[0]
+        args.image = args.values[1]
+        args.image_version = args.values[2]
     else:
         args.subparser.print_usage()
         exit(1)
@@ -330,7 +330,8 @@ p_install.set_defaults(func=c_install, subparser=p_install)
 p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
 p_list.add_argument("-l", action="store_true", dest="detail",
                     default=False, help="detailled list output")
-p_list.add_argument("list_args", nargs="*", help="list content of image or repositories")
+p_list.add_argument("values", nargs="*",
+                    help="image or repositories to list")
 p_list.set_defaults(func=c_list, subparser=p_list)
 
 # update command parser

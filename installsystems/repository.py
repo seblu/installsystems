@@ -188,18 +188,18 @@ class Repository(object):
 
         for (image_md5, image_name, image_version, image_date, image_author,
              image_description, image_size) in images:
-            out('#light##yellow#%s #reset#v%s' % (image_name, image_version))
+            out("#light##yellow#%s #reset#v%s" % (image_name, image_version))
             if verbose:
-                out('  #yellow#Date:#reset# %s' % time.asctime(time.gmtime(image_date)))
-                out('  #yellow#Description:#reset# %s' % image_description)
-                out('  #yellow#Author:#reset# %s' % image_author)
-                out('  #yellow#MD5:#reset# %s' % image_md5)
+                out("  #yellow#Date:#reset# %s" % time.asctime(time.gmtime(image_date)))
+                out("  #yellow#Description:#reset# %s" % image_description)
+                out("  #yellow#Author:#reset# %s" % image_author)
+                out("  #yellow#MD5:#reset# %s" % image_md5)
                 payloads = self.db.ask("SELECT md5, name, size FROM payload\
                                     WHERE image_md5 = ?", (image_md5,)).fetchall()
                 for payload_md5, payload_name, payload_size in payloads:
-                    out('  #light##yellow#Payload:#reset# %s' % payload_name)
-                    out('    #yellow#Size:#reset# %s' % (istools.human_size(payload_size)))
-                    out('    #yellow#MD5:#reset# %s' % payload_md5)
+                    out("  #light##yellow#Payload:#reset# %s" % payload_name)
+                    out("    #yellow#Size:#reset# %s" % (istools.human_size(payload_size)))
+                    out("    #yellow#MD5:#reset# %s" % payload_md5)
                 out()
 
     def search(self, pattern):
@@ -555,5 +555,5 @@ class RepositoryManager(object):
             repo.config.name
             s = "#light##blue#%s#reset#"% repo.config.name
             if verbose:
-                s += ' (%s)' % repo.config.path
+                s += " (%s)" % repo.config.path
             out(s)

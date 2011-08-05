@@ -45,6 +45,13 @@ def load_repositories(args):
                     repoman.register(repoconf)
     return repoman
 
+def select_one_repository(repoman):
+    if len(repoman) == 0:
+        raise Exception("No repository selected")
+    elif len(repoman) > 1:
+        raise Exception("Please select only one repository")
+    return repoman[0]
+
 def c_new(parser, args):
     '''
     Create a new source image
@@ -87,11 +94,7 @@ def c_add(parser, args):
     Add an image package into a repository
     '''
     repoman = load_repositories(args)
-    if len(repoman) == 0:
-        raise Exception("No repository selected")
-    elif len(repoman) > 1:
-        raise Exception("Please select only one repository")
-    repo = repoman[0]
+    repo = select_one_repository(repoman)
     for image in args.path:
         pkg = PackageImage(image)
         repo.add(pkg, delete=not args.preserve)
@@ -101,12 +104,8 @@ def c_del(parser, args):
     Remove an image package from a repository
     '''
     repoman = load_repositories(args)
-    if len(repoman) == 0:
-        raise Exception("No repository selected")
-    elif len(repoman) > 1:
-        raise Exception("Please select only one repository")
-    repo = repoman[0]
-    repo.delete(args.image_name, args.image_version)
+    repo = select_one_repository(repoman)
+    repo.delete(args.image_name, args.image_version, keep=args.keep)
 
 def c_install(parser, args):
     '''
@@ -191,11 +190,7 @@ def c_update(parser, args):
     simg = SourceImage(args.path)
 
     repoman = load_repositories(args)
-    if len(repoman) == 0:
-        raise Exception("No repository selected")
-    elif len(repoman) > 1:
-        raise Exception("Please select only one repository")
-    repo = repoman[0]
+    repo = select_one_repository(repoman)
     image = simg.description["name"]
     version = simg.description["version"]
     if repo.has(image, version):
@@ -244,18 +239,10 @@ def c_copy(parser, args):
     '''
     args.repo_filter = args.repo_src
     repoman = load_repositories(args)
-    if len(repoman) == 0:
-        raise Exception("No repository selected")
-    elif len(repoman) > 1:
-        raise Exception("Please select only one repository")
-    repo_src = repoman[0]
+    repo_src = select_one_repository(repoman)
     args.repo_filter = args.repo_dst
     repoman = load_repositories(args)
-    if len(repoman) == 0:
-        raise Exception("No repository selected")
-    elif len(repoman) > 1:
-        raise Exception("Please select only one repository")
-    repo_dst = repoman[0]
+    repo_dst = select_one_repository(repoman)
     if args.image_version is None:
         args.image_version = repo_src.last(args.image)
         if args.image_version == -1:

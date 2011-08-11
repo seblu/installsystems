@@ -7,8 +7,6 @@ Database stuff
 '''
 
 import os
-import shutil
-import cStringIO
 import sqlite3
 import installsystems.tools as istools
 import installsystems.template as istemplate

@@ -11,7 +11,6 @@ import time
 import shutil
 import pwd
 import grp
-import copy
 import tempfile
 import installsystems
 import installsystems.tools as istools

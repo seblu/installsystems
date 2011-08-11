@@ -8,7 +8,6 @@ Install Systems Printer module
 
 import sys
 import os
-import signal
 import installsystems
 
 color = {

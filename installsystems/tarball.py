@@ -40,7 +40,7 @@ class Tarball(tarfile.TarFile):
         # regexp matching
         if re_pattern is not None:
             return [ tpname for tpname in lorig
-                     if re.match(reg_pattern, tpname) ]
+                     if re.match(re_pattern, tpname) ]
         # globbing matching
         if glob_pattern is not None:
             return fnmatch.filter(lorig, glob_pattern)

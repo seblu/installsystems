@@ -300,7 +300,7 @@ subparsers = p_main.add_subparsers()
 
 # new command parser
 p_new = subparsers.add_parser("new", help=c_new.__doc__.lower())
-p_new.add_argument("path", help="Path of new image directory")
+p_new.add_argument("path", help="path of new image directory")
 p_new.set_defaults(func=c_new)
 
 # build command parser

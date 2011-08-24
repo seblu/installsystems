@@ -266,6 +266,9 @@ class Repository(object):
         # is no version take the last
         if version is None:
             version = self.last(name)
+            if version < 0:
+                raise Exception("Unable to find last version of %s in %s" % (name,
+                                                                             self.config.name))
         # get file md5 from db
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name,version)).fetchone()

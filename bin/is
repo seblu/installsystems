@@ -58,7 +58,11 @@ def select_image(name, repoman):
     if istools.isfile(name) and os.path.isfile(name):
         return PackageImage(name), None
     else:
-        (repo, image, version) = re.match("((\w+)/)?(\w+)(:v?(\d+))?", name).group(2,3,5)
+        x = re.match("^((\w+)/)?(\w+)(:v?(\d+))?$", name)
+        if x is None:
+            raise Exception("%s is not a valid image" % name)
+        (repo, image, version) = x.group(2,3,5)
+        debug("Selected image is %s v%s in %s" % (image, version, repo))
         if repo is None:
             return repoman.get(image, version)
         else:

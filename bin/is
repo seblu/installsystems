@@ -71,11 +71,15 @@ def select_image(name, repoman):
         else:
             return repoman[repo].get(image, version), repoman[repo]
 
-def c_new(parser, args):
+def c_add(parser, args):
     '''
-    Create a new source image
+    Add an image package into a repository
     '''
-    SourceImage.create(args.path)
+    repoman = load_repositories(args)
+    repo = repoman[args.repository]
+    for image in args.path:
+        pkg = PackageImage(image)
+        repo.add(pkg, delete=not args.preserve)
 
 def c_build(parser, args):
     '''
@@ -92,23 +96,44 @@ def c_build(parser, args):
     dt = int(t1 - t0)
     arrow("Build time: %s" % datetime.timedelta(seconds=dt))
 
-def c_init(parser, args):
+def c_cat(parser, args):
     '''
-    Create an empty repository
+    Display image's file(s)
     '''
-    repoman = load_repositories(args)
-    for reponame in args.repository:
-        repoman[reponame].init()
+    # looks if arguments is a file or image name
+    if istools.isfile(args.image) and os.path.isfile(args.image):
+        pkg = PackageImage(istools.abspath(args.image))
+    elif PackageImage.check_image_name(args.image):
+        # get image package
+        repoman = load_repositories(args)
+        pkg = repoman.get(args.image, args.image_version)
+    for filename in args.files:
+        pkg.cat(filename)
 
-def c_add(parser, args):
+def c_clean(parser, args):
     '''
-    Add an image package into a repository
+    Clean a repository
     '''
+    raise NotImplementedError("Not yet implemented")
+
+def c_copy(parser, args):
+    '''
+    Copy an image from a repository to another one
+    '''
+    # load repositories
     repoman = load_repositories(args)
-    repo = repoman[args.repository]
-    for image in args.path:
-        pkg = PackageImage(image)
-        repo.add(pkg, delete=not args.preserve)
+    srcrepo = repoman[args.repo_src]
+    dstrepo = repoman[args.repo_dst]
+    # load source image
+    srcimg = srcrepo.get(args.image, args.image_version)
+    # Advertise
+    arrow("Copying %s v%s from %s to %s" % (srcimg.name,
+                                             srcimg.version,
+                                             srcrepo.config.name,
+                                             dstrepo.config.name))
+    arrowlevel(1)
+    dstrepo.add(srcimg)
+    arrowlevel(-1)
 
 def c_del(parser, args):
     '''
@@ -128,6 +153,29 @@ def c_del(parser, args):
                                                              repo.config.name))
             if raw_input("Are you sure (yes)" ) == "yes":
                 repo.delete(img.name, img.version)
+
+def c_get(parser, args):
+    '''
+    Get a remove image in current directory
+    '''
+    raise NotImplementedError("Not yet implemented")
+
+def c_help(parser, args):
+    '''
+    Show help
+    '''
+    if args.command not in args.subparser.choices:
+        parser.print_help()
+    else:
+        args.subparser.choices[args.command].print_help()
+
+def c_init(parser, args):
+    '''
+    Create an empty repository
+    '''
+    repoman = load_repositories(args)
+    for reponame in args.repository:
+        repoman[reponame].init()
 
 def c_install(parser, args):
     '''
@@ -203,58 +251,6 @@ def c_list(parser, args):
     arrow("Image %s v%s" % (pkg.name, pkg.version))
     pkg.show(verbose=args.detail)
 
-def c_cat(parser, args):
-    '''
-    Display image's file(s)
-    '''
-    # looks if arguments is a file or image name
-    if istools.isfile(args.image) and os.path.isfile(args.image):
-        pkg = PackageImage(istools.abspath(args.image))
-    elif PackageImage.check_image_name(args.image):
-        # get image package
-        repoman = load_repositories(args)
-        pkg = repoman.get(args.image, args.image_version)
-    for filename in args.files:
-        pkg.cat(filename)
-
-def c_search(parser, args):
-    '''
-    Search in repository
-    '''
-    repoman = load_repositories(args)
-    repoman.search(args.pattern)
-
-def c_get(parser, args):
-    '''
-    Get a remove image in current directory
-    '''
-    raise NotImplementedError("Not yet implemented")
-
-def c_clean(parser, args):
-    '''
-    Clean a repository
-    '''
-    raise NotImplementedError("Not yet implemented")
-
-def c_copy(parser, args):
-    '''
-    Copy an image from a repository to another one
-    '''
-    # load repositories
-    repoman = load_repositories(args)
-    srcrepo = repoman[args.repo_src]
-    dstrepo = repoman[args.repo_dst]
-    # load source image
-    srcimg = srcrepo.get(args.image, args.image_version)
-    # Advertise
-    arrow("Copying %s v%s from %s to %s" % (srcimg.name,
-                                             srcimg.version,
-                                             srcrepo.config.name,
-                                             dstrepo.config.name))
-    arrowlevel(1)
-    dstrepo.add(srcimg)
-    arrowlevel(-1)
-
 def c_move(parser, args):
     '''
     Move an image from a repository to another one
@@ -275,14 +271,18 @@ def c_move(parser, args):
     srcrepo.delete(srcimg.name, srcimg.version)
     arrowlevel(-1)
 
-def c_help(parser, args):
+def c_new(parser, args):
     '''
-    Show help
+    Create a new source image
     '''
-    if args.command not in args.subparser.choices:
-        parser.print_help()
-    else:
-        args.subparser.choices[args.command].print_help()
+    SourceImage.create(args.path)
+
+def c_search(parser, args):
+    '''
+    Search in repository
+    '''
+    repoman = load_repositories(args)
+    repoman.search(args.pattern)
 
 def c_version(parser, args):
     '''
@@ -320,10 +320,14 @@ p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
 # create a subparsers for each command
 subparsers = p_main.add_subparsers()
 
-# new command parser
-p_new = subparsers.add_parser("new", help=c_new.__doc__.lower())
-p_new.add_argument("path", help="path of new image directory")
-p_new.set_defaults(func=c_new)
+# add command parser
+p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())
+p_add.add_argument("-p", "--preserve", action="store_true", default=False,
+                   help="don't remove image after adding to database")
+p_add.add_argument("repository", help="repository where image will be added")
+p_add.add_argument("path", nargs="+",
+                   help="image path")
+p_add.set_defaults(func=c_add)
 
 # build command parser
 p_build = subparsers.add_parser("build", help=c_build.__doc__.lower())
@@ -334,20 +338,25 @@ p_build.add_argument("-c", "--no-check", action="store_true", default=False,
 p_build.add_argument("path", nargs="?", default=".")
 p_build.set_defaults(func=c_build)
 
-# init command parser
-p_init = subparsers.add_parser("init", help=c_init.__doc__.lower())
-p_init.add_argument("repository", nargs="+",
-                    help="repository's name to initialize")
-p_init.set_defaults(func=c_init)
+# cat command parser
+p_cat = subparsers.add_parser("cat", help=c_cat.__doc__.lower())
+p_cat.add_argument("-v", "--image-version", type=int, default=None,
+                   help="image version")
+p_cat.add_argument("image", help="image (path or name)")
+p_cat.add_argument("files", nargs="+", help="files to cat")
+p_cat.set_defaults(func=c_cat)
 
-# add command parser
-p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())
-p_add.add_argument("-p", "--preserve", action="store_true", default=False,
-                   help="don't remove image after adding to database")
-p_add.add_argument("repository", help="repository where image will be added")
-p_add.add_argument("path", nargs="+",
-                   help="image path")
-p_add.set_defaults(func=c_add)
+# clean command parser
+p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())
+p_clean.set_defaults(func=c_clean)
+
+# copy command parser
+p_copy = subparsers.add_parser("copy", help=c_copy.__doc__.lower())
+p_copy.add_argument("repo_src", help="name of source repository")
+p_copy.add_argument("repo_dst", help="name of destination repository")
+p_copy.add_argument("image", help="image name")
+p_copy.add_argument("image_version", nargs="?", help="image version")
+p_copy.set_defaults(func=c_copy)
 
 # del command parser
 p_del =  subparsers.add_parser("del", help=c_del.__doc__.lower())
@@ -356,6 +365,21 @@ p_del.add_argument("image", nargs="+",
 p_del.add_argument("-f", "--force", action="store_true", default=False,
                    help="delete image without confirmation")
 p_del.set_defaults(func=c_del)
+
+# get command parser
+p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
+p_get.set_defaults(func=c_get)
+
+# help command parser
+p_help = subparsers.add_parser("help", help=c_help.__doc__.lower())
+p_help.add_argument("command", nargs="?", help="command name")
+p_help.set_defaults(func=c_help, subparser=subparsers)
+
+# init command parser
+p_init = subparsers.add_parser("init", help=c_init.__doc__.lower())
+p_init.add_argument("repository", nargs="+",
+                    help="repository's name to initialize")
+p_init.set_defaults(func=c_init)
 
 # install command parser
 p_install = subparsers.add_parser("install", add_help=False,
@@ -375,35 +399,6 @@ p_list.add_argument("values", nargs="*",
                     help="image or repositories to list")
 p_list.set_defaults(func=c_list, subparser=p_list)
 
-# cat command parser
-p_cat = subparsers.add_parser("cat", help=c_cat.__doc__.lower())
-p_cat.add_argument("-v", "--image-version", type=int, default=None,
-                   help="image version")
-p_cat.add_argument("image", help="image (path or name)")
-p_cat.add_argument("files", nargs="+", help="files to cat")
-p_cat.set_defaults(func=c_cat)
-
-# search command parser
-p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())
-p_search.add_argument("pattern", help="search pattern in repository")
-p_search.set_defaults(func=c_search)
-
-# get command parser
-p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
-p_get.set_defaults(func=c_get)
-
-# clean command parser
-p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())
-p_clean.set_defaults(func=c_clean)
-
-# copy command parser
-p_copy = subparsers.add_parser("copy", help=c_copy.__doc__.lower())
-p_copy.add_argument("repo_src", help="name of source repository")
-p_copy.add_argument("repo_dst", help="name of destination repository")
-p_copy.add_argument("image", help="image name")
-p_copy.add_argument("image_version", nargs="?", help="image version")
-p_copy.set_defaults(func=c_copy)
-
 # move command parser
 p_move = subparsers.add_parser("move", help=c_move.__doc__.lower())
 p_move.add_argument("repo_src", help="name of source repository")
@@ -412,10 +407,15 @@ p_move.add_argument("image", help="image name")
 p_move.add_argument("image_version", nargs="?", help="image version")
 p_move.set_defaults(func=c_move)
 
-# help command parser
-p_help = subparsers.add_parser("help", help=c_help.__doc__.lower())
-p_help.add_argument("command", nargs="?", help="command name")
-p_help.set_defaults(func=c_help, subparser=subparsers)
+# new command parser
+p_new = subparsers.add_parser("new", help=c_new.__doc__.lower())
+p_new.add_argument("path", help="path of new image directory")
+p_new.set_defaults(func=c_new)
+
+# search command parser
+p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())
+p_search.add_argument("pattern", help="search pattern in repository")
+p_search.set_defaults(func=c_search)
 
 # version command parser
 p_version = subparsers.add_parser("version", help=c_version.__doc__.lower())

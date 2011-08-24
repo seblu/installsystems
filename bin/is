@@ -65,7 +65,7 @@ def select_image(name, repoman):
     if istools.isfile(name) and os.path.isfile(name):
         return PackageImage(name), None
     else:
-        (repo, image, version) = re.match("((\w+)/)?(\w+)(:(\d+))?", name).group(2,3,5)
+        (repo, image, version) = re.match("((\w+)/)?(\w+)(:v?(\d+))?", name).group(2,3,5)
         if repo is None:
             return repoman.get(image, version)
         else:

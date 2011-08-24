@@ -46,13 +46,6 @@ def load_repositories(args):
                     repoman.register(repoconf)
     return repoman
 
-def select_one_repository(repoman):
-    if len(repoman) == 0:
-        raise Exception("No repository selected")
-    elif len(repoman) > 1:
-        raise Exception("Please select only one repository")
-    return repoman[0]
-
 def select_image(name, repoman):
     '''
     Select and load a package image from a standard naming type

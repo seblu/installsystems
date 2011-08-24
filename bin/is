@@ -116,20 +116,17 @@ def c_copy(parser, args):
     '''
     Copy an image from a repository to another one
     '''
-    # load repositories
     repoman = load_repositories(args)
-    srcrepo = repoman[args.repo_src]
-    dstrepo = repoman[args.repo_dst]
-    # load source image
-    srcimg = srcrepo.get(args.image, args.image_version)
-    # Advertise
-    arrow("Copying %s v%s from %s to %s" % (srcimg.name,
-                                             srcimg.version,
-                                             srcrepo.config.name,
-                                             dstrepo.config.name))
-    arrowlevel(1)
-    dstrepo.add(srcimg)
-    arrowlevel(-1)
+    dstrepo = repoman[args.repository]
+    for image in args.image:
+        srcimg, srcrepo = select_image(image, repoman)
+        arrow("Copying %s v%s from repository %s to %s" % (srcimg.name,
+                                                           srcimg.version,
+                                                           srcrepo.config.name,
+                                                           dstrepo.config.name))
+        arrowlevel(1)
+        dstrepo.add(srcimg)
+        arrowlevel(-1)
 
 def c_del(parser, args):
     '''
@@ -349,10 +346,8 @@ p_clean.set_defaults(func=c_clean)
 
 # copy command parser
 p_copy = subparsers.add_parser("copy", help=c_copy.__doc__.lower())
-p_copy.add_argument("repo_src", help="name of source repository")
-p_copy.add_argument("repo_dst", help="name of destination repository")
-p_copy.add_argument("image", help="image name")
-p_copy.add_argument("image_version", nargs="?", help="image version")
+p_copy.add_argument("repository", help="name of destination repository")
+p_copy.add_argument("image", nargs="+", help="image to copy")
 p_copy.set_defaults(func=c_copy)
 
 # del command parser

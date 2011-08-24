@@ -56,7 +56,7 @@ def c_new(parser, args):
     '''
     Create a new source image
     '''
-    simg = SourceImage.create(args.path)
+    SourceImage.create(args.path)
 
 def c_build(parser, args):
     '''

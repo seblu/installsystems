@@ -240,10 +240,13 @@ class Repository(object):
         '''
         return self.db.ask("SELECT name,version FROM image WHERE name = ? AND version = ? LIMIT 1", (name,version)).fetchone() is not None
 
-    def get(self, name, version):
+    def get(self, name, version=None):
         '''
         Return an image from a name and version
         '''
+        # is no version take the last
+        if version is None:
+            version = self.last(name)
         # get file md5 from db
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name,version)).fetchone()
@@ -483,7 +486,15 @@ class RepositoryManager(object):
         '''
         Return a repostiory by its position in list
         '''
-        return self.repos[key]
+        if type(key) == int:
+            return self.repos[key]
+        elif type(key) == str:
+            for repo in self.repos:
+                if repo.config.name == key:
+                    return repo
+            raise Exception("No repository named: %s" % key)
+        else:
+            raise TypeError
 
     def register(self, config):
         '''

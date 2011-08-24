@@ -237,23 +237,20 @@ def c_copy(parser, args):
     '''
     Copy an image from a repository to another one
     '''
-    args.repo_filter = args.repo_src
+    # load repositories
     repoman = load_repositories(args)
-    repo_src = select_one_repository(repoman)
-    args.repo_filter = args.repo_dst
-    repoman = load_repositories(args)
-    repo_dst = select_one_repository(repoman)
-    if args.image_version is None:
-        args.image_version = repo_src.last(args.image)
-        if args.image_version == -1:
-            raise Exception("Unable to find last version of %s" % args.image)
-    arrow("Copying %s v%s from %s to %s" % (args.image, args.image_version,
-                                   repo_src.config.name, repo_dst.config.name))
+    srcrepo = repoman[args.repo_src]
+    dstrepo = repoman[args.repo_dst]
+    # load source image
+    srcimg = srcrepo.get(args.image, args.image_version)
+    # Advertise
+    arrow("Copying %s v%s from %s to %s" % (srcimg.name,
+                                             srcimg.version,
+                                             srcrepo.config.name,
+                                             dstrepo.config.name))
     arrowlevel(1)
-    pkg = repo_src.get(args.image, args.image_version)
-    repo_dst.add(pkg)
+    dstrepo.add(srcimg)
     arrowlevel(-1)
-    arrow("Done")
 
 def c_help(parser, args):
     '''

@@ -26,15 +26,34 @@ class Repository(object):
 
     def __init__(self, config):
         self.config = config
-        self.db = Database(config.dbpath)
+        try:
+            self.db = Database(config.dbpath)
+        except:
+            self.db = None
 
-    @classmethod
-    def create(cls, config):
+    def __getattribute__(self, name):
         '''
-        Create an empty base repository
+        Raise an error if repository is unavailable
+        Unavailable can be caused because db is not accessible or
+        because repository is not initialized
         '''
+        db = object.__getattribute__(self, "db")
+        config = object.__getattribute__(self, "config")
+        # config and init are always accessible
+        if name in ("init", "config"):
+            return object.__getattribute__(self, name)
+        # if no db (not init or not accessible) raise error
+        if db is None:
+            raise Exception("Repository %s is not availabe" % config.name)
+        return object.__getattribute__(self, name)
+
+    def init(self):
+        '''
+        Initialize an empty base repository
+        '''
+        config = self.config
         # check local repository
-        if istools.pathtype(config.path) != "file":
+        if not istools.isfile(self.config.path):
             raise Exception("Repository creation must be local")
         # create base directories
         arrow("Creating base directories")
@@ -50,13 +69,13 @@ class Repository(object):
             raise Exception("Unable to create directory %s: %s" % (config.path, e))
         arrowlevel(-1)
         # create database
-        dbpath = os.path.join(config.path, config.dbname)
-        d = Database.create(dbpath)
-        istools.chrights(dbpath, uid=config.uid, gid=config.gid, mode=config.fmod)
-        # create last file
-        self = cls(config)
+        d = Database.create(config.dbpath)
+        istools.chrights(config.dbpath, uid=config.uid,
+                         gid=config.gid, mode=config.fmod)
+        # load database
+        self.db = Database(config.dbpath)
+        # create/update last file
         self.update_last()
-        return self
 
     def update_last(self):
         '''

@@ -75,19 +75,11 @@ def c_build(parser, args):
 
 def c_init(parser, args):
     '''
-    Create a empty repository
+    Create an empty repository
     '''
-    # we cannot use load_repositories because repo doesn't exists
-    if args.repo_path is not None:
-        # from command line
-        Repository.create(RepositoryConfig(None, path=args.repo_path))
-    else:
-        # from config
-        for repoconf in RepoConfigFile(args.repo_config).repos:
-            # filtering on repository name if present
-            if args.repo_filter is not None and repoconf.name != args.repo_filter:
-                continue
-            Repository.create(repoconf)
+    repoman = load_repositories(args)
+    for reponame in args.repository:
+        repoman[reponame].init()
 
 def c_add(parser, args):
     '''
@@ -314,8 +306,8 @@ p_build.set_defaults(func=c_build)
 
 # init command parser
 p_init = subparsers.add_parser("init", help=c_init.__doc__.lower())
-p_init.add_argument("repo_filter", nargs="?", default=argparse.SUPPRESS,
-                    help="Name or path of a repository to init")
+p_init.add_argument("repository", nargs="+",
+                    help="repository's name to initialize")
 p_init.set_defaults(func=c_init)
 
 # add command parser

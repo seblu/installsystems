@@ -98,17 +98,13 @@ def c_build(parser, args):
 
 def c_cat(parser, args):
     '''
-    Display image's file(s)
+    Display image's file
     '''
     # looks if arguments is a file or image name
-    if istools.isfile(args.image) and os.path.isfile(args.image):
-        pkg = PackageImage(istools.abspath(args.image))
-    elif PackageImage.check_image_name(args.image):
-        # get image package
-        repoman = load_repositories(args)
-        pkg = repoman.get(args.image, args.image_version)
-    for filename in args.files:
-        pkg.cat(filename)
+    repoman = load_repositories(args)
+    img, repo = select_image(args.image, repoman)
+    for filename in args.file:
+        img.cat(filename)
 
 def c_clean(parser, args):
     '''
@@ -340,10 +336,8 @@ p_build.set_defaults(func=c_build)
 
 # cat command parser
 p_cat = subparsers.add_parser("cat", help=c_cat.__doc__.lower())
-p_cat.add_argument("-v", "--image-version", type=int, default=None,
-                   help="image version")
-p_cat.add_argument("image", help="image (path or name)")
-p_cat.add_argument("files", nargs="+", help="files to cat")
+p_cat.add_argument("image")
+p_cat.add_argument("file", nargs="+", help="file to cat (glob allowed)")
 p_cat.set_defaults(func=c_cat)
 
 # clean command parser

@@ -17,7 +17,6 @@ import re
 import cStringIO
 import shutil
 import gzip
-import fnmatch
 import installsystems.template as istemplate
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -458,12 +457,9 @@ class PackageImage(Image):
         '''
         Display filename in the tarball
         '''
-        for filename in fnmatch.filter(self._tarball.getnames(), filename):
-            fd = self._tarball.extractfile(filename)
-            if fd is not None:
-                arrow(filename)
-                out(fd.read())
-                fd.close()
+        for filename in self._tarball.getnames(glob_pattern=filename):
+            arrow(filename)
+            out(self._tarball.get_str(filename))
 
     def run_parser(self, **kwargs):
         '''
@@ -484,7 +480,7 @@ class PackageImage(Image):
         arrow("Run %s scripts" % directory)
         arrowlevel(1)
         # get list of parser scripts
-        l_scripts = self._tarball.getnames("%s/.*\.py" % directory)
+        l_scripts = self._tarball.getnames(re_pattern="%s/.*\.py" % directory)
         # order matter!
         l_scripts.sort()
         # run scripts

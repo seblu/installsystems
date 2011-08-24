@@ -11,6 +11,7 @@ import time
 import tarfile
 import StringIO
 import re
+import fnmatch
 
 class Tarball(tarfile.TarFile):
     def add_str(self, name, content, ftype, mode):
@@ -31,15 +32,19 @@ class Tarball(tarfile.TarFile):
         Return a string from a filename in a tarball
         '''
         ti = self.getmember(name)
-        return self.extractfile(ti).read()
+        fd = self.extractfile(ti)
+        return fd.read() if fd is not None else ""
 
-    def getnames(self, reg_pattern=None):
+    def getnames(self, re_pattern=None, glob_pattern=None):
         lorig = super(Tarball, self).getnames()
-        if reg_pattern is None:
-            return lorig
-        else:
+        # regexp matching
+        if re_pattern is not None:
             return [ tpname for tpname in lorig
                      if re.match(reg_pattern, tpname) ]
+        # globbing matching
+        if glob_pattern is not None:
+            return fnmatch.filter(lorig, glob_pattern)
+        return lorig
 
     def size(self):
         '''

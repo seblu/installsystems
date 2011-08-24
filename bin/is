@@ -140,15 +140,14 @@ def c_del(parser, args):
         img, repo = select_image(image, repoman)
         if repo is None:
             raise Exception("You cannot delete an image outside a repository")
-        if args.force:
-            repo.delete(img.name, img.version)
-        else:
+        if not args.force:
             warn("The following opereation cannot be reversed!")
             out("You will delete %s v%s in repository %s" % (img.name,
                                                              img.version,
                                                              repo.config.name))
-            if raw_input("Are you sure (yes)" ) == "yes":
-                repo.delete(img.name, img.version)
+            if raw_input("Are you sure (yes)" ) != "yes":
+                raise Exception("Abort")
+        repo.delete(img.name, img.version)
 
 def c_get(parser, args):
     '''
@@ -251,7 +250,6 @@ def c_move(parser, args):
     '''
     Move an image from a repository to another one
     '''
-    # load repositories
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
     for image in args.image:
@@ -263,10 +261,10 @@ def c_move(parser, args):
                                                         dstrepo.config.name))
             if raw_input("Are you sure (yes) " ) != "yes":
                 raise Exception("Abort")
-        arrow("Moving %s v%s from %s to %s" % (srcimg.name,
-                                               srcimg.version,
-                                               srcrepo.config.name,
-                                               dstrepo.config.name))
+        arrow("Moving %s v%s from repository %s to %s" % (srcimg.name,
+                                                          srcimg.version,
+                                                          srcrepo.config.name,
+                                                          dstrepo.config.name))
         arrowlevel(1)
         dstrepo.add(srcimg)
         srcrepo.delete(srcimg.name, srcimg.version)

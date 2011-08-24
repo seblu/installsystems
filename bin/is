@@ -12,6 +12,7 @@ import time
 import fnmatch
 import datetime
 import argparse
+import re
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -51,6 +52,24 @@ def select_one_repository(repoman):
     elif len(repoman) > 1:
         raise Exception("Please select only one repository")
     return repoman[0]
+
+def select_image(name, repoman):
+    '''
+    Select and load a package image from a standard naming type
+
+    Allowed type are a direct filename on filesystem
+    or [repo/]image[:version]
+
+    Return the repository as second argument
+    '''
+    if istools.isfile(name) and os.path.isfile(name):
+        return PackageImage(name), None
+    else:
+        (repo, image, version) = re.match("((\w+)/)?(\w+)(:(\d+))?", name).group(2,3,5)
+        if repo is None:
+            return repoman.get(image, version)
+        else:
+            return repoman[repo].get(image, version), repoman[repo]
 
 def c_new(parser, args):
     '''
@@ -96,8 +115,19 @@ def c_del(parser, args):
     Remove an image package from a repository
     '''
     repoman = load_repositories(args)
-    repo = select_one_repository(repoman)
-    repo.delete(args.image_name, args.image_version)
+    for image in args.image:
+        img, repo = select_image(image, repoman)
+        if repo is None:
+            raise Exception("You cannot delete an image outside a repository")
+        if args.force:
+            repo.delete(img.name, img.version)
+        else:
+            warn("The following opereation cannot be reversed!")
+            out("You will delete %s v%s in repository %s" % (img.name,
+                                                             img.version,
+                                                             repo.config.name))
+            if raw_input("Are you sure (yes)" ) == "yes":
+                repo.delete(img.name, img.version)
 
 def c_install(parser, args):
     '''
@@ -321,8 +351,10 @@ p_add.set_defaults(func=c_add)
 
 # del command parser
 p_del =  subparsers.add_parser("del", help=c_del.__doc__.lower())
-p_del.add_argument("image_name")
-p_del.add_argument("image_version")
+p_del.add_argument("image", nargs="+",
+                   help="image to delete")
+p_del.add_argument("-f", "--force", action="store_true", default=False,
+                   help="delete image without confirmation")
 p_del.set_defaults(func=c_del)
 
 # install command parser

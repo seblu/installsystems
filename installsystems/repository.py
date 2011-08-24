@@ -574,7 +574,7 @@ class RepositoryManager(object):
         # search image in repos
         for repo in self.repos:
             if repo.has(name, version):
-                return repo.get(name, version)
+                return repo.get(name, version), repo
         raise Exception("Unable to find %s v%s" % (name, version))
 
     def show(self, verbose=False):

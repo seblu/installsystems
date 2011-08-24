@@ -201,9 +201,7 @@ def c_search(parser, args):
     Search in repository
     '''
     repoman = load_repositories(args)
-    for repo in repoman:
-        arrow(repo.config.name)
-        repo.search(args.pattern)
+    repoman.search(args.pattern)
 
 def c_get(parser, args):
     '''

@@ -568,3 +568,11 @@ class RepositoryManager(object):
             if verbose:
                 s += " (%s)" % repo.config.path
             out(s)
+
+    def search(self, pattern):
+        '''
+        Search pattern accross all registered repositories
+        '''
+        for repo in self.repos:
+            arrow(repo.config.name)
+            repo.search(pattern)

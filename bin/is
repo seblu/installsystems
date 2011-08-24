@@ -182,22 +182,6 @@ def c_list(parser, args):
     arrow("Image %s v%s" % (pkg.name, pkg.version))
     pkg.show(verbose=args.detail)
 
-def c_update(parser, args):
-    '''
-    Build and update image on repo
-    '''
-    c_build(parser, args)
-    simg = SourceImage(args.path)
-
-    repoman = load_repositories(args)
-    repo = select_one_repository(repoman)
-    image = simg.description["name"]
-    version = simg.description["version"]
-    if repo.has(image, version):
-        repo.delete(image, version)
-    pkg = PackageImage(simg.image_name)
-    repo.add(pkg, delete=not args.preserve)
-
 def c_cat(parser, args):
     '''
     Display image's file(s)
@@ -367,17 +351,6 @@ p_list.add_argument("-l", action="store_true", dest="detail",
 p_list.add_argument("values", nargs="*",
                     help="image or repositories to list")
 p_list.set_defaults(func=c_list, subparser=p_list)
-
-# update command parser
-p_update = subparsers.add_parser("update", help=c_update.__doc__.lower())
-p_update.add_argument("-f", "--force", action="store_true", default=False,
-                      help="overwrite existing image")
-p_update.add_argument("-c", "--no-check", action="store_true", default=False,
-                      help="do not check compilation before adding scripts")
-p_update.add_argument("-p", "--preserve", action="store_true", default=False,
-                      help="don't remove image after adding to database")
-p_update.add_argument("path", nargs="?", default=".")
-p_update.set_defaults(func=c_update)
 
 # cat command parser
 p_cat = subparsers.add_parser("cat", help=c_cat.__doc__.lower())

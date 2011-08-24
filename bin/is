@@ -105,7 +105,7 @@ def c_del(parser, args):
     '''
     repoman = load_repositories(args)
     repo = select_one_repository(repoman)
-    repo.delete(args.image_name, args.image_version, keep=args.keep)
+    repo.delete(args.image_name, args.image_version)
 
 def c_install(parser, args):
     '''

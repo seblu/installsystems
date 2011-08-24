@@ -94,7 +94,7 @@ def c_add(parser, args):
     Add an image package into a repository
     '''
     repoman = load_repositories(args)
-    repo = select_one_repository(repoman)
+    repo = repoman[args.repository]
     for image in args.path:
         pkg = PackageImage(image)
         repo.add(pkg, delete=not args.preserve)
@@ -322,7 +322,9 @@ p_init.set_defaults(func=c_init)
 p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())
 p_add.add_argument("-p", "--preserve", action="store_true", default=False,
                    help="don't remove image after adding to database")
-p_add.add_argument("path", nargs="+")
+p_add.add_argument("repository", help="repository where image will be added")
+p_add.add_argument("path", nargs="+",
+                   help="image path")
 p_add.set_defaults(func=c_add)
 
 # del command parser

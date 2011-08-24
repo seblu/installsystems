@@ -252,6 +252,26 @@ def c_copy(parser, args):
     dstrepo.add(srcimg)
     arrowlevel(-1)
 
+def c_move(parser, args):
+    '''
+    Move an image from a repository to another one
+    '''
+    # load repositories
+    repoman = load_repositories(args)
+    srcrepo = repoman[args.repo_src]
+    dstrepo = repoman[args.repo_dst]
+    # load source image
+    srcimg = srcrepo.get(args.image, args.image_version)
+    # Advertise
+    arrow("Copying %s v%s from %s to %s" % (srcimg.name,
+                                             srcimg.version,
+                                             srcrepo.config.name,
+                                             dstrepo.config.name))
+    arrowlevel(1)
+    dstrepo.add(srcimg)
+    srcrepo.delete(srcimg.name, srcimg.version)
+    arrowlevel(-1)
+
 def c_help(parser, args):
     '''
     Show help
@@ -387,6 +407,14 @@ p_copy.add_argument("repo_dst", help="name of destination repository")
 p_copy.add_argument("image", help="image name")
 p_copy.add_argument("image_version", nargs="?", help="image version")
 p_copy.set_defaults(func=c_copy)
+
+# move command parser
+p_move = subparsers.add_parser("move", help=c_move.__doc__.lower())
+p_move.add_argument("repo_src", help="name of source repository")
+p_move.add_argument("repo_dst", help="name of destination repository")
+p_move.add_argument("image", help="image name")
+p_move.add_argument("image_version", nargs="?", help="image version")
+p_move.set_defaults(func=c_move)
 
 # help command parser
 p_help = subparsers.add_parser("help", help=c_help.__doc__.lower())

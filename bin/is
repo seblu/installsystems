@@ -276,7 +276,7 @@ def c_help(parser, args):
     '''
     Show help
     '''
-    if args.command is None:
+    if args.command not in args.subparser.choices:
         parser.print_help()
     else:
         args.subparser.choices[args.command].print_help()
@@ -418,8 +418,7 @@ p_move.set_defaults(func=c_move)
 
 # help command parser
 p_help = subparsers.add_parser("help", help=c_help.__doc__.lower())
-p_help.add_argument("command", choices=subparsers.choices, nargs="?",
-                    help="command name")
+p_help.add_argument("command", nargs="?", help="command name")
 p_help.set_defaults(func=c_help, subparser=subparsers)
 
 # version command parser

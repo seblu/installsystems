@@ -173,27 +173,23 @@ def c_install(parser, args):
     '''
     Install an image
     '''
-    # looks if arguments is a file or image name
-    if istools.isfile(args.image) and os.path.isfile(args.image):
-        pkg = PackageImage(istools.abspath(args.image))
-    elif PackageImage.check_image_name(args.image):
-        # get image package
-        repoman = load_repositories(args)
-        pkg = repoman.get(args.image, args.image_version)
+    # select image to install
+    repoman = load_repositories(args)
+    img = select_image(args.image, repoman)[0]
     # add default show help options
     args.subparser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS,
                                 help="show program's version number and exit")
     # Print setup information
-    arrow("Installing %s v%s" % (pkg.name, pkg.version))
+    arrow("Installing %s v%s" % (img.name, img.version))
     # install start time
     t0 = time.time()
     # run parser scripts with parser parser argument
-    pkg.run_parser(parser=args.subparser)
+    img.run_parser(parser=args.subparser)
     # call parser again, with extended attributes
     arrow("Parsing arguments")
     args = parser.parse_args(namespace=args)
     # run setup scripts
-    pkg.run_setup(namespace=args)
+    img.run_setup(namespace=args)
     # compute building time
     t1 = time.time()
     dt = int(t1 - t0)
@@ -376,11 +372,7 @@ p_init.set_defaults(func=c_init)
 # install command parser
 p_install = subparsers.add_parser("install", add_help=False,
                                   help=c_install.__doc__.lower())
-p_install.add_argument("-f", "--force", action="store_true", default=False,
-                       help="overwrite existing image")
-p_install.add_argument("-v", "--image-version", type=int, default=None,
-                       help="image version")
-p_install.add_argument("image", help="image to install (path or name)")
+p_install.add_argument("image", help="image to install")
 p_install.set_defaults(func=c_install, subparser=p_install)
 
 # list command parser

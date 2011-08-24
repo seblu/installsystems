@@ -112,7 +112,7 @@ def c_install(parser, args):
     Install an image
     '''
     # looks if arguments is a file or image name
-    if istools.pathtype(args.image) == "file" and os.path.isfile(args.image):
+    if istools.isfile(args.image) and os.path.isfile(args.image):
         pkg = PackageImage(istools.abspath(args.image))
     elif PackageImage.check_image_name(args.image):
         # get image package
@@ -150,8 +150,7 @@ def c_list(parser, args):
     # list direct image or reposity content
     elif len(args.values) == 1:
         # list image file content
-        if (istools.pathtype(args.values[0]) == "file" and
-            os.path.isfile(args.values[0])):
+        if (istools.isfile(args.values[0]) and os.path.isfile(args.values[0])):
             pkg = PackageImage(args.values[0])
             arrow("Image %s v%s" % (pkg.name, pkg.version))
             pkg.show(verbose=args.detail)
@@ -187,7 +186,7 @@ def c_cat(parser, args):
     Display image's file(s)
     '''
     # looks if arguments is a file or image name
-    if istools.pathtype(args.image) == "file" and os.path.isfile(args.image):
+    if istools.isfile(args.image) and os.path.isfile(args.image):
         pkg = PackageImage(istools.abspath(args.image))
     elif PackageImage.check_image_name(args.image):
         # get image package

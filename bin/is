@@ -35,7 +35,8 @@ def load_repositories(args):
     # load repo configs
     if args.repo_path is not None:
         # from command line
-        repoman.register(RepositoryConfig(None, path=args.repo_path))
+        repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
+                                          path=args.repo_path))
     else:
         # from config
         for repoconf in RepoConfigFile(args.repo_config).repos:

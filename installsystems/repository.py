@@ -476,7 +476,7 @@ class RepositoryManager(object):
             self.cache_path = None
             debug("No repository cache")
         else:
-            if istools.pathtype(cache_path) != "file":
+            if not istools.isfile(cache_path):
                 raise NotImplementedError("Repository cache must be local")
             self.cache_path =  os.path.abspath(cache_path)
             # must_path is a list of directory which must exists

@@ -28,6 +28,14 @@ def md5sum(path=None, fileobj=None):
         m.update(buf)
     return m.hexdigest()
 
+def smd5sum(buf):
+    '''
+    Compute md5 of a string
+    '''
+    m = hashlib.md5()
+    m.update(buf)
+    return m.hexdigest()
+
 def copyfileobj(sfile, dfile):
     '''
     Copy data from sfile to dfile computing length and md5 on the fly

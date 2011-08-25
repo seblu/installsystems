@@ -312,8 +312,8 @@ p_clean.set_defaults(func=c_clean)
 
 # copy command parser
 p_copy = subparsers.add_parser("copy", help=c_copy.__doc__.lower())
-p_copy.add_argument("repository", help="name of destination repository")
 p_copy.add_argument("image", nargs="+", help="image to copy")
+p_copy.add_argument("repository", help="name of destination repository")
 p_copy.set_defaults(func=c_copy)
 
 # del command parser
@@ -357,8 +357,8 @@ p_list.set_defaults(func=c_list, subparser=p_list)
 p_move = subparsers.add_parser("move", help=c_move.__doc__.lower())
 p_move.add_argument("-f", "--force", action="store_true", default=False,
                     help="move image without confirmation")
-p_move.add_argument("repository", help="name of destination repository")
 p_move.add_argument("image", nargs="+", help="image to move")
+p_move.add_argument("repository", help="name of destination repository")
 p_move.set_defaults(func=c_move)
 
 # new command parser

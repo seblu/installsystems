@@ -37,14 +37,14 @@ def load_repositories(args):
         # from command line
         repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
                                           path=args.repo_path))
-    else:
-        # from config
-        for repoconf in RepoConfigFile(args.repo_config).repos:
-            if args.repo_filter is None:
+
+    # from config
+    for repoconf in RepoConfigFile(args.repo_config).repos:
+        if args.repo_filter is None:
+            repoman.register(repoconf)
+        else:
+            if len(fnmatch.filter([repoconf.name], args.repo_filter)) > 0:
                 repoman.register(repoconf)
-            else:
-                if len(fnmatch.filter([repoconf.name], args.repo_filter)) > 0:
-                    repoman.register(repoconf)
     return repoman
 
 def select_image(name, repoman):

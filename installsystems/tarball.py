@@ -54,3 +54,23 @@ class Tarball(tarfile.TarFile):
         for ti in self.getmembers():
             total_sz += ti.size
         return total_sz
+
+    def chown(self, tarinfo, targetpath):
+        '''
+        Overide real chown method from tarfile which make crazy check about
+        uid/gid before chowning. This leads to bug when a uid/gid doesn't
+        exitsts on the running system
+
+        This overide as a sexy side effect which allow badly create tarball
+        (whithout --numeric-owner) to be extracted correctly
+        '''
+        if hasattr(os, "geteuid") and os.geteuid() == 0:
+            # We have to be root to do so.
+            try:
+                if tarinfo.issym() and hasattr(os, "lchown"):
+                    os.lchown(targetpath, tarinfo.uid, tarinfo.gid)
+                else:
+                    if sys.platform != "os2emx":
+                        os.chown(targetpath, tarinfo.uid, tarinfo.gid)
+            except EnvironmentError, e:
+                raise ExtractError("could not change owner")

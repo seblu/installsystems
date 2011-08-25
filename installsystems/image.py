@@ -16,7 +16,7 @@ import tarfile
 import re
 import cStringIO
 import shutil
-import gzip
+import gzipstream #until python support gzip not seekable
 import installsystems.template as istemplate
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -784,7 +784,7 @@ class Payload(object):
         # try to open payload file
         try:
             f_gsrc = istools.uopen(self.path)
-            f_src = gzip.GzipFile(fileobj=f_gsrc)
+            f_src = gzipstream.GzipStream(stream=f_gsrc)
         except Exception as e:
             raise Exception("Unable to open payload file %s" % self.path)
         # launch copy

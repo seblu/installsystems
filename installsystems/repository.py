@@ -275,7 +275,9 @@ class Repository(object):
         if r is None:
             raise Exception("No such image %s version %s" % (name, version))
         path = os.path.join(self.config.path, r[0])
-        debug("Getting %s v%s from %s" % (name, version, path))
+        debug("Getting %s v%s from %s (%s)" % (name, version,
+                                               self.config.name,
+                                               self.config.path))
         pkg = PackageImage(path, md5name=True)
         pkg.md5 = r[0]
         return pkg

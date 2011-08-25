@@ -352,7 +352,7 @@ class PackageImage(Image):
         # tarball are named by md5 and not by real name
         self.md5name = md5name
         # load image in memory
-        arrow("Loading tarball in memory")
+        arrow("Loading image %s" % path)
         memfile = cStringIO.StringIO()
         fo = istools.uopen(self.path)
         (self.size, self.md5) = istools.copyfileobj(fo, memfile)
@@ -361,6 +361,13 @@ class PackageImage(Image):
         memfile.seek(0)
         self._tarball = Tarball.open(fileobj=memfile, mode='r:gz')
         self._metadata = self.read_metadata()
+        # print info
+        arrow("Image %s v%s by %s, %s" % (self.name,
+                                                self.version,
+                                                self.author,
+                                                time.ctime(self.date)
+                                                ),
+              1)
         # build payloads
         self.payload = {}
         for pname, pval in self._metadata["payload"].items():
@@ -399,22 +406,17 @@ class PackageImage(Image):
         Parse tarball and return metadata dict
         '''
         # extract metadata
-        arrow("Read tarball metadata", 1)
-        arrowlevel(1)
         img_format = self._tarball.get_str("format")
         img_desc = self._tarball.get_str("description.json")
         # check format
-        arrow("Read format file")
         if img_format != self.format:
             raise Exception("Invalid tarball image format")
         # check description
-        arrow("Read image description")
         try:
             desc = json.loads(img_desc)
         except Exception as e:
             raise Exception("Invalid description: %s" % e)
         # FIXME: we should check valid information here
-        arrowlevel(-1)
         return desc
 
     def show(self, verbose=False):

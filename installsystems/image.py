@@ -461,6 +461,30 @@ class PackageImage(Image):
             arrow(filename)
             out(self._tarball.get_str(filename))
 
+    def download(self, directory, force=False, payload=False):
+        '''
+        Download image in directory
+        '''
+        # check if destination exists
+        directory = os.path.abspath(directory)
+        dest = os.path.join(directory, self.filename)
+        if not force and os.path.exists(dest):
+            raise Exception("Image destination already exists: %s" % dest)
+        # download
+        arrow("Downloading image in %s" % directory)
+        fs = istools.uopen(self.path)
+        fd = open(self.filename, "wb")
+        slen, smd5 = istools.copyfileobj(fs, fd)
+        fs.close()
+        fd.close()
+        if self.md5 != smd5:
+            raise Exception("Download image %s failed: Invalid MD5" % self.name)
+        if payload:
+            for payname in self.payload:
+                arrow("Downloading payload %s in %s" % (payname, directory))
+                self.payload[payname].info
+                self.payload[payname].download(directory, force=force)
+
     def extract(self, directory, force=False, payload=False):
         '''
         Extract content of the image inside a repository
@@ -621,6 +645,13 @@ class Payload(object):
             return 0666 & ~umask
 
     @property
+    def filename(self):
+        '''
+        Return the filename of the original payload
+        '''
+        return "%s%s" % (self.name, self.extension)
+
+    @property
     def mtime(self):
         '''
         Return last modification time of orginal payload
@@ -632,7 +663,9 @@ class Payload(object):
         '''
         Return a dict of info about current payload
         '''
-        return {"md5": self.md5,
+        return {"name": self.name,
+                "filename": self.filename,
+                "md5": self.md5,
                 "size": self.size,
                 "isdir": self.isdir,
                 "uid": self.uid,
@@ -653,6 +686,31 @@ class Payload(object):
             raise Exception("Invalid size of payload %s" % self.name)
         if self._md5 != md5:
             raise Exception("Invalid MD5 of payload %s" % self._md5)
+
+    def download(self, dest, force=False):
+        '''
+        Download payload in directory
+        '''
+        # if dest is a directory try to create file inside
+        if os.path.isdir(dest):
+            dest = os.path.join(dest, self.filename)
+        # try to create leading directories
+        elif not os.path.exists(os.path.dirname(dest)):
+            istools.mkdir(os.path.dirname(dest))
+        # check validity of dest
+        if os.path.exists(dest):
+            if os.path.isdir(dest):
+                raise Exception("Destination %s is a directory" % dest)
+            if not force:
+                raise Exception("File %s already exists" % dest)
+        # download
+        fs = istools.uopen(self.path)
+        fd = open(dest, "wb")
+        slen, smd5 = istools.copyfileobj(fs, fd)
+        fs.close()
+        fd.close()
+        if self.md5 != smd5:
+            raise Exception("Downloading payload %s failed: Invalid MD5" % self.name)
 
     def extract(self, dest, force=False, filelist=None):
         '''

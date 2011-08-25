@@ -664,10 +664,10 @@ class Payload(object):
     def info(self):
         '''
         Return a dict of info about current payload
+        This info will be inserted in descript.json
+        Auto calculated info like name and filename must not be here
         '''
-        return {"name": self.name,
-                "filename": self.filename,
-                "md5": self.md5,
+        return {"md5": self.md5,
                 "size": self.size,
                 "isdir": self.isdir,
                 "uid": self.uid,

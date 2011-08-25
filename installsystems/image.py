@@ -461,6 +461,25 @@ class PackageImage(Image):
             arrow(filename)
             out(self._tarball.get_str(filename))
 
+    def extract(self, directory, force=False, payload=False):
+        '''
+        Extract content of the image inside a repository
+        '''
+        # check destination
+        if not os.path.isdir(directory):
+            istools.mkdir(directory)
+        if not force and len(os.listdir(directory)) != 0:
+            raise Exception("%s is not empty" % directory)
+        # extract content
+        arrow("Extracting image in %s" % directory)
+        self._tarball.extractall(directory)
+        # launch payload extract
+        if payload:
+            for payname in self.payload:
+                dest = os.path.join(directory, "payload", payname)
+                arrow("Extracting payload %s in %s" % (payname, dest))
+                self.payload[payname].extract(dest, force=force)
+
     def run_parser(self, **kwargs):
         '''
         Run parser scripts
@@ -658,7 +677,7 @@ class Payload(object):
             if not force and len(os.listdir(dest)) > 0:
                 raise Exception("Directory %s is not empty (need force)" % dest)
         else:
-            os.mkdir(dest)
+            istools.mkdir(dest)
         # try to open payload file
         try:
             fo = istools.uopen(self.path)
@@ -688,6 +707,9 @@ class Payload(object):
         # if dest is a directory try to create file inside
         if os.path.isdir(dest):
             dest = os.path.join(dest, self.name)
+        # try to create leading directories
+        elif not os.path.exists(os.path.dirname(dest)):
+            istools.mkdir(os.path.dirname(dest))
         # check validity of dest
         if os.path.exists(dest):
             if os.path.isdir(dest):

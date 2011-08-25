@@ -81,7 +81,7 @@ def mkdir(path, uid=None, gid=None, mode=None):
     '''
     Create a directory and set rights
     '''
-    os.mkdir(path)
+    os.makedirs(path)
     chrights(path, uid, gid, mode)
 
 def chrights(path, uid=None, gid=None, mode=None, mtime=None):

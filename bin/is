@@ -144,6 +144,14 @@ def c_del(parser, args):
                 raise Exception("Abort")
         repo.delete(img.name, img.version)
 
+def c_extract(parser, args):
+    '''
+    Extract an image package inside a directory
+    '''
+    repoman = load_repositories(args)
+    img, repo = select_image(args.image, repoman)
+    img.extract(args.directory, payload=args.payload, force=args.force)
+
 def c_get(parser, args):
     '''
     Get a remove image in current directory
@@ -324,6 +332,16 @@ p_del.add_argument("image", nargs="+",
 p_del.add_argument("-f", "--force", action="store_true", default=False,
                    help="delete image without confirmation")
 p_del.set_defaults(func=c_del)
+
+# extract command parser
+p_extract = subparsers.add_parser("extract", help=c_extract.__doc__.lower())
+p_extract.add_argument("-p", action="store_true", dest="payload", default=False,
+                       help="extract payload")
+p_extract.add_argument("-f", "--force", action="store_true", default=False,
+                       help="overwrite existing directories")
+p_extract.add_argument("image", help="image to extract")
+p_extract.add_argument("directory", help="directory where image will be extracted")
+p_extract.set_defaults(func=c_extract)
 
 # get command parser
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())

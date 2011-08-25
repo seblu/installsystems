@@ -518,6 +518,15 @@ class RepositoryManager(object):
         else:
             raise TypeError
 
+    def __contains__(self, key):
+        '''
+        Check if a key is a repository name
+        '''
+        for r in self.repos:
+            if r.config.name == key:
+                return True
+        return False
+
     def register(self, config):
         '''
         Register a repository from its config

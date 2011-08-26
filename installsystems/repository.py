@@ -12,6 +12,7 @@ import shutil
 import pwd
 import grp
 import tempfile
+import fnmatch
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -470,10 +471,11 @@ class RepositoryManager(object):
     This call implement a cache and a manager for multiple repositories
     '''
 
-    def __init__(self, cache_path=None, timeout=None):
+    def __init__(self, cache_path=None, timeout=None, filter=None):
         self.timeout = 3 if timeout is None else timeout
         self.repos = []
         self.tempfiles = []
+        self.filter = filter
         if cache_path is None:
             self.cache_path = None
             debug("No repository cache")
@@ -533,6 +535,10 @@ class RepositoryManager(object):
         '''
         Register a repository from its config
         '''
+        # check filter on name
+        if self.filter is not None:
+            if not fnmatch.fnmatch(config.name, self.filter):
+                return
         # if path is local, no needs to create a cache
         if istools.isfile(config.path):
             debug("Registering direct repository %s (%s)" % (config.path, config.name))

@@ -9,7 +9,6 @@ InstallSystems Command line Tool
 
 import os
 import time
-import fnmatch
 import datetime
 import argparse
 import re
@@ -30,21 +29,16 @@ def load_repositories(args):
     if args.no_cache:
         args.cache = None
     # init repo cache object
-    repoman = RepositoryManager(args.cache, timeout=args.timeout)
+    repoman = RepositoryManager(args.cache, timeout=args.timeout, filter=args.repo_filter)
     # register repositories (order matter)
-    # load repo configs
+    # load repo configs from command line
     if args.repo_path is not None:
-        # from command line
         repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
                                           path=args.repo_path))
 
-    # from config
+    # load repo configs from config
     for repoconf in RepoConfigFile(args.repo_config).repos:
-        if args.repo_filter is None:
-            repoman.register(repoconf)
-        else:
-            if len(fnmatch.filter([repoconf.name], args.repo_filter)) > 0:
-                repoman.register(repoconf)
+        repoman.register(repoconf)
     return repoman
 
 def select_image(name, repoman):

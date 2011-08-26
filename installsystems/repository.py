@@ -614,6 +614,8 @@ class RepositoryManager(object):
             s = "#light##blue#%s#reset#"% repo.config.name
             if verbose:
                 s += " (%s)" % repo.config.path
+            if repo.config.offline:
+                s +=  " #light##red#[offline]#reset#"
             out(s)
 
     def search(self, pattern):

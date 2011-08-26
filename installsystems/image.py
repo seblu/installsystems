@@ -15,6 +15,7 @@ import subprocess
 import tarfile
 import re
 import shutil
+import gzip
 import gzipstream #until python support gzip not seekable
 import installsystems.template as istemplate
 import installsystems.tools as istools

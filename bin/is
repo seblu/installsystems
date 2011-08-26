@@ -12,6 +12,7 @@ import time
 import datetime
 import argparse
 import re
+import fnmatch
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -209,8 +210,11 @@ def c_list(parser, args):
         repoman.show(verbose=args.verbose)
     else:
         for o in args.object:
-            if o in repoman:
-                repoman[o].show(verbose=args.verbose)
+            repos = fnmatch.filter(repoman.names, o)
+            if len(repos) > 0:
+                for reponame in repos:
+                    arrow(reponame)
+                    repoman[reponame].show(verbose=args.verbose)
             else:
                 img, repo = select_image(o, repoman, args.best)
                 img.show(verbose=args.verbose)

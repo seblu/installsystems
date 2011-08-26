@@ -438,6 +438,13 @@ class RepositoryManager(object):
             config.offline = True
         return Repository(config)
 
+    @property
+    def names(self):
+        '''
+        Return the list of repositories name
+        '''
+        return [ r.config.name for r in self.repos ]
+
     def get(self, name, version=None, best=False):
         '''
         Crawl repositories to get an image

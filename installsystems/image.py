@@ -14,7 +14,6 @@ import ConfigParser
 import subprocess
 import tarfile
 import re
-import cStringIO
 import shutil
 import gzipstream #until python support gzip not seekable
 import installsystems.template as istemplate
@@ -345,29 +344,25 @@ class PackageImage(Image):
     Packaged image manipulation class
     '''
 
-    def __init__(self, path, md5name=False):
+    def __init__(self, path, fileobj=None, md5name=False):
+        '''
+        Initialize a package image
+
+        fileobj must be a seekable fileobj
+        '''
         Image.__init__(self)
         self.path = istools.abspath(path)
         self.base_path = os.path.dirname(self.path)
         # tarball are named by md5 and not by real name
         self.md5name = md5name
-        # load image in memory
-        arrow("Loading image %s" % path)
-        memfile = cStringIO.StringIO()
-        fo = istools.uopen(self.path)
-        (self.size, self.md5) = istools.copyfileobj(fo, memfile)
-        fo.close()
-        # set tarball fo
-        memfile.seek(0)
-        self._tarball = Tarball.open(fileobj=memfile, mode='r:gz')
+        if fileobj is None:
+            fileobj = istools.uopen(self.path)
+        self._tarball = Tarball.open(fileobj=fileobj, mode='r:gz')
         self._metadata = self.read_metadata()
         # print info
-        arrow("Image %s v%s by %s, %s" % (self.name,
-                                                self.version,
-                                                self.author,
-                                                time.ctime(self.date)
-                                                ),
-              1)
+        arrow("Image %s v%s loaded" % (self.name, self.version))
+        arrow("Author: %s" % self.author, 1)
+        arrow("Date: %s" % time.ctime(self.date), 1)
         # build payloads
         self.payload = {}
         for pname, pval in self._metadata["payload"].items():

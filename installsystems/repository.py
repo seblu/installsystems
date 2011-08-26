@@ -13,6 +13,7 @@ import pwd
 import grp
 import tempfile
 import fnmatch
+import cStringIO
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -270,18 +271,24 @@ class Repository(object):
         if version is None:
             version = self.last(name)
             if version < 0:
-                raise Exception("Unable to find last version of %s in %s" % (name,
-                                                                             self.config.name))
+                raise Exception("Unable to find image %s in %s" % (name,
+                                                                   self.config.name))
         # get file md5 from db
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
-                        (name,version)).fetchone()
+                        (name, version)).fetchone()
         if r is None:
-            raise Exception("No such image %s version %s" % (name, version))
+            raise Exception("Unable to find image %s version %s" % (name, version))
         path = os.path.join(self.config.path, r[0])
-        debug("Getting %s v%s from %s (%s)" % (name, version,
-                                               self.config.name,
-                                               self.config.path))
-        pkg = PackageImage(path, md5name=True)
+        # getting the file
+        arrow("Loading image %s v%s from repository %s" % (name,
+                                                           version,
+                                                           self.config.name))
+        memfile = cStringIO.StringIO()
+        fo = istools.uopen(path)
+        (self.size, self.md5) = istools.copyfileobj(fo, memfile)
+        fo.close()
+        memfile.seek(0)
+        pkg = PackageImage(path, fileobj=memfile, md5name=True)
         pkg.md5 = r[0]
         return pkg
 

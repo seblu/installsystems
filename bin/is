@@ -144,7 +144,7 @@ def c_extract(parser, args):
     '''
     repoman = load_repositories(args)
     img, repo = select_image(args.image, repoman)
-    img.extract(args.directory, payload=args.payload, force=args.force)
+    img.extract(args.path, payload=args.payload, force=args.force)
 
 def c_get(parser, args):
     '''
@@ -206,14 +206,14 @@ def c_list(parser, args):
     repoman = load_repositories(args)
     if len(args.object) == 0:
         arrow("Repositories")
-        repoman.show(verbose=args.detail)
+        repoman.show(verbose=args.verbose)
     else:
         for o in args.object:
             if o in repoman:
-                repoman[o].show(verbose=args.detail)
+                repoman[o].show(verbose=args.verbose)
             else:
                 img, repo = select_image(o, repoman)
-                img.show(verbose=args.detail)
+                img.show(verbose=args.verbose)
 
 def c_move(parser, args):
     '''
@@ -281,7 +281,7 @@ p_main.add_argument("-r", "--repo-path", default=None,
 p_main.add_argument("-C", "--cache", default=None,
                     help="path of the repository cache")
 p_main.add_argument("--no-cache", action="store_true", default=False,
-                    help="Not use persistent db caching")
+                    help="not use persistent db caching")
 p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
                     help="download timeout (default 3)")
 
@@ -292,9 +292,8 @@ subparsers = p_main.add_subparsers()
 p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())
 p_add.add_argument("-p", "--preserve", action="store_true", default=False,
                    help="don't remove image after adding to database")
-p_add.add_argument("repository", help="repository where image will be added")
-p_add.add_argument("path", nargs="+",
-                   help="image path")
+p_add.add_argument("repository", help="repository where images will be added")
+p_add.add_argument("path", nargs="+", help="image path")
 p_add.set_defaults(func=c_add)
 
 # build command parser
@@ -308,8 +307,9 @@ p_build.set_defaults(func=c_build)
 
 # cat command parser
 p_cat = subparsers.add_parser("cat", help=c_cat.__doc__.lower())
-p_cat.add_argument("image")
-p_cat.add_argument("file", nargs="+", help="file to cat (glob allowed)")
+p_cat.add_argument("image", help="<path|[repository/]image[:version]>")
+p_cat.add_argument("file", nargs="+",
+                   help="file inside image to cat (globbing allowed)")
 p_cat.set_defaults(func=c_cat)
 
 # clean command parser
@@ -318,14 +318,15 @@ p_clean.set_defaults(func=c_clean)
 
 # copy command parser
 p_copy = subparsers.add_parser("copy", help=c_copy.__doc__.lower())
-p_copy.add_argument("image", nargs="+", help="image to copy")
-p_copy.add_argument("repository", help="name of destination repository")
+p_copy.add_argument("image", nargs="+",
+                    help="image syntax is <path|[repository/]image[:version]>")
+p_copy.add_argument("repository", help="destination repository")
 p_copy.set_defaults(func=c_copy)
 
 # del command parser
 p_del =  subparsers.add_parser("del", help=c_del.__doc__.lower())
 p_del.add_argument("image", nargs="+",
-                   help="image to delete")
+                   help="image syntax is <path|[repository/]image[:version]>")
 p_del.add_argument("-f", "--force", action="store_true", default=False,
                    help="delete image without confirmation")
 p_del.set_defaults(func=c_del)
@@ -333,20 +334,22 @@ p_del.set_defaults(func=c_del)
 # extract command parser
 p_extract = subparsers.add_parser("extract", help=c_extract.__doc__.lower())
 p_extract.add_argument("-p", action="store_true", dest="payload", default=False,
-                       help="extract payload")
+                       help="extract payloads")
 p_extract.add_argument("-f", "--force", action="store_true", default=False,
-                       help="overwrite existing directories")
-p_extract.add_argument("image", help="image to extract")
-p_extract.add_argument("directory", help="directory where image will be extracted")
+                       help="overwrite existing destinations")
+p_extract.add_argument("image",
+                       help="image syntax is <path|[repository/]image[:version]>")
+p_extract.add_argument("path", help="image will be extracted in path")
 p_extract.set_defaults(func=c_extract)
 
 # get command parser
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
 p_get.add_argument("-p", action="store_true", dest="payload", default=False,
-                   help="extract payload")
+                   help="get payloads")
 p_get.add_argument("-f", "--force", action="store_true", default=False,
-                   help="overwrite existing image")
-p_get.add_argument("image", nargs="+", help="image to extract")
+                   help="overwrite existing destinations")
+p_get.add_argument("image", nargs="+",
+                   help="image syntax is <path|[repository/]image[:version]>")
 p_get.set_defaults(func=c_get)
 
 # help command parser
@@ -357,39 +360,41 @@ p_help.set_defaults(func=c_help, subparser=subparsers)
 # init command parser
 p_init = subparsers.add_parser("init", help=c_init.__doc__.lower())
 p_init.add_argument("repository", nargs="+",
-                    help="repository's name to initialize")
+                    help="repository to initialize")
 p_init.set_defaults(func=c_init)
 
 # install command parser
 p_install = subparsers.add_parser("install", add_help=False,
                                   help=c_install.__doc__.lower())
-p_install.add_argument("image", help="image to install")
+p_install.add_argument("image",
+                       help="image syntax is <path|[repository/]image[:version]>")
 p_install.set_defaults(func=c_install, subparser=p_install)
 
 # list command parser
 p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
-p_list.add_argument("-l", action="store_true", dest="detail",
-                    default=False, help="detailled list output")
+p_list.add_argument("-v", action="store_true", dest="verbose", default=False,
+                    help="verbose output")
 p_list.add_argument("object", nargs="*",
-                    help="object can be an image or repositories")
+                    help="object syntax is <path|repository|[repository/]image[:version]>")
 p_list.set_defaults(func=c_list, subparser=p_list)
 
 # move command parser
 p_move = subparsers.add_parser("move", help=c_move.__doc__.lower())
 p_move.add_argument("-f", "--force", action="store_true", default=False,
                     help="move image without confirmation")
-p_move.add_argument("image", nargs="+", help="image to move")
-p_move.add_argument("repository", help="name of destination repository")
+p_move.add_argument("image", nargs="+",
+                    help="image syntax is <path|[repository/]image[:version]>")
+p_move.add_argument("repository", help="destination repository")
 p_move.set_defaults(func=c_move)
 
 # new command parser
 p_new = subparsers.add_parser("new", help=c_new.__doc__.lower())
-p_new.add_argument("path", help="path of new image directory")
+p_new.add_argument("path", help="new image directory path")
 p_new.set_defaults(func=c_new)
 
 # search command parser
 p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())
-p_search.add_argument("pattern", help="search pattern in repository")
+p_search.add_argument("pattern", help="pattern to search in repositories")
 p_search.set_defaults(func=c_search)
 
 # version command parser

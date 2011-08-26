@@ -311,162 +311,6 @@ class Repository(object):
         return r[0]
 
 
-class RepositoryConfig(object):
-    '''
-    Repository configuration container
-    '''
-
-    def __init__(self, name, **kwargs):
-        # set default value for arguments
-        self.name = name
-        self.path = ""
-        self.offline = False
-        self._dbpath = None
-        self.dbname = "db"
-        self._lastpath = None
-        self.lastname = "last"
-        self._uid = os.getuid()
-        self._gid = os.getgid()
-        umask = os.umask(0)
-        os.umask(umask)
-        self._fmod =  0666 & ~umask
-        self._dmod =  0777 & ~umask
-        self.update(**kwargs)
-
-    def __str__(self):
-        l = []
-        for a in ("name", "path", "dbpath", "lastpath", "uid", "gid", "fmod", "dmod"):
-            l.append("%s: %s" % (a, getattr(self, a)))
-        return os.linesep.join(l)
-
-    def __eq__(self, other):
-        return vars(self) == vars(other)
-
-    def __ne__(self, other):
-        return not (self == other)
-
-    def __contains__(self, key):
-        return key in self.__dict__
-
-    @property
-    def lastpath(self):
-        '''
-        Return the last file complete path
-        '''
-        if self._lastpath is None:
-            return os.path.join(self.path, self.lastname)
-        return self._lastpath
-
-    @lastpath.setter
-    def lastpath(self, value):
-        '''
-        Set last path
-        '''
-        self._lastpath = value
-
-    @property
-    def dbpath(self):
-        '''
-        Return the db complete path
-        '''
-        if self._dbpath is None:
-            return os.path.join(self.path, self.dbname)
-        return self._dbpath
-
-    @dbpath.setter
-    def dbpath(self, value):
-        '''
-        Set db path
-        '''
-        # dbpath must be local, sqlite3 requirment
-        if not istools.isfile(value):
-            raise ValueError("Database path must be local")
-        self._dbpath = os.path.abspath(value)
-
-    @property
-    def uid(self):
-        '''
-        Return owner of repository
-        '''
-        return self._uid
-
-    @uid.setter
-    def uid(self, value):
-        '''
-        Define user name owning repository
-        '''
-        if not value.isdigit():
-            self._uid = pwd.getpwnam(value).pw_uid
-        else:
-            self._uid = int(value)
-
-    @property
-    def gid(self):
-        '''
-        Return group of the repository
-        '''
-        return self._gid
-
-    @gid.setter
-    def gid(self, value):
-        '''
-        Define group owning repository
-        '''
-        if not value.isdigit():
-            self._gid = grp.getgrnam(value).gr_gid
-        else:
-            self._gid = int(value)
-
-    @property
-    def fmod(self):
-        '''
-        Return new file mode
-        '''
-        return self._fmod
-
-    @fmod.setter
-    def fmod(self, value):
-        '''
-        Define new file mode
-        '''
-        if value.isdigit():
-            self._fmod = int(value, 8)
-        else:
-            raise ValueError("File mode must be an integer")
-
-    @property
-    def dmod(self):
-        '''
-        Return new directory mode
-        '''
-        return self._dmod
-
-    @dmod.setter
-    def dmod(self, value):
-        '''
-        Define new directory mode
-        '''
-        if value.isdigit():
-            self._dmod = int(value, 8)
-        else:
-            raise ValueError("Directory mode must be an integer")
-
-    def update(self, *args, **kwargs):
-        '''
-        Update attribute with checking value
-        All attribute must already exists
-        '''
-        # autoset parameter in cmdline
-        for k in kwargs:
-            if hasattr(self, k):
-                try:
-                    setattr(self, k, kwargs[k])
-                except Exception as e:
-                    warn("Unable to set config parameter %s in repository %s: %s" % (k, self.name, e))
-            else:
-                debug("No such repository parameter: %s" % k)
-
-
 class RepositoryManager(object):
     '''
     Manage multiple repostories
@@ -625,3 +469,159 @@ class RepositoryManager(object):
         for repo in self.repos:
             arrow(repo.config.name)
             repo.search(pattern)
+
+
+class RepositoryConfig(object):
+    '''
+    Repository configuration container
+    '''
+
+    def __init__(self, name, **kwargs):
+        # set default value for arguments
+        self.name = name
+        self.path = ""
+        self.offline = False
+        self._dbpath = None
+        self.dbname = "db"
+        self._lastpath = None
+        self.lastname = "last"
+        self._uid = os.getuid()
+        self._gid = os.getgid()
+        umask = os.umask(0)
+        os.umask(umask)
+        self._fmod =  0666 & ~umask
+        self._dmod =  0777 & ~umask
+        self.update(**kwargs)
+
+    def __str__(self):
+        l = []
+        for a in ("name", "path", "dbpath", "lastpath", "uid", "gid", "fmod", "dmod"):
+            l.append("%s: %s" % (a, getattr(self, a)))
+        return os.linesep.join(l)
+
+    def __eq__(self, other):
+        return vars(self) == vars(other)
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __contains__(self, key):
+        return key in self.__dict__
+
+    @property
+    def lastpath(self):
+        '''
+        Return the last file complete path
+        '''
+        if self._lastpath is None:
+            return os.path.join(self.path, self.lastname)
+        return self._lastpath
+
+    @lastpath.setter
+    def lastpath(self, value):
+        '''
+        Set last path
+        '''
+        self._lastpath = value
+
+    @property
+    def dbpath(self):
+        '''
+        Return the db complete path
+        '''
+        if self._dbpath is None:
+            return os.path.join(self.path, self.dbname)
+        return self._dbpath
+
+    @dbpath.setter
+    def dbpath(self, value):
+        '''
+        Set db path
+        '''
+        # dbpath must be local, sqlite3 requirment
+        if not istools.isfile(value):
+            raise ValueError("Database path must be local")
+        self._dbpath = os.path.abspath(value)
+
+    @property
+    def uid(self):
+        '''
+        Return owner of repository
+        '''
+        return self._uid
+
+    @uid.setter
+    def uid(self, value):
+        '''
+        Define user name owning repository
+        '''
+        if not value.isdigit():
+            self._uid = pwd.getpwnam(value).pw_uid
+        else:
+            self._uid = int(value)
+
+    @property
+    def gid(self):
+        '''
+        Return group of the repository
+        '''
+        return self._gid
+
+    @gid.setter
+    def gid(self, value):
+        '''
+        Define group owning repository
+        '''
+        if not value.isdigit():
+            self._gid = grp.getgrnam(value).gr_gid
+        else:
+            self._gid = int(value)
+
+    @property
+    def fmod(self):
+        '''
+        Return new file mode
+        '''
+        return self._fmod
+
+    @fmod.setter
+    def fmod(self, value):
+        '''
+        Define new file mode
+        '''
+        if value.isdigit():
+            self._fmod = int(value, 8)
+        else:
+            raise ValueError("File mode must be an integer")
+
+    @property
+    def dmod(self):
+        '''
+        Return new directory mode
+        '''
+        return self._dmod
+
+    @dmod.setter
+    def dmod(self, value):
+        '''
+        Define new directory mode
+        '''
+        if value.isdigit():
+            self._dmod = int(value, 8)
+        else:
+            raise ValueError("Directory mode must be an integer")
+
+    def update(self, *args, **kwargs):
+        '''
+        Update attribute with checking value
+        All attribute must already exists
+        '''
+        # autoset parameter in cmdline
+        for k in kwargs:
+            if hasattr(self, k):
+                try:
+                    setattr(self, k, kwargs[k])
+                except Exception as e:
+                    warn("Unable to set config parameter %s in repository %s: %s" % (k, self.name, e))
+            else:
+                debug("No such repository parameter: %s" % k)

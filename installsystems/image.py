@@ -356,9 +356,12 @@ class PackageImage(Image):
         self.base_path = os.path.dirname(self.path)
         # tarball are named by md5 and not by real name
         self.md5name = md5name
-        if fileobj is None:
-            fileobj = istools.uopen(self.path)
-        self._tarball = Tarball.open(fileobj=fileobj, mode='r:gz')
+        try:
+            if fileobj is None:
+                fileobj = istools.uopen(self.path)
+                self._tarball = Tarball.open(fileobj=fileobj, mode='r:gz')
+        except Exception as e:
+            raise Exception("Unable to open image %s: %s" % (path, e))
         self._metadata = self.read_metadata()
         # print info
         arrow("Image %s v%s loaded" % (self.name, self.version))

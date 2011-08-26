@@ -13,17 +13,28 @@ import installsystems
 color = {
     # regular
     "black": "\033[30m",
+    "B": "\033[30m",
     "red": "\033[31m",
+    "r": "\033[31m",
     "green": "\033[32m",
+    "g": "\033[32m",
     "yellow": "\033[33m",
+    "y": "\033[33m",
     "blue": "\033[34m",
+    "b": "\033[34m",
     "purple": "\033[35m",
+    "p": "\033[35m",
     "cyan": "\033[36m",
+    "c": "\033[36m",
     "white": "\033[37m",
+    "w": "\033[37m",
     # others
     "under": "\033[4m",
+    "u": "\033[4m",
     "light": "\033[1m",
+    "l": "\033[1m",
     "reset": "\033[m",
+    "R": "\033[m",
     }
 
 # arrow_level is between 1 and 3

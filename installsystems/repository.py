@@ -589,13 +589,13 @@ class RepositoryManager(object):
             for repo in self.repos:
                 lv = max(lv, repo.last(name))
             if lv < 0:
-                raise Exception("Unable to find last version of %s" % name)
+                raise Exception("Unable to find image %s" % name)
             version = lv
         # search image in repos
         for repo in self.repos:
             if repo.has(name, version):
                 return repo.get(name, version), repo
-        raise Exception("Unable to find %s v%s" % (name, version))
+        raise Exception("Unable to find image %s v%s" % (name, version))
 
     def show(self, verbose=False):
         '''

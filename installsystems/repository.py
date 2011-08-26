@@ -209,7 +209,7 @@ class Repository(object):
              image_description, image_size) in images:
             out("#light##yellow#%s #reset#v%s" % (image_name, image_version))
             if verbose:
-                out("  #yellow#Date:#reset# %s" % time.asctime(time.gmtime(image_date)))
+                out("  #yellow#Date:#reset# %s" % time.ctime(image_date))
                 out("  #yellow#Description:#reset# %s" % image_description)
                 out("  #yellow#Author:#reset# %s" % image_author)
                 out("  #yellow#MD5:#reset# %s" % image_md5)

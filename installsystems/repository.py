@@ -439,12 +439,14 @@ class RepositoryManager(object):
         if version is None:
             lv = -1
             for repo in self.repos:
+                if repo.config.offline: continue
                 lv = max(lv, repo.last(name))
             if lv < 0:
                 raise Exception("Unable to find image %s" % name)
             version = lv
         # search image in repos
         for repo in self.repos:
+            if repo.config.offline:  continue
             if repo.has(name, version):
                 return repo.get(name, version), repo
         raise Exception("Unable to find image %s v%s" % (name, version))
@@ -467,6 +469,7 @@ class RepositoryManager(object):
         Search pattern accross all registered repositories
         '''
         for repo in self.repos:
+            if repo.config.offline:  continue
             arrow(repo.config.name)
             repo.search(pattern)
 

@@ -277,19 +277,23 @@ class Repository(object):
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name, version)).fetchone()
         if r is None:
-            raise Exception("Unable to find image %s version %s" % (name, version))
+            raise Exception("Unable to find image %s v%s" % (name, version))
         path = os.path.join(self.config.path, r[0])
         # getting the file
         arrow("Loading image %s v%s from repository %s" % (name,
                                                            version,
                                                            self.config.name))
         memfile = cStringIO.StringIO()
-        fo = istools.uopen(path)
-        (self.size, self.md5) = istools.copyfileobj(fo, memfile)
-        fo.close()
+        try:
+            fo = istools.uopen(path)
+            istools.copyfileobj(fo, memfile)
+            fo.close()
+        except Exception as e:
+            raise Exception("Loading image %s v%s failed: %s" % (name, version, e))
         memfile.seek(0)
         pkg = PackageImage(path, fileobj=memfile, md5name=True)
-        pkg.md5 = r[0]
+        if pkg.md5 != r[0]:
+            raise Exception("Image MD5 verification failure")
         return pkg
 
     def getmd5(self, name, version):

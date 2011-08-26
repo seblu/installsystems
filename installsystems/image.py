@@ -17,6 +17,7 @@ import re
 import shutil
 import gzip
 import gzipstream #until python support gzip not seekable
+import cStringIO
 import installsystems.template as istemplate
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -359,7 +360,12 @@ class PackageImage(Image):
         try:
             if fileobj is None:
                 fileobj = istools.uopen(self.path)
-                self._tarball = Tarball.open(fileobj=fileobj, mode='r:gz')
+            memfile = cStringIO.StringIO()
+            fileobj.seek(0)
+            (self.size, self.md5) = istools.copyfileobj(fileobj, memfile)
+            fileobj.close()
+            memfile.seek(0)
+            self._tarball = Tarball.open(fileobj=memfile, mode='r:gz')
         except Exception as e:
             raise Exception("Unable to open image %s: %s" % (path, e))
         self._metadata = self.read_metadata()

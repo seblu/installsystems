@@ -425,7 +425,7 @@ class PackageImage(Image):
         '''
         out('#light##yellow#Name:#reset# %s' % self.name)
         out('#light##yellow#Version:#reset# %s' % self.version)
-        out('#yellow#Date:#reset# %s' % time.asctime(time.gmtime(self.date)))
+        out('#yellow#Date:#reset# %s' % time.ctime(self.date))
         out('#yellow#Description:#reset# %s' % self.description)
         out('#yellow#Author:#reset# %s' % self.author)
         out('#yellow#MD5:#reset# %s' % self.md5)

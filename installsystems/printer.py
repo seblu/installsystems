@@ -108,3 +108,20 @@ def arrow(message, inclevel=None, level=None, fd=sys.stdout, endl=os.linesep):
         out("   #light##green#=>#reset# %s" % message)
     # restore old on one shot level
     arrowlevel(level = old_level)
+
+def ask(message, fd=sys.stdout, endl=""):
+    '''
+    Ask a question on stdin
+    '''
+    out(message, fd=fd, endl=endl, flush=True)
+    return raw_input()
+
+def confirm(message=None, ans=None, fd=sys.stdout, endl=""):
+    '''
+    Ask a question on stdin
+    '''
+    if ans is None:
+        ans = "yes"
+    if message is None:
+        message = "#u##l##w#Are you sure?#R# (%s) " % ans
+    return ask(message, fd, endl) == ans

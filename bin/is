@@ -135,8 +135,8 @@ def c_del(parser, args):
             out("You will delete %s v%s in repository %s" % (img.name,
                                                              img.version,
                                                              repo.config.name))
-            if raw_input("Are you sure (yes)" ) != "yes":
-                raise Exception("Abort")
+            if not confirm():
+                raise Exception("Aborted!")
         repo.delete(img.name, img.version)
 
 def c_extract(parser, args):
@@ -232,8 +232,8 @@ def c_move(parser, args):
                                                         srcimg.version,
                                                         srcrepo.config.name,
                                                         dstrepo.config.name))
-            if raw_input("Are you sure (yes) " ) != "yes":
-                raise Exception("Abort")
+            if not confirm():
+                raise Exception("Aborted!")
         arrow("Moving %s v%s from repository %s to %s" % (srcimg.name,
                                                           srcimg.version,
                                                           srcrepo.config.name,

@@ -424,7 +424,6 @@ class RepositoryManager(object):
         # get remote last value
         try:
             rlast = int(istools.uopen(config.lastpath).read().strip())
-
             # get local last value
             llast = int(os.stat(filedest).st_mtime)
             # if repo is out of date, download it
@@ -445,9 +444,23 @@ class RepositoryManager(object):
     @property
     def names(self):
         '''
-        Return the list of repositories name
+        Return list of repository names
         '''
         return [ r.config.name for r in self.repos ]
+
+    @property
+    def onlines(self):
+        '''
+        Return list of online repository names
+        '''
+        return [ r.config.name for r in self.repos if not r.config.offline ]
+
+    @property
+    def offlines(self):
+        '''
+        Return list of offlines repository names
+        '''
+        return [ r.config.name for r in self.repos if r.config.offline ]
 
     def get(self, name, version=None, best=False):
         '''

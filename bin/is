@@ -210,7 +210,7 @@ def c_list(parser, args):
         repoman.show(verbose=args.verbose)
     else:
         for o in args.object:
-            repos = fnmatch.filter(repoman.names, o)
+            repos = fnmatch.filter(repoman.onlines, o)
             if len(repos) > 0:
                 for reponame in repos:
                     arrow(reponame)

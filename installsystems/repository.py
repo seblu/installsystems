@@ -82,7 +82,7 @@ class Repository(object):
         Update last file to current time
         '''
         # check local repository
-        if istools.pathtype(self.config.path) != "file":
+        if not istools.isfile(self.config.path):
             raise Exception("Repository addition must be local")
         try:
             arrow("Updating last file")
@@ -109,7 +109,7 @@ class Repository(object):
         if delete is true, remove original files
         '''
         # check local repository
-        if istools.pathtype(self.config.path) != "file":
+        if not istools.isfile(self.config.path):
             raise Exception("Repository addition must be local")
         # cannot add already existant image
         if self.has(image.name, image.version):
@@ -174,7 +174,7 @@ class Repository(object):
         Delete an image from repository
         '''
         # check local repository
-        if istools.pathtype(self.config.path) != "file":
+        if not istools.isfile(self.config.path):
             raise Exception("Repository deletion must be local")
         # get md5 of files related to images (exception is raised if not exists
         md5s = self.getmd5(name, version)
@@ -375,7 +375,7 @@ class RepositoryConfig(object):
         Set db path
         '''
         # dbpath must be local, sqlite3 requirment
-        if istools.pathtype(value) != "file":
+        if not istools.isfile(value):
             raise ValueError("Database path must be local")
         self._dbpath = os.path.abspath(value)
 

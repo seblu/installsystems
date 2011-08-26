@@ -25,7 +25,7 @@ class Database(object):
     def create(cls, path):
         arrow("Creating repository database")
         # check locality
-        if istools.pathtype(path) != "file":
+        if not istools.isfile(path):
             raise Exception("Database creation must be local")
         path = os.path.abspath(path)
         if os.path.exists(path):
@@ -42,7 +42,7 @@ class Database(object):
 
     def __init__(self, path):
         # check locality
-        if istools.pathtype(path) != "file":
+        if not istools.isfile(path):
             raise Exception("Database must be local")
         self.path = os.path.abspath(path)
         self.conn = sqlite3.connect(self.path, isolation_level=None)

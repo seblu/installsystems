@@ -56,7 +56,7 @@ class SourceImage(Image):
         Create an empty source image
         '''
         # check local repository
-        if istools.pathtype(path) != "file":
+        if not istools.isfile(path):
             raise NotImplementedError("SourceImage must be local")
         # main path
         parser_path = os.path.join(path, "parser")
@@ -100,7 +100,7 @@ class SourceImage(Image):
 
     def __init__(self, path):
         # check local repository
-        if istools.pathtype(path) != "file":
+        if not istools.isfile(path):
             raise NotImplementedError("SourceImage must be local")
         Image.__init__(self)
         self.base_path = path

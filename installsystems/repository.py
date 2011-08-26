@@ -27,10 +27,13 @@ class Repository(object):
 
     def __init__(self, config):
         self.config = config
-        try:
-            self.db = Database(config.dbpath)
-        except:
-            self.db = None
+        if not config.offline:
+            try:
+                self.db = Database(config.dbpath)
+            except:
+                self.config.offline = True
+        if config.offline:
+            debug("Repository %s is offline" % config.name)
 
     def __getattribute__(self, name):
         '''
@@ -38,14 +41,13 @@ class Repository(object):
         Unavailable can be caused because db is not accessible or
         because repository is not initialized
         '''
-        db = object.__getattribute__(self, "db")
         config = object.__getattribute__(self, "config")
         # config and init are always accessible
         if name in ("init", "config"):
             return object.__getattribute__(self, name)
         # if no db (not init or not accessible) raise error
-        if db is None:
-            raise Exception("Repository %s is not availabe" % config.name)
+        if config.offline:
+            raise Exception("Repository %s is offline" % config.name)
         return object.__getattribute__(self, name)
 
     def init(self):
@@ -318,6 +320,7 @@ class RepositoryConfig(object):
         # set default value for arguments
         self.name = name
         self.path = ""
+        self.offline = False
         self._dbpath = None
         self.dbname = "db"
         self._lastpath = None
@@ -564,19 +567,24 @@ class RepositoryManager(object):
             if not os.path.exists(filedest):
                 open(filedest, "wb")
         # get remote last value
-        rlast = int(istools.uopen(config.lastpath).read().strip())
-        # get local last value
-        llast = int(os.stat(filedest).st_mtime)
-        # if repo is out of date, download it
-        if rlast != llast:
-            arrow("Getting %s" % config.dbpath)
-            istools.copy(config.dbpath, filedest,
-                         uid=config.uid,
-                         gid=config.gid,
-                         mode=config.fmod,
-                         timeout=self.timeout)
-            os.utime(filedest, (rlast, rlast))
-        config.dbpath = filedest
+        try:
+            rlast = int(istools.uopen(config.lastpath).read().strip())
+
+            # get local last value
+            llast = int(os.stat(filedest).st_mtime)
+            # if repo is out of date, download it
+            if rlast != llast:
+                arrow("Getting %s" % config.dbpath)
+                istools.copy(config.dbpath, filedest,
+                             uid=config.uid,
+                             gid=config.gid,
+                             mode=config.fmod,
+                             timeout=self.timeout)
+                os.utime(filedest, (rlast, rlast))
+            config.dbpath = filedest
+        except:
+            # if something append bad during caching, we mark repo as offline
+            config.offline = True
         return Repository(config)
 
     def get(self, name, version=None):

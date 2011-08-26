@@ -41,7 +41,7 @@ def load_repositories(args):
         repoman.register(repoconf)
     return repoman
 
-def select_image(name, repoman):
+def select_image(name, repoman, best=False):
     '''
     Select and load a package image from a standard naming type
 
@@ -59,7 +59,7 @@ def select_image(name, repoman):
         (repo, image, version) = x.group(2,3,5)
         debug("Selected image is %s v%s in %s" % (image, version, repo))
         if repo is None:
-            return repoman.get(image, version)
+            return repoman.get(image, version, best)
         else:
             return repoman[repo].get(image, version), repoman[repo]
 
@@ -94,7 +94,7 @@ def c_cat(parser, args):
     '''
     # looks if arguments is a file or image name
     repoman = load_repositories(args)
-    img, repo = select_image(args.image, repoman)
+    img, repo = select_image(args.image, repoman, args.best)
     for filename in args.file:
         img.cat(filename)
 
@@ -111,7 +111,7 @@ def c_copy(parser, args):
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
     for image in args.image:
-        srcimg, srcrepo = select_image(image, repoman)
+        srcimg, srcrepo = select_image(image, repoman, args.best)
         arrow("Copying %s v%s from repository %s to %s" % (srcimg.name,
                                                            srcimg.version,
                                                            srcrepo.config.name,
@@ -126,7 +126,7 @@ def c_del(parser, args):
     '''
     repoman = load_repositories(args)
     for image in args.image:
-        img, repo = select_image(image, repoman)
+        img, repo = select_image(image, repoman, args.best)
         if repo is None:
             raise Exception("You cannot delete an image outside a repository")
         if not args.force:
@@ -143,7 +143,7 @@ def c_extract(parser, args):
     Extract an image package inside a directory
     '''
     repoman = load_repositories(args)
-    img, repo = select_image(args.image, repoman)
+    img, repo = select_image(args.image, repoman, args.best)
     img.extract(args.path, payload=args.payload, force=args.force)
 
 def c_get(parser, args):
@@ -152,7 +152,7 @@ def c_get(parser, args):
     '''
     repoman = load_repositories(args)
     for image in args.image:
-        img, repo = select_image(image, repoman)
+        img, repo = select_image(image, repoman, args.best)
         img.download(".", payload=args.payload, force=args.force)
 
 def c_help(parser, args):
@@ -178,7 +178,7 @@ def c_install(parser, args):
     '''
     # select image to install
     repoman = load_repositories(args)
-    img = select_image(args.image, repoman)[0]
+    img = select_image(args.image, repoman, args.best)[0]
     # add default show help options
     args.subparser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS,
                                 help="show program's version number and exit")
@@ -212,7 +212,7 @@ def c_list(parser, args):
             if o in repoman:
                 repoman[o].show(verbose=args.verbose)
             else:
-                img, repo = select_image(o, repoman)
+                img, repo = select_image(o, repoman, args.best)
                 img.show(verbose=args.verbose)
 
 def c_move(parser, args):
@@ -222,7 +222,7 @@ def c_move(parser, args):
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
     for image in args.image:
-        srcimg, srcrepo = select_image(image, repoman)
+        srcimg, srcrepo = select_image(image, repoman, args.best)
         if not args.force:
             out("You will move %s v%s from %s to %s" % (srcimg.name,
                                                         srcimg.version,
@@ -307,6 +307,8 @@ p_build.set_defaults(func=c_build)
 
 # cat command parser
 p_cat = subparsers.add_parser("cat", help=c_cat.__doc__.lower())
+p_cat.add_argument("-b", "--best", action="store_true", default=False,
+                   help="in best mode, image is the most recent in all repositories")
 p_cat.add_argument("image", help="<path|[repository/]image[:version]>")
 p_cat.add_argument("file", nargs="+",
                    help="file inside image to cat (globbing allowed)")
@@ -318,6 +320,8 @@ p_clean.set_defaults(func=c_clean)
 
 # copy command parser
 p_copy = subparsers.add_parser("copy", help=c_copy.__doc__.lower())
+p_copy.add_argument("-b", "--best", action="store_true", default=False,
+                   help="in best mode, image is the most recent in all repositories")
 p_copy.add_argument("image", nargs="+",
                     help="image syntax is <path|[repository/]image[:version]>")
 p_copy.add_argument("repository", help="destination repository")
@@ -327,6 +331,8 @@ p_copy.set_defaults(func=c_copy)
 p_del =  subparsers.add_parser("del", help=c_del.__doc__.lower())
 p_del.add_argument("image", nargs="+",
                    help="image syntax is <path|[repository/]image[:version]>")
+p_del.add_argument("-b", "--best", action="store_true", default=False,
+                   help="in best mode, image is the most recent in all repositories")
 p_del.add_argument("-f", "--force", action="store_true", default=False,
                    help="delete image without confirmation")
 p_del.set_defaults(func=c_del)
@@ -337,6 +343,8 @@ p_extract.add_argument("-p", action="store_true", dest="payload", default=False,
                        help="extract payloads")
 p_extract.add_argument("-f", "--force", action="store_true", default=False,
                        help="overwrite existing destinations")
+p_extract.add_argument("-b", "--best", action="store_true", default=False,
+                       help="in best mode, image is the most recent in all repositories")
 p_extract.add_argument("image",
                        help="image syntax is <path|[repository/]image[:version]>")
 p_extract.add_argument("path", help="image will be extracted in path")
@@ -348,6 +356,8 @@ p_get.add_argument("-p", action="store_true", dest="payload", default=False,
                    help="get payloads")
 p_get.add_argument("-f", "--force", action="store_true", default=False,
                    help="overwrite existing destinations")
+p_get.add_argument("-b", "--best", action="store_true", default=False,
+                   help="in best mode, image is the most recent in all repositories")
 p_get.add_argument("image", nargs="+",
                    help="image syntax is <path|[repository/]image[:version]>")
 p_get.set_defaults(func=c_get)
@@ -366,6 +376,8 @@ p_init.set_defaults(func=c_init)
 # install command parser
 p_install = subparsers.add_parser("install", add_help=False,
                                   help=c_install.__doc__.lower())
+p_install.add_argument("-b", "--best", action="store_true", default=False,
+                       help="in best mode, image is the most recent in all repositories")
 p_install.add_argument("image",
                        help="image syntax is <path|[repository/]image[:version]>")
 p_install.set_defaults(func=c_install, subparser=p_install)
@@ -374,6 +386,8 @@ p_install.set_defaults(func=c_install, subparser=p_install)
 p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
 p_list.add_argument("-v", action="store_true", dest="verbose", default=False,
                     help="verbose output")
+p_list.add_argument("-b", "--best", action="store_true", default=False,
+                    help="in best mode, image is the most recent in all repositories")
 p_list.add_argument("object", nargs="*",
                     help="object syntax is <path|repository|[repository/]image[:version]>")
 p_list.set_defaults(func=c_list, subparser=p_list)
@@ -382,6 +396,8 @@ p_list.set_defaults(func=c_list, subparser=p_list)
 p_move = subparsers.add_parser("move", help=c_move.__doc__.lower())
 p_move.add_argument("-f", "--force", action="store_true", default=False,
                     help="move image without confirmation")
+p_move.add_argument("-b", "--best", action="store_true", default=False,
+                    help="in best mode, image is the most recent in all repositories")
 p_move.add_argument("image", nargs="+",
                     help="image syntax is <path|[repository/]image[:version]>")
 p_move.add_argument("repository", help="destination repository")

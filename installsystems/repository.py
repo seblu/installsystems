@@ -438,19 +438,27 @@ class RepositoryManager(object):
             config.offline = True
         return Repository(config)
 
-    def get(self, name, version=None):
+    def get(self, name, version=None, best=False):
         '''
-        Crawl all repo to get the most recent image
+        Crawl repositories to get an image
+
+        best mode search the most recent version accross all repo
+        else it search the first match
         '''
         # search last version if needed
         if version is None:
-            lv = -1
+            version = -1
             for repo in self.repos:
                 if repo.config.offline: continue
-                lv = max(lv, repo.last(name))
-            if lv < 0:
+                current = repo.last(name)
+                # if not best mode, we found our version
+                if not best and current > 0:
+                    version = current
+                    break
+                version = max(version, current)
+            # if version < 0, il n'y a pas d'image
+            if version < 0:
                 raise Exception("Unable to find image %s" % name)
-            version = lv
         # search image in repos
         for repo in self.repos:
             if repo.config.offline:  continue

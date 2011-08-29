@@ -175,6 +175,36 @@ class Repository(object):
                 arrow(os.path.basename(obj.path), 1)
                 os.unlink(obj.path)
 
+    def getallmd5(self):
+        '''
+        Get list of all md5 in DB
+        '''
+        res = self.db.ask("SELECT md5 FROM image UNION SELECT md5 FROM payload").fetchall()
+        return [ md5[0] for md5 in res ]
+
+    def clean(self):
+        '''
+        Clean the repository's content
+        '''
+        # Check if the repo is local
+        if not istools.isfile(self.config.path):
+            raise Exception("Repository must be local")
+        allmd5 = set(self.getallmd5())
+        repofiles = set(os.listdir(self.config.path)) - set([self.config.dbname, self.config.lastname])
+        dirtyfiles = repofiles - allmd5
+        if len(dirtyfiles) > 0:
+            if not confirm("Remove dirty files? (yes) "):
+                raise Exception("Aborted!")
+            for f in dirtyfiles:
+                p = os.path.join(self.config.path, f)
+                try:
+                    if os.path.isdir(p):
+                        os.rmdir(p)
+                    else:
+                        os.unlink(p)
+                except:
+                    raise Exception("Removing %s failed" % p)
+
     def delete(self, name, version):
         '''
         Delete an image from repository

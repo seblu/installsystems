@@ -103,7 +103,9 @@ def c_clean(parser, args):
     '''
     Clean a repository
     '''
-    raise NotImplementedError("Not yet implemented")
+    repoman = load_repositories(args)
+    for reponame in args.repository:
+        repoman[reponame].clean()
 
 def c_copy(parser, args):
     '''
@@ -320,6 +322,7 @@ p_cat.set_defaults(func=c_cat)
 
 # clean command parser
 p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())
+p_clean.add_argument("repository", nargs="+", help="repositories to clean")
 p_clean.set_defaults(func=c_clean)
 
 # copy command parser

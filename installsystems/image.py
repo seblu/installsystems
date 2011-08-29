@@ -35,16 +35,19 @@ class Image(object):
     @staticmethod
     def check_image_name(buf):
         '''
-        Check if @name is a valid image name
+        Check if @buf is a valid image name
         '''
-        return re.match("[-_\w]+", buf) is not None
+        if re.match("^[-_\w]+$", buf) is None:
+            raise Exception("Invalid image name %s" % buf)
 
     @staticmethod
     def check_image_version(buf):
         '''
-        Check if @name is a valid image version
+        Check if @buf is a valid image version
         '''
-        return re.match("\d+", buf) is not None
+        if re.match("^\d+$", buf) is None:
+            raise Exception("Invalid image version %s" % buf)
+
 
 class SourceImage(Image):
     '''
@@ -336,6 +339,8 @@ class SourceImage(Image):
             cp.read(descpath)
             for n in ("name","version", "description", "author"):
                 d[n] = cp.get("image", n)
+            self.check_image_name(d["name"])
+            self.check_image_version(d["version"])
         except Exception as e:
             raise Exception("Bad description: %s" % e)
         return d
@@ -419,9 +424,10 @@ class PackageImage(Image):
         # check description
         try:
             desc = json.loads(img_desc)
+            self.check_image_name(desc["name"])
+            self.check_image_version(desc["version"])
         except Exception as e:
             raise Exception("Invalid description: %s" % e)
-        # FIXME: we should check valid information here
         return desc
 
     def show(self, verbose=False):

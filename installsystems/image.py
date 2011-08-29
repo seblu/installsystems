@@ -37,7 +37,7 @@ class Image(object):
         '''
         Check if @name is a valid image name
         '''
-        return re.match("\w+", buf) is not None
+        return re.match("[-_\w]+", buf) is not None
 
     @staticmethod
     def check_image_version(buf):

@@ -54,7 +54,7 @@ def select_image(name, repoman, best=False):
     if istools.isfile(name) and os.path.isfile(name):
         return PackageImage(name), None
     else:
-        x = re.match("^((\w+)/)?(\w+)(:v?(\d+))?$", name)
+        x = re.match("^(([-_\w]+)/)?([-_\w]+)(:v?(\d+))?$", name)
         if x is None:
             raise Exception("%s is not a valid image" % name)
         (repo, image, version) = x.group(2,3,5)

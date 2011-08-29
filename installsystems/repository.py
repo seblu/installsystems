@@ -78,6 +78,8 @@ class Repository(object):
                          gid=config.gid, mode=config.fmod)
         # load database
         self.db = Database(config.dbpath)
+        # mark repo as not offline
+        self.config.offline = False
         # create/update last file
         self.update_last()
 

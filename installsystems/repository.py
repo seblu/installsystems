@@ -193,10 +193,18 @@ class Repository(object):
         repofiles = set(os.listdir(self.config.path)) - set([self.config.dbname, self.config.lastname])
         dirtyfiles = repofiles - allmd5
         if len(dirtyfiles) > 0:
+            # print dirty files
+            arrow("Dirty files:")
+            for f in dirtyfiles:
+                arrow(f, 1)
+            # ask confirmation
             if not confirm("Remove dirty files? (yes) "):
                 raise Exception("Aborted!")
+            # start cleaning
+            arrow("Cleaning")
             for f in dirtyfiles:
                 p = os.path.join(self.config.path, f)
+                arrow("Removing %s" % p, 1)
                 try:
                     if os.path.isdir(p):
                         os.rmdir(p)
@@ -204,6 +212,8 @@ class Repository(object):
                         os.unlink(p)
                 except:
                     raise Exception("Removing %s failed" % p)
+        else:
+            arrow("Nothing to clean")
 
     def delete(self, name, version):
         '''

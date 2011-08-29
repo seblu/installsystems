@@ -104,7 +104,7 @@ class Repository(object):
         '''
         try:
             last_path = os.path.join(config.path, config.lastname)
-            return int(istools.uopen(last_path, "r").read().rstrip())
+            return int(open(last_path, "r").read().rstrip())
         except Exception as e:
             raise Exception("Read last file failed: %s" % e)
         return 0
@@ -425,7 +425,8 @@ class RepositoryManager(object):
                 open(filedest, "wb")
         # get remote last value
         try:
-            rlast = int(istools.uopen(config.lastpath).read().strip())
+            rlast = int(istools.uopen(config.lastpath,
+                                      timeout=self.timeout).read().strip())
             # get local last value
             llast = int(os.stat(filedest).st_mtime)
             # if repo is out of date, download it

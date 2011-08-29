@@ -130,7 +130,7 @@ def abspath(path):
     else:
         return None
 
-def uopen(path, mode="rb"):
+def uopen(path, mode="rb", timeout=3):
     '''
     Universal Open
     Create a file-like object to a file which can be remote
@@ -139,7 +139,7 @@ def uopen(path, mode="rb"):
     if ftype == "file":
         return open(path, mode)
     elif ftype == "http" or ftype == "ftp":
-        return urllib2.urlopen(path)
+        return urllib2.urlopen(path, timeout=timeout)
     else:
         raise NotImplementedError
 

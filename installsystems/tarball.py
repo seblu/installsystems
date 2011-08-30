@@ -58,12 +58,14 @@ class Tarball(tarfile.TarFile):
 
     def chown(self, tarinfo, targetpath):
         '''
-        Overide real chown method from tarfile which make crazy check about
+        Override real chown method from tarfile which make crazy check about
         uid/gid before chowning. This leads to bug when a uid/gid doesn't
         exitsts on the running system
 
         This overide as a sexy side effect which allow badly create tarball
         (whithout --numeric-owner) to be extracted correctly
+
+        This was reported upstream: http://bugs.python.org/issue12841
         '''
         if hasattr(os, "geteuid") and os.geteuid() == 0:
             # We have to be root to do so.

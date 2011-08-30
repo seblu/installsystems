@@ -211,7 +211,7 @@ class Repository(object):
                     else:
                         os.unlink(p)
                 except:
-                    raise Exception("Removing %s failed" % p)
+                    warn("Removing %s failed" % p)
         else:
             arrow("Nothing to clean")
 

@@ -47,7 +47,10 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
     '''
     # color subsitution
     for c in color:
-        message = message.replace("#%s#" % c, color[c])
+        if fd.isatty():
+            message = message.replace("#%s#" % c, color[c])
+        else:
+            message = message.replace("#%s#" % c, "")
     # printing
     fd.write("%s%s" % (message, endl))
     if flush:

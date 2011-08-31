@@ -182,6 +182,27 @@ class Repository(object):
         res = self.db.ask("SELECT md5 FROM image UNION SELECT md5 FROM payload").fetchall()
         return [ md5[0] for md5 in res ]
 
+    def check(self):
+        '''
+        Check repository for unreferenced and missing files
+        '''
+        # Check if the repo is local
+        if not istools.isfile(self.config.path):
+            raise Exception("Repository must be local")
+        local_files = set(os.listdir(self.config.path))
+        db_files = set(self.getallmd5())
+        db_files.add(self.config.dbname)
+        db_files.add( self.config.lastname)
+        # compute missing and unref files list
+        missing_files = db_files - local_files
+        unref_files = local_files - db_files
+        if len(missing_files) > 0:
+            arrow("Missing files:")
+            out(os.linesep.join(missing_files))
+        if len(unref_files) > 0:
+            arrow("Unreferenced files:")
+            out(os.linesep.join(unref_files))
+
     def clean(self):
         '''
         Clean the repository's content

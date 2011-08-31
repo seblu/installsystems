@@ -99,6 +99,14 @@ def c_cat(parser, args):
     for filename in args.file:
         img.cat(filename)
 
+def c_check(parser, args):
+    '''
+    Check for unreferenced and missing files inside a repository
+    '''
+    repoman = load_repositories(args)
+    for reponame in args.repository:
+        repoman[reponame].check()
+
 def c_clean(parser, args):
     '''
     Clean a repository
@@ -319,6 +327,11 @@ p_cat.add_argument("image", help="<path|[repository/]image[:version]>")
 p_cat.add_argument("file", nargs="+",
                    help="file inside image to cat (globbing allowed)")
 p_cat.set_defaults(func=c_cat)
+
+# check command parser
+p_check = subparsers.add_parser("check", help=c_check.__doc__.lower())
+p_check.add_argument("repository", nargs="+", help="repositories to check")
+p_check.set_defaults(func=c_check)
 
 # clean command parser
 p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())

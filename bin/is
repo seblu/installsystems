@@ -109,7 +109,7 @@ def c_check(parser, args):
 
 def c_clean(parser, args):
     '''
-    Clean a repository
+    Remove unreferenced files from repoistory
     '''
     repoman = load_repositories(args)
     for reponame in args.repository:

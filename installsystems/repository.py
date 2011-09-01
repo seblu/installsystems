@@ -26,6 +26,42 @@ class Repository(object):
     Repository class
     '''
 
+    @classmethod
+    def diff(cls, repo1, repo2):
+        '''
+        Comptue a diff between two repositories
+        '''
+        arrow("Diff between repositories #y#%s#R# and #g#%s#R#" % (repo1.config.name,
+                                                       repo2.config.name))
+        # Get info from databases
+        i_dict1 = dict((b[0], b[1:]) for b in repo1.db.ask(
+                "SELECT md5, name, version FROM image").fetchall())
+        i_set1 = set(i_dict1.keys())
+        i_dict2 = dict((b[0], b[1:]) for b in repo2.db.ask(
+                "SELECT md5, name, version FROM image").fetchall())
+        i_set2 = set(i_dict2.keys())
+        p_dict1 = dict((b[0], b[1:]) for b in  repo1.db.ask(
+                "SELECT md5, name FROM payload").fetchall())
+        p_set1 = set(p_dict1.keys())
+        p_dict2 = dict((b[0], b[1:]) for b in repo2.db.ask(
+                "SELECT md5, name FROM payload").fetchall())
+        p_set2 = set(p_dict2.keys())
+        # computing diff
+        i_only1 = i_set1 - i_set2
+        i_only2 = i_set2 - i_set1
+        p_only1 = p_set1 - p_set2
+        p_only2 = p_set2 - p_set1
+        # printing functions
+        pimg = lambda r,c,m,d,: out("#%s#Image only in repository %s: %s v%s (%s)#R#" %
+                                    (c, r.config.name, d[m][0], d[m][1], m))
+        ppay = lambda r,c,m,d,: out("#%s#Payload only in repository %s: %s (%s)#R#" %
+                                    (c, r.config.name, d[m][0], m))
+        # printing image diff
+        for md5 in i_only1: pimg(repo1, "y", md5, i_dict1)
+        for md5 in p_only1: ppay(repo1, "y", md5, p_dict1)
+        for md5 in i_only2: pimg(repo2, "g", md5, i_dict2)
+        for md5 in p_only2: ppay(repo2, "g", md5, p_dict2)
+
     def __init__(self, config):
         self.config = config
         if not config.offline:

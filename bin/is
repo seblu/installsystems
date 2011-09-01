@@ -149,6 +149,18 @@ def c_del(parser, args):
                 raise Exception("Aborted!")
         repo.delete(img.name, img.version)
 
+def c_diff(parser, args):
+    '''
+    Show diff between two repositories or images
+    '''
+    repoman = load_repositories(args)
+    if args.object[0] in repoman.onlines and args.object[1] in repoman.onlines:
+        Repository.diff(repoman[args.object[0]], repoman[args.object[1]])
+    else:
+        img1, repo1 = select_image(args.object[0], repoman, args.best)
+        img2, repo2 = select_image(args.object[1], repoman, args.best)
+        PackageImage.diff(img1, img2)
+
 def c_extract(parser, args):
     '''
     Extract an image package inside a directory
@@ -356,6 +368,14 @@ p_del.add_argument("-b", "--best", action="store_true", default=False,
 p_del.add_argument("-f", "--force", action="store_true", default=False,
                    help="delete image without confirmation")
 p_del.set_defaults(func=c_del)
+
+# diff command parser
+p_diff = subparsers.add_parser("diff", help=c_diff.__doc__.lower())
+p_diff.add_argument("object", nargs=2,
+                    help="object syntax is <path|repository|[repository/]image[:version]>")
+p_diff.add_argument("-b", "--best", action="store_true", default=False,
+                    help="in best mode, image is the most recent in all repositories")
+p_diff.set_defaults(func=c_diff)
 
 # extract command parser
 p_extract = subparsers.add_parser("extract", help=c_extract.__doc__.lower())

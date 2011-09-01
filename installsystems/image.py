@@ -10,6 +10,7 @@ import os
 import stat
 import time
 import json
+import difflib
 import ConfigParser
 import subprocess
 import tarfile
@@ -351,6 +352,46 @@ class PackageImage(Image):
     Packaged image manipulation class
     '''
 
+    @classmethod
+    def diff(cls, pkg1, pkg2):
+        '''
+        Diff two packaged images
+        '''
+        arrow("Differnce from images #y#%s v%s#R# to #r#%s v%s#R#:" % (pkg1.name,
+                                                                       pkg1.version,
+                                                                       pkg2.name,
+                                                                       pkg2.version))
+        # Extract images for diff scripts files
+        fromfiles = set(pkg1._tarball.getnames(re_pattern="(parser|setup)/.*"))
+        tofiles = set(pkg2._tarball.getnames(re_pattern="(parser|setup)/.*"))
+        for f in fromfiles | tofiles:
+            # preparing from info
+            if f in fromfiles:
+                fromfile = os.path.join(pkg1.id, f)
+                fromdata = pkg1._tarball.extractfile(f).readlines()
+            else:
+                fromfile = "/dev/null"
+                fromdata = ""
+            # preparing to info
+            if f in tofiles:
+                tofile = os.path.join(pkg2.id, f)
+                todata = pkg2._tarball.extractfile(f).readlines()
+            else:
+                tofile = "/dev/null"
+                todata = ""
+            # generate diff
+            for line in difflib.unified_diff(fromdata, todata,
+                                             fromfile=fromfile, tofile=tofile):
+                # coloring diff
+                if line.startswith("+"):
+                   out("#g#%s#R#" % line, endl="")
+                elif line.startswith("-"):
+                   out("#r#%s#R#" % line, endl="")
+                elif line.startswith("@@"):
+                   out("#c#%s#R#" % line, endl="")
+                else:
+                   out(line, endl="")
+
     def __init__(self, path, fileobj=None, md5name=False):
         '''
         Initialize a package image
@@ -568,7 +609,6 @@ class PackageImage(Image):
                                 (n_scripts, e))
             arrowlevel(level=old_level)
         arrowlevel(-1)
-
 
 class Payload(object):
     '''

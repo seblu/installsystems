@@ -1,8 +1,93 @@
-installsystems (4~dev) unstable; urgency=low
+installsystems (4) unstable; urgency=low
 
-  dev version
+  Aurélien Dunand (13):
+      Fix typos and docstring bad format
+      Fix missing parenthesises
+      add command takes several images files in one time
+      Remove unused import
+      help command can now displays subparsers' help
+      Reorder subparsers as the same order of their function
+      Add Unix globbing capability for repo_filter
+      Add search command
+      Cosmetics changes for list command
+      Add image retrieval from ftp
+      Copy file from http without read it in one time
+      Add copy command
+      Refactoring code for select one repository
 
- -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Tue, 26 Jul 2011 12:28:49 +0200
+  Matthieu Gonnet (2):
+      Add clean command
+      Add check command
+
+  Seblu (66):
+      bump version
+      update release file
+      fix copy implementation.
+      fix use of non existant parameter keep
+      Add a move command
+      fix displaying of unknown command by help command
+      Remove update command
+      searching is now handled in repomananger
+      remplace pathtype == file by isfile
+      remove unneeded affectation
+      command add now take destination repository as parameter
+      fix type in new command help
+      repository can be unaivailable
+      Introducing a new way of selecting image
+      reorder alphabetically command name in is
+      allow version to be prefixed by v
+      Rewrite command cat
+      Command move use new style
+      better del asking implementation
+      Command copy use new image syntax
+      fix typo in tarball.py
+      command install use new image syntax
+      Remove select_one_repository. No more needed.
+      stricter check during image selection
+      list now use new syntax spec
+      reorder copy and move argument
+      temporary repo now have a unique identifier
+      repository on command line are added to the of repostiory in config file not supersede
+      Add extract command
+      Add command get
+      Smarter display during image loading
+      fix aurelien misunderstood epoch time
+      fix bug of data added in description.json
+      Fix unable to extract file from a remote directory
+      Fix extraction of tarball with non existant uid/gid
+      fix one lintian error from buildd message
+      fix aurelien misunderstood epoch time in repository
+      use istools.isfile instead of istools.pathtype == "file"
+      move repo filter inside repomanager
+      more precise message when image is not found
+      introduce offline repository mode
+      command list show offline status
+      reorder RepoManager and Repoconfig classes
+      fix again adunand gmttime issue
+      offline repository is no more used to get/search an image
+      Image download from repository is now handled by repository class
+      improve is help messages and options
+      fix missing gzip module in image.py
+      add a best mode to commands using image selection syntax
+      implement globbing on repository name in list
+      introduce color shortcut
+      introduce ask and confirm function
+      better error message when image file is invalid
+      improve tarball loading and check md5 from repository
+      list repo matching only on onlines repositories
+      set offline to false after creating a repository
+      add timeout to uopen
+      image name can use - and _
+      enforce image name and version checking
+      fix missing import sys in tarball
+      better display during repo cleaning
+      add a comment about python upstream bug
+      repo cleaning warn and not raise an error if it cannot delete a file
+      Print color only on a tty
+      Change clean command message
+      Add diff command
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Thu, 01 Sep 2011 14:06:21 +0200
 
 installsystems (3) unstable; urgency=low
 

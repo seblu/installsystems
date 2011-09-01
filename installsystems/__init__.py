@@ -7,7 +7,7 @@ InstallSystems module
 '''
 
 canonical_name="installsystems"
-version = "4~dev"
+version = "4"
 debug = False
 quiet = False
 

@@ -10,23 +10,138 @@ import os
 import hashlib
 import shutil
 import urllib2
-from installsystems.tarball import Tarball
 
-def md5sum(path=None, fileobj=None):
+from progressbar import ProgressBar, Percentage, FileTransferSpeed
+from progressbar import Bar, BouncingBar, ETA, UnknownLength
+from installsystems.tarball import Tarball
+from installsystems.printer import *
+
+
+################################################################################
+# Classes
+################################################################################
+
+class PipeFile(object):
     '''
-    Compute md5 of a file
+    Pipe file object if a file object with extended capabilties
+    like printing progress bar or compute file size, md5 on the fly
     '''
-    if path is None and fileobj is None:
-        raise ValueError("No path or fileobj specified")
-    if fileobj is None:
-        fileobj = uopen(path)
-    m = hashlib.md5()
-    while True:
-        buf = fileobj.read(1024 * m.block_size)
-        if len(buf) == 0:
-            break
-        m.update(buf)
-    return m.hexdigest()
+
+    def __init__(self, path=None, mode="r", fileobj=None, timeout=3,
+                 progressbar=False):
+        self.progressbar = progressbar
+        self.open(path, mode, fileobj, timeout)
+
+    def open(self, path=None, mode="r", fileobj=None, timeout=3):
+        if path is None and fileobj is None:
+            raise AttributeError("You must have a path or a fileobj to open")
+        if mode not in ("r", "w"):
+            raise AttributeError("Invalid open mode. Must be r or w")
+        self.mode = mode
+        self._md5 = hashlib.md5()
+        self.size = None
+        self.consumed_size = 0
+        if fileobj is not None:
+            self.fo = fileobj
+            # seek to 0 and compute filesize if we have and fd
+            if hasattr(self.fo, "fileno"):
+                self.seek(0)
+                self.size = os.fstat(self.fo.fileno()).st_size
+        else:
+            ftype = pathtype(path)
+            if ftype == "file":
+                self.fo = open(path, self.mode)
+                self.size = os.fstat(self.fo.fileno()).st_size
+            elif ftype == "http" or ftype == "ftp":
+                try:
+                    self.fo = urllib2.urlopen(path, timeout=timeout)
+                except Exception as e:
+                    # FIXME: unable to open file
+                    raise IOError(e)
+                if "Content-Length" in self.fo.headers:
+                    self.size = int(self.fo.headers["Content-Length"])
+            else:
+                raise NotImplementedError
+        # init progress bar
+        if self.size is None:
+            widget = [ BouncingBar(), " ", FileTransferSpeed() ]
+            maxval = UnknownLength
+        else:
+            widget = [ Percentage(), " ", Bar(), " ", FileTransferSpeed(), " ", ETA() ]
+            maxval = self.size
+        self._progressbar = ProgressBar(widgets=widget, maxval=maxval)
+        # start progressbar display if asked
+        if self.progressbar:
+            self._progressbar.start()
+
+    def close(self):
+        if self.progressbar:
+            self._progressbar.finish()
+        debug("MD5: %s" % self.md5)
+        debug("Size: %s" % self.size)
+        self.fo.close()
+
+    def read(self, size=None):
+        if self.mode == "w":
+            raise IOError("Unable to read in w mode")
+        buf = self.fo.read(size)
+        length = len(buf)
+        self._md5.update(buf)
+        self.consumed_size += length
+        if self.progressbar and length > 0:
+            self._progressbar.update(self.consumed_size)
+        return buf
+
+    def flush(self):
+        if hasattr(self.fo, "flush"):
+            return self.fo.flush()
+
+    def write(self, buf):
+        if self.mode == "r":
+            raise IOError("Unable to write in r mode")
+        length = len(buf)
+        self._md5.update(buf)
+        self.consumed_size += length
+        if self.progressbar and length > 0:
+            self._progressbar.update(self.consumed_size)
+        return None
+
+    def consume(self):
+        '''
+        Read all data and doesn't save it
+        Useful to obtain md5 and size
+        '''
+        if self.mode == "w":
+            raise IOError("Unable to read in w mode")
+        while True:
+            buf = self.read(65536)
+            if len(buf) == 0:
+                break
+
+    @property
+    def md5(self):
+        '''
+        Return the md5 of read/write of the file
+        '''
+        return self._md5.hexdigest()
+
+    @property
+    def read_size(self):
+        '''
+        Return the current read size
+        '''
+        return self.consumed_size
+
+    @property
+    def write_size(self):
+        '''
+        Return the current wrote size
+        '''
+        return self.consumed_size
+
+################################################################################
+# Functions
+################################################################################
 
 def smd5sum(buf):
     '''
@@ -35,23 +150,6 @@ def smd5sum(buf):
     m = hashlib.md5()
     m.update(buf)
     return m.hexdigest()
-
-def copyfileobj(sfile, dfile):
-    '''
-    Copy data from sfile to dfile computing length and md5 on the fly
-    '''
-    f_sum = hashlib.md5()
-    f_len = 0
-    while True:
-        buf = sfile.read(1024 * f_sum.block_size)
-        buf_len = len(buf)
-        if buf_len == 0:
-            break
-        f_len += buf_len
-        f_sum.update(buf)
-        if dfile is not None:
-            dfile.write(buf)
-    return (f_len , f_sum.hexdigest())
 
 def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
     '''
@@ -129,19 +227,6 @@ def abspath(path):
         return os.path.abspath(path)
     else:
         return None
-
-def uopen(path, mode="rb", timeout=3):
-    '''
-    Universal Open
-    Create a file-like object to a file which can be remote
-    '''
-    ftype = pathtype(path)
-    if ftype == "file":
-        return open(path, mode)
-    elif ftype == "http" or ftype == "ftp":
-        return urllib2.urlopen(path, timeout=timeout)
-    else:
-        raise NotImplementedError
 
 def getsize(path):
     '''

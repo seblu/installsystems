@@ -18,6 +18,7 @@ import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
 from installsystems.tarball import Tarball
+from installsystems.tools import PipeFile
 from installsystems.image import Image, PackageImage
 from installsystems.database import Database
 
@@ -32,7 +33,7 @@ class Repository(object):
         Comptue a diff between two repositories
         '''
         arrow("Diff between repositories #y#%s#R# and #g#%s#R#" % (repo1.config.name,
-                                                       repo2.config.name))
+                                                                   repo2.config.name))
         # Get info from databases
         i_dict1 = dict((b[0], b[1:]) for b in repo1.db.ask(
                 "SELECT md5, name, version FROM image").fetchall())
@@ -384,8 +385,8 @@ class Repository(object):
                                                            self.config.name))
         memfile = cStringIO.StringIO()
         try:
-            fo = istools.uopen(path)
-            istools.copyfileobj(fo, memfile)
+            fo = PipeFile(path, "r")
+            shutil.copyfileobj(fo, memfile)
             fo.close()
         except Exception as e:
             raise Exception("Loading image %s v%s failed: %s" % (name, version, e))
@@ -522,8 +523,8 @@ class RepositoryManager(object):
                 open(filedest, "wb")
         # get remote last value
         try:
-            rlast = int(istools.uopen(config.lastpath,
-                                      timeout=self.timeout).read().strip())
+            rlast = int(PipeFile(config.lastpath, mode='r',
+                              timeout=self.timeout).read().strip())
             # get local last value
             llast = int(os.stat(filedest).st_mtime)
             # if repo is out of date, download it

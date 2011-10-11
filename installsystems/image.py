@@ -22,6 +22,7 @@ import cStringIO
 import installsystems.template as istemplate
 import installsystems.tools as istools
 from installsystems.printer import *
+from installsystems.tools import PipeFile
 from installsystems.tarball import Tarball
 
 
@@ -249,14 +250,14 @@ class SourceImage(Image):
         Create a payload file
         Only gzipping it
         '''
-        fsource = istools.uopen(source)
+        fsource = PipeFile(source, "r")
         # open file not done in GzipFile, to escape writing of filename
         # in gzip file. This change md5.
         fdest = open(dest, "wb")
         fdest = gzip.GzipFile(filename=os.path.basename(source),
                               fileobj=fdest,
                               mtime=os.stat(source).st_mtime)
-        istools.copyfileobj(fsource, fdest)
+        shutil.copyfileobj(fsource, fdest)
         fsource.close()
         fdest.close()
 
@@ -405,11 +406,16 @@ class PackageImage(Image):
         self.md5name = md5name
         try:
             if fileobj is None:
-                fileobj = istools.uopen(self.path)
+                fileobj = PipeFile(self.path, "r")
+            else:
+                fileobj = PipeFile(mode="r", fileobj=fileobj)
             memfile = cStringIO.StringIO()
-            fileobj.seek(0)
-            (self.size, self.md5) = istools.copyfileobj(fileobj, memfile)
+            shutil.copyfileobj(fileobj, memfile)
+            # close source
             fileobj.close()
+            # get donwloaded size and md5
+            self.size = fileobj.read_size
+            self.md5 = fileobj.md5
             memfile.seek(0)
             self._tarball = Tarball.open(fileobj=memfile, mode='r:gz')
         except Exception as e:
@@ -419,7 +425,7 @@ class PackageImage(Image):
         arrow("Image %s v%s loaded" % (self.name, self.version))
         arrow("Author: %s" % self.author, 1)
         arrow("Date: %s" % time.ctime(self.date), 1)
-        # build payloads
+        # build payloads info
         self.payload = {}
         for pname, pval in self._metadata["payload"].items():
             if self.md5name:
@@ -495,11 +501,17 @@ class PackageImage(Image):
     def check(self, message="Check MD5"):
         '''
         Check md5 and size of tarballs are correct
+        Download tarball from path and compare the loaded md5 and remote
         '''
         arrow(message)
         arrowlevel(1)
         # check image
-        if self.md5 != istools.md5sum(self.path):
+        fo = PipeFile(self.path, "r")
+        fo.consume()
+        fo.close()
+        if self.size != fo.read_size:
+            raise Exception("Invalid size of image %s" % self.name)
+        if self.md5 != fo.md5:
             raise Exception("Invalid MD5 of image %s" % self.name)
         # check payloads
         for pay_name, pay_obj in self.payload.items():
@@ -518,20 +530,30 @@ class PackageImage(Image):
     def download(self, directory, force=False, payload=False):
         '''
         Download image in directory
+        Doesn't use in memory image because we cannot access it
+        This is done to don't parasitize self._tarfile access to memfile
         '''
         # check if destination exists
         directory = os.path.abspath(directory)
         dest = os.path.join(directory, self.filename)
         if not force and os.path.exists(dest):
             raise Exception("Image destination already exists: %s" % dest)
-        # download
+        # some display
         arrow("Downloading image in %s" % directory)
-        fs = istools.uopen(self.path)
+        debug("Downloading %s from %s" % (self.id, self.path))
+        # open source
+        fs = PipeFile(self.path, progressbar=True)
+        # check if announced file size is good
+        if fs.size is not None and self.size != fs.size:
+            raise Exception("Downloading image %s failed: Invalid announced size" % self.name)
+        # open destination
         fd = open(self.filename, "wb")
-        slen, smd5 = istools.copyfileobj(fs, fd)
+        shutil.copyfileobj(fs, fd)
         fs.close()
         fd.close()
-        if self.md5 != smd5:
+        if self.size != fs.consumed_size:
+            raise Exception("Download image %s failed: Invalid size" % self.name)
+        if self.md5 != fs.md5:
             raise Exception("Download image %s failed: Invalid MD5" % self.name)
         if payload:
             for payname in self.payload:
@@ -610,6 +632,7 @@ class PackageImage(Image):
             arrowlevel(level=old_level)
         arrowlevel(-1)
 
+
 class Payload(object):
     '''
     Payload class represents a payload object
@@ -646,12 +669,13 @@ class Payload(object):
         '''
         Fill missing md5/size about payload
         '''
-        fileobj = istools.uopen(self.path)
-        size, md5 = istools.copyfileobj(fileobj, None)
+        fileobj = PipeFile(self.path, "r")
+        fileobj.consume()
+        fileobj.close()
         if self._size is None:
-            self._size = size
+            self._size = fileobj.read_size
         if self._md5 is None:
-            self._md5 = md5
+            self._md5 = fileobj.md5
 
     @property
     def md5(self):
@@ -733,11 +757,12 @@ class Payload(object):
         if self._size is None or self._md5 is None:
             debug("Check is called on payload with nothing to check")
             return True
-        fileobj = istools.uopen(self.path)
-        size, md5 = istools.copyfileobj(fileobj, None)
-        if self._size != size:
+        fileobj = PipeFile(self.path, "r")
+        fileobj.consume()
+        fileobj.close()
+        if self._size != fileobj.read_size:
             raise Exception("Invalid size of payload %s" % self.name)
-        if self._md5 != md5:
+        if self._md5 != fileobj.md5:
             raise Exception("Invalid MD5 of payload %s" % self._md5)
 
     def download(self, dest, force=False):
@@ -756,13 +781,21 @@ class Payload(object):
                 raise Exception("Destination %s is a directory" % dest)
             if not force:
                 raise Exception("File %s already exists" % dest)
-        # download
-        fs = istools.uopen(self.path)
+        # Open remote file
+        debug("Downloading %s from %s" % (self.name, self.path))
+        fs = PipeFile(self.path, progressbar=True)
+        # check if announced file size is good
+        if fs.size is not None and self.size != fs.size:
+            raise Exception("Downloading payload %s failed: Invalid announced size" % self.name)
         fd = open(dest, "wb")
-        slen, smd5 = istools.copyfileobj(fs, fd)
+        shutil.copyfileobj(fs, fd)
+        # closing fo
         fs.close()
         fd.close()
-        if self.md5 != smd5:
+        # checking download size
+        if self.size != fs.read_size:
+            raise Exception("Downloading payload %s failed: Invalid size" % self.name)
+        if self.md5 != fs.md5:
             raise Exception("Downloading payload %s failed: Invalid MD5" % self.name)
 
     def extract(self, dest, force=False, filelist=None):
@@ -791,9 +824,12 @@ class Payload(object):
             istools.mkdir(dest)
         # try to open payload file
         try:
-            fo = istools.uopen(self.path)
+            fo = PipeFile(self.path, progressbar=True)
         except Exception as e:
             raise Exception("Unable to open payload file %s" % self.path)
+        # check if announced file size is good
+        if fo.size is not None and self.size != fo.size:
+            raise Exception("Invalid announced size on payload %s" % self.path)
         # try to open tarball on payload
         try:
             t = Tarball.open(fileobj=fo, mode="r|gz", ignore_zeros=True)
@@ -809,6 +845,11 @@ class Payload(object):
         # closing fo
         t.close()
         fo.close()
+        # checking download size
+        if self.size != fo.read_size:
+            raise Exception("Downloading payload %s failed: Invalid size" % self.name)
+        if self.md5 != fo.md5:
+            raise Exception("Downloading payload %s failed: Invalid MD5" % self.name)
 
     def extract_file(self, dest, force=False):
         '''
@@ -827,22 +868,30 @@ class Payload(object):
                 raise Exception("Destination %s is a directory" % dest)
             if not force:
                 raise Exception("File %s already exists" % dest)
-        # opening destination
+        # opening destination (must be local)
         try:
-            f_dst = istools.uopen(dest, "wb")
+            f_dst = open(dest, "wb")
         except Exception as e:
             raise Exception("Unable to open destination file %s" % dest)
         # try to open payload file
         try:
-            f_gsrc = istools.uopen(self.path)
+            f_gsrc = PipeFile(self.path, "r", progressbar=True)
             f_src = gzipstream.GzipStream(stream=f_gsrc)
         except Exception as e:
             raise Exception("Unable to open payload file %s" % self.path)
+        # check if announced file size is good
+        if f_gsrc.size is not None and self.size != f_gsrc.size:
+            raise Exception("Invalid announced size on payload %s" % self.path)
         # launch copy
-        size, md5 = istools.copyfileobj(f_src, f_dst)
+        shutil.copyfileobj(f_src, f_dst)
         # closing fo
         f_dst.close()
         f_gsrc.close()
         f_src.close()
+        # checking download size
+        if self.size != f_gsrc.read_size:
+            raise Exception("Downloading payload %s failed: Invalid size" % self.name)
+        if self.md5 != f_gsrc.md5:
+            raise Exception("Downloading payload %s failed: Invalid MD5" % self.name)
         # settings file orginal rights
         istools.chrights(dest, self.uid, self.gid, self.mode, self.mtime)

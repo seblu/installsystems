@@ -45,6 +45,8 @@ class Database(object):
         if not istools.isfile(path):
             raise Exception("Database must be local")
         self.path = os.path.abspath(path)
+        if not os.path.exists(self.path):
+            raise Exception("Database not exists")
         self.conn = sqlite3.connect(self.path, isolation_level=None)
         self.conn.execute("PRAGMA foreign_keys = ON")
 

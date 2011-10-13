@@ -229,11 +229,13 @@ class SourceImage(Image):
         # compute dname to set as a base directory
         dname = os.path.basename(data_path)
         try:
+            dfo = PipeFile(tar_path, "w", progressbar=True)
             # Tarballing
-            tarball = Tarball.open(tar_path, "w:gz", dereference=False)
+            tarball = Tarball.open(fileobj=dfo, mode="w|gz", dereference=False)
             tarball.add(data_path, arcname="/", recursive=True,
                         filter=self._create_payload_tarball_filter)
             tarball.close()
+            dfo.close()
         except Exception as e:
             raise Exception("Unable to create payload tarball %s: %s" % (tar_path, e))
 
@@ -251,14 +253,14 @@ class SourceImage(Image):
         Create a payload file
         Only gzipping it
         '''
-        fsource = PipeFile(source, "r")
+        fsource = PipeFile(source, "r", progressbar=True)
         # open file not done in GzipFile, to escape writing of filename
         # in gzip file. This change md5.
         fdest = open(dest, "wb")
         fdest = gzip.GzipFile(filename=os.path.basename(source),
                               fileobj=fdest,
                               mtime=os.stat(source).st_mtime)
-        shutil.copyfileobj(fsource, fdest)
+        fsource.consume(fdest)
         fsource.close()
         fdest.close()
 

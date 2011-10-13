@@ -391,7 +391,7 @@ class Repository(object):
         memfile = cStringIO.StringIO()
         try:
             fo = PipeFile(path, "r")
-            shutil.copyfileobj(fo, memfile)
+            fo.consume(memfile)
             fo.close()
         except Exception as e:
             raise Exception("Loading image %s v%s failed: %s" % (name, version, e))

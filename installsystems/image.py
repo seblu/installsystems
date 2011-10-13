@@ -415,7 +415,7 @@ class PackageImage(Image):
             else:
                 fileobj = PipeFile(mode="r", fileobj=fileobj)
             memfile = cStringIO.StringIO()
-            shutil.copyfileobj(fileobj, memfile)
+            fileobj.consume(memfile)
             # close source
             fileobj.close()
             # get donwloaded size and md5
@@ -558,7 +558,7 @@ class PackageImage(Image):
             raise Exception("Downloading image %s failed: Invalid announced size" % self.name)
         # open destination
         fd = open(self.filename, "wb")
-        shutil.copyfileobj(fs, fd)
+        fs.consume(fd)
         fs.close()
         fd.close()
         if self.size != fs.consumed_size:
@@ -798,7 +798,7 @@ class Payload(object):
         if fs.size is not None and self.size != fs.size:
             raise Exception("Downloading payload %s failed: Invalid announced size" % self.name)
         fd = open(dest, "wb")
-        shutil.copyfileobj(fs, fd)
+        fs.consume(fd)
         # closing fo
         fs.close()
         fd.close()

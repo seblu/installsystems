@@ -510,35 +510,50 @@ class RepositoryManager(object):
         '''
         Return a config of a cached repository from an orignal config file
         '''
-        # find destination file and load last info
-        if config.name is None or self.cache_path is None:
-            # this is a forced temporary repository or without name repo
-            tempfd, filedest = tempfile.mkstemp()
-            os.close(tempfd)
-            self.tempfiles.append(filedest)
-        else:
-            filedest = os.path.join(self.cache_path, config.name)
-            # create file if not exists
-            if not os.path.exists(filedest):
-                open(filedest, "wb")
-        # get remote last value
         try:
-            rlast = int(PipeFile(config.lastpath, mode='r',
-                              timeout=self.timeout).read().strip())
+            # Ensure destination file exists
+            if config.name is None or self.cache_path is None:
+                # this is a forced temporary repository or without name repo
+                tempfd, filedest = tempfile.mkstemp()
+                os.close(tempfd)
+                self.tempfiles.append(filedest)
+            else:
+                filedest = os.path.join(self.cache_path, config.name)
+                # create file if not exists
+                if not os.path.exists(filedest):
+                    open(filedest, "wb")
+            # Open remote database
+            rdb = PipeFile(config.dbpath, timeout=self.timeout)
+            # get remote last modification
+            if rdb.mtime is None:
+                # We doesn't have modification time, we use the last file
+                try:
+                    rlast = int(PipeFile(config.lastpath, mode='r',
+                                         timeout=self.timeout).read().strip())
+                except IOError:
+                    rlast = -1
+            else:
+                rlast = rdb.mtime
             # get local last value
             llast = int(os.stat(filedest).st_mtime)
             # if repo is out of date, download it
             if rlast != llast:
-                arrow("Getting %s" % config.dbpath)
-                istools.copy(config.dbpath, filedest,
-                             uid=config.uid,
-                             gid=config.gid,
-                             mode=config.fmod,
-                             timeout=self.timeout)
-                os.utime(filedest, (rlast, rlast))
+                arrow("Downloading %s" % config.dbpath)
+
+                rdb.progressbar = True
+                ldb = open(filedest, "wb")
+                rdb.consume(ldb)
+                ldb.close()
+                rdb.close()
+                istools.chrights(filedest,
+                                 uid=config.uid,
+                                 gid=config.gid,
+                                 mode=config.fmod,
+                                 mtime=rlast)
             config.dbpath = filedest
-        except:
+        except IOError as e:
             # if something append bad during caching, we mark repo as offline
+            debug("Unable to cache repository %s: %s" % (config.name, e))
             config.offline = True
         return Repository(config)
 

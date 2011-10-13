@@ -7,9 +7,12 @@ InstallSystems Generic Tools Library
 '''
 
 import os
+import re
 import hashlib
 import shutil
 import urllib2
+import paramiko
+import time
 
 from progressbar import ProgressBar, Percentage, FileTransferSpeed
 from progressbar import Bar, BouncingBar, ETA, UnknownLength
@@ -29,8 +32,9 @@ class PipeFile(object):
 
     def __init__(self, path=None, mode="r", fileobj=None, timeout=3,
                  progressbar=False):
-        self.progressbar = progressbar
         self.open(path, mode, fileobj, timeout)
+        # start progressbar display if asked
+        self.progressbar = progressbar
 
     def open(self, path=None, mode="r", fileobj=None, timeout=3):
         if path is None and fileobj is None:
@@ -38,30 +42,31 @@ class PipeFile(object):
         if mode not in ("r", "w"):
             raise AttributeError("Invalid open mode. Must be r or w")
         self.mode = mode
+        self.timeout = timeout
         self._md5 = hashlib.md5()
         self.size = None
+        self.mtime = None
         self.consumed_size = 0
+        # we already have and fo, nothing to open
         if fileobj is not None:
             self.fo = fileobj
             # seek to 0 and compute filesize if we have and fd
             if hasattr(self.fo, "fileno"):
                 self.seek(0)
                 self.size = os.fstat(self.fo.fileno()).st_size
+        # we need to open the path
         else:
             ftype = pathtype(path)
             if ftype == "file":
-                self.fo = open(path, self.mode)
-                self.size = os.fstat(self.fo.fileno()).st_size
-            elif ftype == "http" or ftype == "ftp":
-                try:
-                    self.fo = urllib2.urlopen(path, timeout=timeout)
-                except Exception as e:
-                    # FIXME: unable to open file
-                    raise IOError(e)
-                if "Content-Length" in self.fo.headers:
-                    self.size = int(self.fo.headers["Content-Length"])
+                self._open_local(path)
+            elif ftype == "http":
+                self._open_http(path)
+            elif ftype == "ftp":
+                self._open_ftp(path)
+            elif ftype == "ssh":
+                self._open_ssh(path)
             else:
-                raise NotImplementedError
+                raise IOError("URL type not supported")
         # init progress bar
         if self.size is None:
             widget = [ BouncingBar(), " ", FileTransferSpeed() ]
@@ -70,15 +75,85 @@ class PipeFile(object):
             widget = [ Percentage(), " ", Bar(), " ", FileTransferSpeed(), " ", ETA() ]
             maxval = self.size
         self._progressbar = ProgressBar(widgets=widget, maxval=maxval)
-        # start progressbar display if asked
-        if self.progressbar:
-            self._progressbar.start()
+
+    def _open_local(self, path):
+        '''
+        Open file on the local filesystem
+        '''
+        self.fo = open(path, self.mode)
+        sta = os.fstat(self.fo.fileno())
+        self.size = sta.st_size
+        self.mtime = sta.st_mtime
+
+    def _open_http(self, path):
+        '''
+        Open a file accross an http server
+        '''
+        try:
+            self.fo = urllib2.urlopen(path, timeout=self.timeout)
+        except Exception as e:
+            # FIXME: unable to open file
+            raise IOError(e)
+        # get file size
+        if "Content-Length" in self.fo.headers:
+            self.size = int(self.fo.headers["Content-Length"])
+        else:
+            self.size = None
+        # get mtime
+        try:
+            self.mtime = int(time.mktime(time.strptime(self.fo.headers["Last-Modified"],
+                                                       "%a, %d %b %Y %H:%M:%S %Z")))
+        except:
+            self.mtime = None
+
+    def _open_ftp(self, path):
+        '''
+        Open file via ftp
+        '''
+        try:
+            self.fo = urllib2.urlopen(path, timeout=self.timeout)
+        except Exception as e:
+            # FIXME: unable to open file
+            raise IOError(e)
+        # get file size
+        try:
+            self.size = int(self.fo.headers["content-length"])
+        except:
+            self.size = None
+
+    def _open_ssh(self, path):
+        '''
+        Open current fo from an ssh connection
+        '''
+        # parse url
+        (login, passwd, host, port, path) = re.match(
+            "ssh://(([^:]+)(:([^@]+))?@)?([^/:]+)(:(\d+))?(/.*)?", path).group(2, 4, 5, 7, 8)
+        if port is None: port = 22
+        if path is None: path = "/"
+        # open ssh connection
+        # we need to keep it inside the object unless it was cutted
+        self._ssh = paramiko.SSHClient()
+        self._ssh.load_system_host_keys()
+        self._ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self._ssh.connect(host, port=port, username=login, password=passwd,
+                          look_for_keys=True,
+                          timeout=int(self.timeout))
+        # swith in sftp mode
+        sftp = self._ssh.open_sftp()
+        # get the file infos
+        sta = sftp.stat(path)
+        self.size = sta.st_size
+        self.mtime = sta.st_mtime
+        # open the file
+        self.fo = sftp.open(path, self.mode)
+        # this is needed to have correct file transfert speed
+        self.fo.set_pipelined(True)
 
     def close(self):
         if self.progressbar:
             self._progressbar.finish()
         debug("MD5: %s" % self.md5)
-        debug("Size: %s" % self.size)
+        debug("Size: %s" % self.consumed_size)
         self.fo.close()
 
     def read(self, size=None):
@@ -106,17 +181,36 @@ class PipeFile(object):
             self._progressbar.update(self.consumed_size)
         return None
 
-    def consume(self):
+    def consume(self, fo=None):
         '''
-        Read all data and doesn't save it
+        Consume (read) all data and write it in fo
+        if fo is None, data are discarded. This is useful to obtain md5 and size
         Useful to obtain md5 and size
         '''
         if self.mode == "w":
             raise IOError("Unable to read in w mode")
         while True:
-            buf = self.read(65536)
+            buf = self.read(1048576) # 1MiB
             if len(buf) == 0:
                 break
+            if fo is not None:
+                fo.write(buf)
+
+    @property
+    def progressbar(self):
+        '''
+        Return is progressbar have been started
+        '''
+        return hasattr(self, "_progressbar_started")
+
+    @progressbar.setter
+    def progressbar(self, val):
+        '''
+        Set this property to true enable progress bar
+        '''
+        if val == True:
+            self._progressbar_started = True
+            self._progressbar.start()
 
     @property
     def md5(self):

@@ -19,6 +19,7 @@ import shutil
 import gzip
 import gzipstream #until python support gzip not seekable
 import cStringIO
+import installsystems
 import installsystems.template as istemplate
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -320,6 +321,8 @@ class SourceImage(Image):
         # timestamp image
         arrow("Timestamping")
         desc["date"] = int(time.time())
+        # watermark
+        desc["isversion"] = installsystems.version
         # append payload infos
         arrow("Checksumming")
         desc["payload"] = {}
@@ -486,6 +489,11 @@ class PackageImage(Image):
         out('#yellow#Date:#reset# %s' % time.ctime(self.date))
         out('#yellow#Description:#reset# %s' % self.description)
         out('#yellow#Author:#reset# %s' % self.author)
+        # field isversion is new in version 5. I can be absent.
+        try:
+            out('#yellow#IS version:#reset# %s' % self.isversion)
+        except AttributeError:
+            pass
         out('#yellow#MD5:#reset# %s' % self.md5)
         if verbose:
             payloads = self.payload

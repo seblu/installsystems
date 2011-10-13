@@ -168,11 +168,16 @@ class Repository(object):
                 arrow("Skipping %s: already exists" % basesrc, 1)
             else:
                 arrow("Adding %s (%s)" % (basesrc, obj.md5), 1)
-                istools.copy(obj.path, dest,
-                             self.config.uid, self.config.gid, self.config.fmod)
+                dfo = open(dest, "wb")
+                sfo = PipeFile(obj.path, "r", progressbar=True)
+                sfo.consume(dfo)
+                sfo.close()
+                dfo.close()
+                istools.chrights(dest, self.config.uid,
+                                 self.config.gid, self.config.fmod)
         # copy is done. create a image inside repo
         r_image = PackageImage(os.path.join(self.config.path, image.md5),
-                                 md5name=True)
+                               md5name=True)
         # checking must be done with original md5
         r_image.md5 = image.md5
         # checking image and payload after copy

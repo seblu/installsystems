@@ -44,7 +44,7 @@ class PipeFile(object):
         self.mode = mode
         self.timeout = timeout
         self._md5 = hashlib.md5()
-        self.size = None
+        self.size = 0
         self.mtime = None
         self.consumed_size = 0
         # we already have and fo, nothing to open
@@ -68,7 +68,8 @@ class PipeFile(object):
             else:
                 raise IOError("URL type not supported")
         # init progress bar
-        if self.size is None:
+        # we use 0 because a null file is cannot show a progression during write
+        if self.size == 0:
             widget = [ BouncingBar(), " ", FileTransferSpeed() ]
             maxval = UnknownLength
         else:
@@ -98,7 +99,7 @@ class PipeFile(object):
         if "Content-Length" in self.fo.headers:
             self.size = int(self.fo.headers["Content-Length"])
         else:
-            self.size = None
+            self.size = 0
         # get mtime
         try:
             self.mtime = int(time.mktime(time.strptime(self.fo.headers["Last-Modified"],
@@ -119,7 +120,7 @@ class PipeFile(object):
         try:
             self.size = int(self.fo.headers["content-length"])
         except:
-            self.size = None
+            self.size = 0
 
     def _open_ssh(self, path):
         '''
@@ -174,6 +175,7 @@ class PipeFile(object):
     def write(self, buf):
         if self.mode == "r":
             raise IOError("Unable to write in r mode")
+        self.fo.write(buf)
         length = len(buf)
         self._md5.update(buf)
         self.consumed_size += length
@@ -208,7 +210,7 @@ class PipeFile(object):
         '''
         Set this property to true enable progress bar
         '''
-        if val == True:
+        if val == True and not hasattr(self, "_progressbar_started"):
             self._progressbar_started = True
             self._progressbar.start()
 
@@ -244,30 +246,6 @@ def smd5sum(buf):
     m = hashlib.md5()
     m.update(buf)
     return m.hexdigest()
-
-def copy(source, destination, uid=None, gid=None, mode=None, timeout=None):
-    '''
-    Copy a source to destination. Take care of path type
-    '''
-    stype = pathtype(source)
-    dtype = pathtype(destination)
-    # ensure destination is not a directory
-    if dtype == "file" and os.path.isdir(destination):
-        destination = os.path.join(destination, os.path.basename(source))
-    # trivial case
-    if stype == dtype == "file":
-        shutil.copy(source, destination)
-    elif (stype == "http" or stype == "ftp") and dtype == "file":
-        f_dest = open(destination, "w")
-        f_source = urllib2.urlopen(source, timeout=timeout)
-        copyfileobj(f_source, f_dest)
-    elif stype == "file" and dtype == "":
-        raise NotImplementedError
-    else:
-        raise NotImplementedError
-    # setting destination file rights
-    if dtype == "file":
-        chrights(destination, uid, gid, mode)
 
 def mkdir(path, uid=None, gid=None, mode=None):
     '''

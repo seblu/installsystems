@@ -9,6 +9,10 @@ description =
 author =
 """
 
+changelog = """==== 1 ====
+- Initial version
+"""
+
 parser = """# -*- python -*-
 # -*- coding: utf-8 -*-
 

@@ -84,6 +84,9 @@ class SourceImage(Image):
             # create description example from template
             arrow("Creating description example")
             open(os.path.join(path, "description"), "w").write(istemplate.description)
+            # create changelog example from template
+            arrow("Creating description example")
+            open(os.path.join(path, "changelog"), "w").write(istemplate.changelog)
             # create parser example from template
             arrow("Creating parser script example")
             open(os.path.join(parser_path, "01-parser.py"), "w").write(istemplate.parser)
@@ -168,6 +171,15 @@ class SourceImage(Image):
         # add .description.json
         arrow("Add description.json")
         tarball.add_str("description.json", description, tarfile.REGTYPE, 0444)
+        # add changelog
+        changelog_path = os.path.join(self.base_path, "changelog")
+        if os.path.exists(changelog_path):
+            arrow("Add changelog")
+            ti = tarball.gettarinfo(changelog_path, "changelog")
+            ti.uid = ti.gid = 0
+            ti.mode = 0644
+            ti.uname = ti.gname = "root"
+            tarball.addfile(ti, open(changelog_path, "rb"))
         # add .format
         arrow("Add format")
         tarball.add_str("format", self.format, tarfile.REGTYPE, 0444)
@@ -905,3 +917,11 @@ class Payload(object):
             raise Exception("Downloading payload %s failed: Invalid MD5" % self.name)
         # settings file orginal rights
         istools.chrights(dest, self.uid, self.gid, self.mode, self.mtime)
+
+
+class Changelog(object):
+    '''
+    Object representing a changelog in memory
+    '''
+    def __init__(self):
+        pass

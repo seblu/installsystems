@@ -502,10 +502,15 @@ class RepositoryManager(object):
         if self.filter is not None:
             if not fnmatch.fnmatch(config.name, self.filter):
                 return
+        # repository is offline
+        if config.offline:
+            debug("Registering offline repository %s (%s)" % (config.path, config.name))
+            self.repos.append(Repository(config))
         # if path is local, no needs to create a cache
-        if istools.isfile(config.path):
+        elif istools.isfile(config.path):
             debug("Registering direct repository %s (%s)" % (config.path, config.name))
             self.repos.append(Repository(config))
+        # path is remote, we need to create a cache
         else:
             debug("Registering cached repository %s (%s)" % (config.path, config.name))
             self.repos.append(self._cachify(config))
@@ -643,7 +648,7 @@ class RepositoryConfig(object):
         # set default value for arguments
         self.name = name
         self.path = ""
-        self.offline = False
+        self._offline = False
         self._dbpath = None
         self.dbname = "db"
         self._lastpath = None
@@ -658,7 +663,7 @@ class RepositoryConfig(object):
 
     def __str__(self):
         l = []
-        for a in ("name", "path", "dbpath", "lastpath", "uid", "gid", "fmod", "dmod"):
+        for a in ("name", "path", "dbpath", "lastpath", "uid", "gid", "fmod", "dmod", "offline"):
             l.append("%s: %s" % (a, getattr(self, a)))
         return os.linesep.join(l)
 
@@ -773,6 +778,21 @@ class RepositoryConfig(object):
             self._dmod = int(value, 8)
         else:
             raise ValueError("Directory mode must be an integer")
+
+    @property
+    def offline(self):
+        '''
+        Get the offline state of a repository
+        '''
+        return self._offline
+
+    @offline.setter
+    def offline(self, value):
+        if type(value) in (str, unicode):
+            value = value.lower() not in ("false", "no", "0")
+        elif type(value) is not bool:
+            value = bool(value)
+        self._offline = value
 
     def update(self, *args, **kwargs):
         '''

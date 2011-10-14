@@ -119,6 +119,7 @@ class SourceImage(Image):
         self.payload_path = os.path.join(path, "payload")
         self.validate_source_files()
         self.description = self.parse_description()
+        self.changelog = self.parse_changelog()
         # script tarball path
         self.image_name = "%s-%s%s" % (self.description["name"],
                                        self.description["version"],
@@ -156,7 +157,7 @@ class SourceImage(Image):
         # creating scripts tarball
         self.create_image(jdesc)
 
-    def create_image(self, description):
+    def create_image(self, jdescription):
         '''
         Create a script tarball in current directory
         '''
@@ -170,16 +171,11 @@ class SourceImage(Image):
             raise Exception("Unable to create tarball %s: %s" % (self.image_name, e))
         # add .description.json
         arrow("Add description.json")
-        tarball.add_str("description.json", description, tarfile.REGTYPE, 0444)
+        tarball.add_str("description.json", jdescription, tarfile.REGTYPE, 0444)
         # add changelog
-        changelog_path = os.path.join(self.base_path, "changelog")
-        if os.path.exists(changelog_path):
+        if self.changelog is not None:
             arrow("Add changelog")
-            ti = tarball.gettarinfo(changelog_path, "changelog")
-            ti.uid = ti.gid = 0
-            ti.mode = 0644
-            ti.uname = ti.gname = "root"
-            tarball.addfile(ti, open(changelog_path, "rb"))
+            tarball.add_str("changelog", self.changelog.verbatim, tarfile.REGTYPE, 0444)
         # add .format
         arrow("Add format")
         tarball.add_str("format", self.format, tarfile.REGTYPE, 0444)
@@ -364,6 +360,24 @@ class SourceImage(Image):
             raise Exception("Bad description: %s" % e)
         return d
 
+    def parse_changelog(self):
+        '''
+        Create a changelog object from a file
+        '''
+        # try to find a changelog file
+        try:
+            path = os.path.join(self.base_path, "changelog")
+            fo = open(path, "r")
+        except IOError:
+            return None
+        # we have it, we need to check everything is ok
+        arrow("Parsing changelog")
+        try:
+            cl = Changelog(fo.read())
+        except Exception as e:
+            raise Exception("Bad changelog: %s" % e)
+        return cl
+
 
 class PackageImage(Image):
     '''
@@ -479,19 +493,28 @@ class PackageImage(Image):
         '''
         Parse tarball and return metadata dict
         '''
-        # extract metadata
-        img_format = self._tarball.get_str("format")
-        img_desc = self._tarball.get_str("description.json")
+        desc = {}
         # check format
+        img_format = self._tarball.get_str("format")
         if img_format != self.format:
             raise Exception("Invalid tarball image format")
+        desc["format"] = img_format
         # check description
         try:
-            desc = json.loads(img_desc)
+            img_desc = self._tarball.get_str("description.json")
+            desc.update(json.loads(img_desc))
             self.check_image_name(desc["name"])
             self.check_image_version(desc["version"])
         except Exception as e:
             raise Exception("Invalid description: %s" % e)
+        # try to load changelog
+        try:
+            img_changelog = self._tarball.get_str("changelog")
+            desc["changelog"] = Changelog(img_changelog)
+        except KeyError:
+            pass
+        except Exception as e:
+            warn("Invalid changelog: %s" % e)
         return desc
 
     def show(self, verbose=False):
@@ -517,8 +540,14 @@ class PackageImage(Image):
                 out('  #yellow#Date:#reset# %s' % time.ctime(payload.mtime))
                 out('  #yellow#Size:#reset# %s' % (istools.human_size(payload.size)))
                 out('  #yellow#MD5:#reset# %s' % payload.md5)
+        # display image content
         out('#light##yellow#Content:#reset#')
         self._tarball.list(verbose)
+        # display changelog
+        try:
+            self.changelog.show(int(self.version), verbose)
+        except AttributeError:
+            pass
 
     def check(self, message="Check MD5"):
         '''
@@ -919,9 +948,59 @@ class Payload(object):
         istools.chrights(dest, self.uid, self.gid, self.mode, self.mtime)
 
 
-class Changelog(object):
+class Changelog(dict):
     '''
     Object representing a changelog in memory
     '''
-    def __init__(self):
-        pass
+    def __init__(self, data):
+        self.verbatim = ""
+        self.load(data)
+
+    def load(self, data):
+        '''
+        Load a changelog file
+        '''
+        version = None
+        lines = data.split("\n")
+        for line in lines:
+            # ignore empty lines
+            if len(line.strip()) == 0:
+                continue
+            # ignore comments
+            if line.lstrip().startswith("#"):
+                continue
+            # try to match a new version
+            m = re.match("\[(\d+)\]", line.lstrip())
+            if m is not None:
+                version = int(m.group(1))
+                self[version] = []
+                continue
+            # if line are out of a version => invalid format
+            if version is None:
+                raise Exception("Invalid format: Line outside version")
+            # add line to version changelog
+            self[version] += [line]
+        # save original
+        self.verbatim = data
+
+    def show(self, version=None, verbose=False):
+        '''
+        Show changelog for a given version or all
+        '''
+        # if no version take the hightest
+        if version is None:
+            version = max(self)
+        # in non verbose mode display only asked version if exists
+        if not verbose and version not in self:
+            print "chich"
+            return
+        out('#light##yellow#Changelog:#reset#')
+        # display asked version
+        out('  #yellow#Version:#reset# %s' % version)
+        for line in self[version]:
+            out("    %s" % line)
+        # display all version in verbose mode
+        if verbose:
+            for ver in sorted((k for k in self if k < version), reverse=True):
+                out('  #yellow#Version:#reset# %s' % ver)
+                os.linesep.join(self[ver])

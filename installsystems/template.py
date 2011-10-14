@@ -9,7 +9,7 @@ description =
 author =
 """
 
-changelog = """==== 1 ====
+changelog = """[1]
 - Initial version
 """
 

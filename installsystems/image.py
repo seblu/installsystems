@@ -220,7 +220,8 @@ class SourceImage(Image):
                 else:
                     self._create_payload_file(dest_path, source_path)
             # create payload object
-            payobj = Payload(pay, dest_path, isdir=isdir)
+            payobj = Payload(pay, "%s-%s" % (self.description["name"], self.description["version"]),
+                             dest_path, isdir=isdir)
             payobj.uid = source_stat.st_uid
             payobj.gid = source_stat.st_gid
             payobj.mode = stat.S_IMODE(source_stat.st_mode)
@@ -465,7 +466,7 @@ class PackageImage(Image):
             else:
                 ppath = os.path.join(self.base_path,
                                      "%s-%s%s" % (self.id, pname, Payload.extension))
-            self.payload[pname] = Payload(pname, ppath, **pval)
+            self.payload[pname] = Payload(pname, self.id, ppath, **pval)
 
     def __getattr__(self, name):
         '''
@@ -691,8 +692,9 @@ class Payload(object):
     extension = ".isdata"
     legit_attr = ('isdir', 'md5', 'size', 'uid', 'gid', 'mode', 'mtime')
 
-    def __init__(self, name, path, **kwargs):
+    def __init__(self, name, imgid, path, **kwargs):
         object.__setattr__(self, "name", name)
+        object.__setattr__(self, "imgid", imgid)
         object.__setattr__(self, "path", path)
         # register legit param
         for attr in self.legit_attr:
@@ -777,7 +779,7 @@ class Payload(object):
         '''
         Return the filename of the original payload
         '''
-        return "%s%s" % (self.name, self.extension)
+        return "%s-%s%s" % (self.imgid, self.name, self.extension)
 
     @property
     def mtime(self):

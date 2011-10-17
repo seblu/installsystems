@@ -5,7 +5,7 @@
 NAME=installsystems
 VERSION=$(shell sed -rn 's/version = "([^"]+)"/\1/p' installsystems/__init__.py)
 BUILD_DIR=__build__
-DISTRO=sid
+DISTRO=squeeze
 
 all:
 	echo all is better than nothing

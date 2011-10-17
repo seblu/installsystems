@@ -13,8 +13,8 @@ import shutil
 import urllib2
 import time
 
-from progressbar import ProgressBar, Percentage, FileTransferSpeed
-from progressbar import Bar, BouncingBar, ETA, UnknownLength
+from installsystems.progressbar import ProgressBar, Percentage, FileTransferSpeed
+from installsystems.progressbar import Bar, BouncingBar, ETA, UnknownLength
 from installsystems.tarball import Tarball
 from installsystems.printer import *
 

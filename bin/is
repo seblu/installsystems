@@ -1,4 +1,4 @@
-#!/usr/bin/python2.7
+#!/usr/bin/python
 # -*- python -*-
 # -*- coding: utf-8 -*-
 # Started 30/06/2011 by Seblu <seblu@seblu.net>
@@ -10,11 +10,11 @@ InstallSystems Command line Tool
 import os
 import time
 import datetime
-import argparse
 import re
 import fnmatch
 import installsystems
 import installsystems.tools as istools
+import installsystems.argparse as argparse # to be removed when python2.7
 from installsystems.printer import *
 from installsystems.repository import Repository
 from installsystems.repository import RepositoryManager

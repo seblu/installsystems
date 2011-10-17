@@ -11,7 +11,6 @@ import re
 import hashlib
 import shutil
 import urllib2
-import paramiko
 import time
 
 from progressbar import ProgressBar, Percentage, FileTransferSpeed
@@ -126,6 +125,11 @@ class PipeFile(object):
         '''
         Open current fo from an ssh connection
         '''
+        # try to load paramiko
+        try:
+            import paramiko
+        except ImportError:
+            raise IOError("URL type not supported")
         # parse url
         (login, passwd, host, port, path) = re.match(
             "ssh://(([^:]+)(:([^@]+))?@)?([^/:]+)(:(\d+))?(/.*)?", path).group(2, 4, 5, 7, 8)

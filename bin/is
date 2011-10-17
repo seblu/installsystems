@@ -12,6 +12,7 @@ import time
 import datetime
 import re
 import fnmatch
+import warnings
 import installsystems
 import installsystems.tools as istools
 import installsystems.argparse as argparse # to be removed when python2.7
@@ -469,6 +470,10 @@ try:
     # set debug and quiet mode after merge
     installsystems.debug = args.debug
     installsystems.quiet = args.quiet
+    # no warning if we are not in debug mode
+    if not installsystems.debug:
+        warnings.filterwarnings("ignore")
+    # except for install command we parse all args!
     if args.func is not c_install:
         args = p_main.parse_args(namespace=args)
     # let's go

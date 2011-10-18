@@ -10,7 +10,9 @@ import sys
 import os
 import installsystems
 
-color = {
+NOCOLOR = False
+
+COLOR = {
     # regular
     "black": "\033[30m",
     "B": "\033[30m",
@@ -46,11 +48,11 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
     Print message colorised in fd ended by endl
     '''
     # color subsitution
-    for c in color:
-        if fd.isatty():
-            message = message.replace("#%s#" % c, color[c])
-        else:
+    for c in COLOR:
+        if not fd.isatty() or NOCOLOR:
             message = message.replace("#%s#" % c, "")
+        else:
+            message = message.replace("#%s#" % c, COLOR[c])
     # convert unicode into str before write
     # this can cause issue on python 2.6
     if type(message) == unicode:

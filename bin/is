@@ -14,6 +14,7 @@ import re
 import fnmatch
 import warnings
 import installsystems
+import installsystems.printer
 import installsystems.tools as istools
 import installsystems.argparse as argparse # to be removed when python2.7
 from installsystems.printer import *
@@ -318,6 +319,8 @@ p_main.add_argument("-C", "--cache", default=None,
                     help="path of the repository cache")
 p_main.add_argument("--no-cache", action="store_true", default=False,
                     help="not use persistent db caching")
+p_main.add_argument("--no-color", action="store_true", default=False,
+                    help="dot not display colored output")
 p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
                     help="download timeout (default 3)")
 
@@ -499,6 +502,9 @@ try:
     # no warning if we are not in debug mode
     if not installsystems.debug:
         warnings.filterwarnings("ignore")
+    # disable coloring if asked
+    if args.no_color:
+        installsystems.printer.NOCOLOR = True
     # except for install command we parse all args!
     if args.func is not c_install:
         args = p_main.parse_args(namespace=args)

@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 # Started 12/05/2011 by Seblu <seblu@seblu.net>
 
-description = """[image]
+description = u"""[image]
 name =
 version =
 description =
 author =
 """
 
-changelog = """[1]
+changelog = u"""[1]
 - Initial version
 """
 
@@ -36,7 +36,7 @@ parser.add_argument("target", type=str, action=TargetAction,
 # vim:set ts=2 sw=2 noet:
 """
 
-setup = """# -*- python -*-
+setup = u"""# -*- python -*-
 # -*- coding: utf-8 -*-
 
 # image object is a reference to current image
@@ -52,7 +52,7 @@ arrow("hostname: %s" % namespace.hostname)
 # vim:set ts=2 sw=2 noet:
 """
 
-createdb = """
+createdb = u"""
 CREATE TABLE image (md5 TEXT NOT NULL PRIMARY KEY,
                     name TEXT NOT NULL,
                     version INTEGER NOT NULL,

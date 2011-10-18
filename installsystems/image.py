@@ -106,7 +106,6 @@ class SourceImage(Image):
         except Exception as e:
             raise Exception("Unable to set rights on %s: %s" % (pf, e))
         arrowlevel(-1)
-        return cls(path)
 
     def __init__(self, path):
         # check local repository

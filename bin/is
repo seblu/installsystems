@@ -237,10 +237,10 @@ def c_list(parser, args):
             if len(repos) > 0:
                 for reponame in repos:
                     arrow(reponame)
-                    repoman[reponame].show(verbose=args.verbose)
+                    repoman[reponame].show(verbose=args.verbose, changelog=args.changelog)
             else:
                 img, repo = select_image(o, repoman, args.best)
-                img.show(verbose=args.verbose)
+                img.show(verbose=args.verbose, changelog=args.changelog)
 
 def c_move(parser, args):
     '''
@@ -429,6 +429,8 @@ p_list.add_argument("-v", action="store_true", dest="verbose", default=False,
                     help="verbose output")
 p_list.add_argument("-b", "--best", action="store_true", default=False,
                     help="in best mode, image is the most recent in all repositories")
+p_list.add_argument("-c", "--changelog", action="store_true", default=False,
+                    help="display image changelog")
 p_list.add_argument("object", nargs="*",
                     help="object syntax is <path|repository|[repository/]image[:version]>")
 p_list.set_defaults(func=c_list, subparser=p_list)

@@ -517,7 +517,7 @@ class PackageImage(Image):
             warn("Invalid changelog: %s" % e)
         return desc
 
-    def show(self, verbose=False):
+    def show(self, verbose=False, changelog=False):
         '''
         Display image content
         '''
@@ -544,10 +544,11 @@ class PackageImage(Image):
         out('#light##yellow#Content:#reset#')
         self._tarball.list(verbose)
         # display changelog
-        try:
-            self.changelog.show(int(self.version), verbose)
-        except AttributeError:
-            pass
+        if changelog or verbose:
+            try:
+                self.changelog.show(int(self.version), verbose)
+            except AttributeError:
+                pass
 
     def check(self, message="Check MD5"):
         '''

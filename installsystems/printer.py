@@ -51,6 +51,10 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
             message = message.replace("#%s#" % c, color[c])
         else:
             message = message.replace("#%s#" % c, "")
+    # convert unicode into str before write
+    # this can cause issue on python 2.6
+    if type(message) == unicode:
+        message = message.encode("utf8")
     # printing
     fd.write("%s%s" % (message, endl))
     if flush:

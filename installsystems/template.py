@@ -3,10 +3,10 @@
 # Started 12/05/2011 by Seblu <seblu@seblu.net>
 
 description = u"""[image]
-name =
-version =
-description =
-author =
+name = %(name)s
+version = %(version)s
+description = %(description)s
+author = %(author)s
 """
 
 changelog = u"""[1]

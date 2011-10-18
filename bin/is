@@ -177,7 +177,8 @@ def c_extract(parser, args):
     '''
     repoman = load_repositories(args)
     img, repo = select_image(args.image, repoman, args.best)
-    img.extract(args.path, payload=args.payload, force=args.force)
+    img.extract(args.path, payload=args.payload, force=args.force,
+                gendescription=args.gendescription)
 
 def c_get(parser, args):
     '''
@@ -398,6 +399,8 @@ p_diff.set_defaults(func=c_diff)
 
 # extract command parser
 p_extract = subparsers.add_parser("extract", help=c_extract.__doc__.lower())
+p_extract.add_argument("-D", action="store_true", dest="gendescription", default=False,
+                       help="generate a description file from metadata")
 p_extract.add_argument("-p", action="store_true", dest="payload", default=False,
                        help="extract payloads")
 p_extract.add_argument("-f", "--force", action="store_true", default=False,

@@ -83,7 +83,11 @@ class SourceImage(Image):
         # create dict of file to create
         examples = {}
         # create description example from template
-        examples["description"] = {"path": "description", "content": istemplate.description}
+        examples["description"] = {"path": "description",
+                                   "content": istemplate.description % {"name": "",
+                                                                        "version": "",
+                                                                        "description": "",
+                                                                        "author": ""}}
         # create changelog example from template
         examples["changelog"] = {"path": "changelog", "content": istemplate.changelog}
         # create parser example from template
@@ -618,7 +622,7 @@ class PackageImage(Image):
                 self.payload[payname].info
                 self.payload[payname].download(directory, force=force)
 
-    def extract(self, directory, force=False, payload=False):
+    def extract(self, directory, force=False, payload=False, gendescription=False):
         '''
         Extract content of the image inside a repository
         '''
@@ -630,6 +634,11 @@ class PackageImage(Image):
         # extract content
         arrow("Extracting image in %s" % directory)
         self._tarball.extractall(directory)
+        # generate description file from description.json
+        if gendescription:
+            arrow("Generating description file in %s" % directory)
+            with open(os.path.join(directory, "description"), "w") as f:
+                f.write(istemplate.description % self._metadata)
         # launch payload extract
         if payload:
             for payname in self.payload:

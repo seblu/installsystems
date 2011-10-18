@@ -84,7 +84,21 @@ class MainConfigFile(ConfigFile):
             if not hasattr(namespace, option):
                 setattr(namespace, option, value)
             elif getattr(namespace, option) == None:
-                setattr(namespace, option, value)
+                # we need to handle boolean differently
+                if option in ("debug", "quiet", "no_cache", "no_color"):
+                    setattr(namespace, option, value.lower() not in ("false", "no", "0"))
+                # we need to handle integer differently
+                elif option in ("timeout"):
+                    try:
+                        n = int(value)
+                    except ValueError:
+                        raise Exception("Invalid %s: Not a number" % option)
+                    setattr(namespace, option, n)
+                # we can handle string more carefuly
+                elif option in ("cache", "repo_filter", "repo_config"):
+                    setattr(namespace, option, value)
+                else:
+                    warn("Invalid option %s in %s, skipped" % (option, self.path))
 
     def _cache_paths(self):
         '''

@@ -38,7 +38,6 @@ def load_repositories(args):
     if args.repo_path is not None:
         repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
                                           path=args.repo_path))
-
     # load repo configs from config
     for repoconf in RepoConfigFile(args.repo_config).repos:
         repoman.register(repoconf)
@@ -302,9 +301,9 @@ p_main.add_argument("-V", "--version", action="version",
                     help="show installsystems version")
 # exclusive group on debug/quiet
 ex_group = p_main.add_mutually_exclusive_group()
-ex_group.add_argument("-d", "--debug", action="store_true",
+ex_group.add_argument("-d", "--debug", action="store_true", default=None,
                       help="active debug mode")
-ex_group.add_argument("-q", "--quiet", action="store_true",
+ex_group.add_argument("-q", "--quiet", action="store_true", default=None,
                       help="active quiet mode")
 # common options
 p_main.add_argument("-c", "--config", default="installsystems",
@@ -317,11 +316,11 @@ p_main.add_argument("-r", "--repo-path", default=None,
                     help="repository path")
 p_main.add_argument("-C", "--cache", default=None,
                     help="path of the repository cache")
-p_main.add_argument("--no-cache", action="store_true", default=False,
+p_main.add_argument("--no-cache", action="store_true", default=None,
                     help="not use persistent db caching")
-p_main.add_argument("--no-color", action="store_true", default=False,
+p_main.add_argument("--no-color", action="store_true", default=None,
                     help="dot not display colored output")
-p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
+p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
                     help="download timeout (default 3)")
 
 # create a subparsers for each command

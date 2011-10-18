@@ -307,28 +307,37 @@ class Repository(object):
         # update last file
         self.update_last()
 
-    def show(self, verbose=False):
+    def show(self, verbose=False, aspath=False):
         '''
         List images in repository
         '''
-        images = self.db.ask("SELECT md5, name, version, date,\
+        if aspath:
+            images = self.db.ask("SELECT md5, name, version  FROM image ORDER BY name, version").fetchall()
+            for (image_md5, image_name, image_version) in images:
+                s = "#light##blue#%s#reset#/#light##yellow#%s#reset#:#light##red#%s#reset#" % (
+                    self.config.name, image_name, image_version)
+                if verbose:
+                    s += " [%s]" % image_md5
+                out(s)
+        else:
+            arrow(self.config.name)
+            images = self.db.ask("SELECT md5, name, version, date,\
                 author, description, size FROM image ORDER BY name, version").fetchall()
-
-        for (image_md5, image_name, image_version, image_date, image_author,
-             image_description, image_size) in images:
-            out("#light##yellow#%s #reset#v%s" % (image_name, image_version))
-            if verbose:
-                out("  #yellow#Date:#reset# %s" % time.ctime(image_date))
-                out("  #yellow#Description:#reset# %s" % image_description)
-                out("  #yellow#Author:#reset# %s" % image_author)
-                out("  #yellow#MD5:#reset# %s" % image_md5)
-                payloads = self.db.ask("SELECT md5, name, size FROM payload\
+            for (image_md5, image_name, image_version, image_date, image_author,
+                 image_description, image_size) in images:
+                out("#light##yellow#%s #reset#v%s" % (image_name, image_version))
+                if verbose:
+                    out("  #yellow#Date:#reset# %s" % time.ctime(image_date))
+                    out("  #yellow#Description:#reset# %s" % image_description)
+                    out("  #yellow#Author:#reset# %s" % image_author)
+                    out("  #yellow#MD5:#reset# %s" % image_md5)
+                    payloads = self.db.ask("SELECT md5, name, size FROM payload\
                                     WHERE image_md5 = ?", (image_md5,)).fetchall()
-                for payload_md5, payload_name, payload_size in payloads:
-                    out("  #light##yellow#Payload:#reset# %s" % payload_name)
-                    out("    #yellow#Size:#reset# %s" % (istools.human_size(payload_size)))
-                    out("    #yellow#MD5:#reset# %s" % payload_md5)
-                out()
+                    for payload_md5, payload_name, payload_size in payloads:
+                        out("  #light##yellow#Payload:#reset# %s" % payload_name)
+                        out("    #yellow#Size:#reset# %s" % (istools.human_size(payload_size)))
+                        out("    #yellow#MD5:#reset# %s" % payload_md5)
+                    out()
 
     def search(self, pattern):
         '''
@@ -621,7 +630,6 @@ class RepositoryManager(object):
         Show repository inside manager
         '''
         for repo in self.repos:
-            repo.config.name
             s = "#light##blue#%s#reset#"% repo.config.name
             if verbose:
                 s += " (%s)" % repo.config.path

@@ -246,8 +246,7 @@ def c_list(parser, args):
             repos = fnmatch.filter(repoman.onlines, o)
             if len(repos) > 0:
                 for reponame in repos:
-                    arrow(reponame)
-                    repoman[reponame].show(verbose=args.verbose)
+                    repoman[reponame].show(verbose=args.verbose, aspath=args.as_path)
             else:
                 img, repo = select_image(o, repoman, args.best)
                 img.show(verbose=args.verbose, changelog=args.changelog)
@@ -452,6 +451,8 @@ p_list.add_argument("-b", "--best", action="store_true", default=False,
                     help="in best mode, image is the most recent in all repositories")
 p_list.add_argument("-c", "--changelog", action="store_true", default=False,
                     help="display image changelog")
+p_list.add_argument("-p", "--as-path", action="store_true", default=False,
+                    help="display repoistory content as path")
 p_list.add_argument("object", nargs="*",
                     help="object syntax is <path|repository|[repository/]image[:version]>")
 p_list.set_defaults(func=c_list, subparser=p_list)

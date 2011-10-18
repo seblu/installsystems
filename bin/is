@@ -247,7 +247,7 @@ def c_list(parser, args):
             if len(repos) > 0:
                 for reponame in repos:
                     arrow(reponame)
-                    repoman[reponame].show(verbose=args.verbose, changelog=args.changelog)
+                    repoman[reponame].show(verbose=args.verbose)
             else:
                 img, repo = select_image(o, repoman, args.best)
                 img.show(verbose=args.verbose, changelog=args.changelog)

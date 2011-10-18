@@ -554,10 +554,7 @@ class PackageImage(Image):
         self._tarball.list(verbose)
         # display changelog
         if changelog or verbose:
-            try:
-                self.changelog.show(int(self.version), verbose)
-            except AttributeError:
-                pass
+            self.changelog.show(int(self.version), verbose)
 
     def check(self, message="Check MD5"):
         '''

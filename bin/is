@@ -270,7 +270,7 @@ def c_new(parser, args):
     '''
     Create a new source image
     '''
-    SourceImage.create(args.path)
+    SourceImage.create(args.path, args.force)
 
 def c_search(parser, args):
     '''
@@ -448,6 +448,8 @@ p_move.set_defaults(func=c_move)
 
 # new command parser
 p_new = subparsers.add_parser("new", help=c_new.__doc__.lower())
+p_new.add_argument("-f", "--force", action="store_true", default=False,
+                   help="overwrite existing source image")
 p_new.add_argument("path", help="new image directory path")
 p_new.set_defaults(func=c_new)
 

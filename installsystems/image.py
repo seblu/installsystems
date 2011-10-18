@@ -58,7 +58,7 @@ class SourceImage(Image):
     '''
 
     @classmethod
-    def create(cls, path):
+    def create(cls, path, force=False):
         '''
         Create an empty source image
         '''
@@ -80,23 +80,28 @@ class SourceImage(Image):
         # create example files
         arrow("Creating examples")
         arrowlevel(1)
+        # create dict of file to create
+        examples = {}
+        # create description example from template
+        examples["description"] = {"path": "description", "content": istemplate.description}
+        # create changelog example from template
+        examples["changelog"] = {"path": "changelog", "content": istemplate.changelog}
+        # create parser example from template
+        examples["parser"] = {"path": "parser/01-parser.py", "content": istemplate.parser}
+        # create setup example from template
+        examples["setup"] = {"path": "setup/01-setup.py", "content": istemplate.setup}
+        for name in examples:
+            try:
+                arrow("Creating %s example" % name)
+                expath = os.path.join(path, examples[name]["path"])
+                if not force and os.path.exists(expath):
+                    warn("%s already exists. Skipping!" % expath)
+                    continue
+                open(expath, "w").write(examples[name]["content"])
+            except Exception as e:
+                raise Exception("Unable to create example file: %s" % e)
         try:
-            # create description example from template
-            arrow("Creating description example")
-            open(os.path.join(path, "description"), "w").write(istemplate.description)
-            # create changelog example from template
-            arrow("Creating description example")
-            open(os.path.join(path, "changelog"), "w").write(istemplate.changelog)
-            # create parser example from template
-            arrow("Creating parser script example")
-            open(os.path.join(parser_path, "01-parser.py"), "w").write(istemplate.parser)
-            # create setup example from template
-            arrow("Creating setup script example")
-            open(os.path.join(setup_path, "01-setup.py"), "w").write(istemplate.setup)
-        except Exception as e:
-            raise Exception("Unable to example file: %s" % e)
-        try:
-            # setting rights on files in setup and parser
+            # setting executable rights on files in setup and parser
             arrow("Setting executable rights on scripts")
             umask = os.umask(0)
             os.umask(umask)

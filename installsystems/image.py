@@ -170,14 +170,14 @@ class SourceImage(Image):
             raise Exception("Unable to create tarball %s: %s" % (self.image_name, e))
         # add .description.json
         arrow("Add description.json")
-        tarball.add_str("description.json", jdescription, tarfile.REGTYPE, 0444)
+        tarball.add_str("description.json", jdescription, tarfile.REGTYPE, 0644)
         # add changelog
         if self.changelog is not None:
             arrow("Add changelog")
-            tarball.add_str("changelog", self.changelog.verbatim, tarfile.REGTYPE, 0444)
+            tarball.add_str("changelog", self.changelog.verbatim, tarfile.REGTYPE, 0644)
         # add .format
         arrow("Add format")
-        tarball.add_str("format", self.format, tarfile.REGTYPE, 0444)
+        tarball.add_str("format", self.format, tarfile.REGTYPE, 0644)
         # add parser scripts
         self._add_scripts(tarball, self.parser_path)
         # add setup scripts

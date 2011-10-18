@@ -517,7 +517,7 @@ class PackageImage(Image):
             img_changelog = self._tarball.get_str("changelog")
             desc["changelog"] = Changelog(img_changelog)
         except KeyError:
-            pass
+            desc["changelog"] = Changelog("")
         except Exception as e:
             warn("Invalid changelog: %s" % e)
         return desc

@@ -100,6 +100,15 @@ def c_cat(parser, args):
     for filename in args.file:
         img.cat(filename)
 
+def c_changelog(parser, args):
+    '''
+    Display image's changelog
+    '''
+    # looks if arguments is a file or image name
+    repoman = load_repositories(args)
+    img, repo = select_image(args.image, repoman, args.best)
+    img.changelog.show(int(img.version), args.verbose)
+
 def c_check(parser, args):
     '''
     Check for unreferenced and missing files inside a repository
@@ -340,6 +349,15 @@ p_cat.add_argument("image", help="<path|[repository/]image[:version]>")
 p_cat.add_argument("file", nargs="+",
                    help="file inside image to cat (globbing allowed)")
 p_cat.set_defaults(func=c_cat)
+
+# changelog command parser
+p_changelog = subparsers.add_parser("changelog", help=c_changelog.__doc__.lower())
+p_changelog.add_argument("-b", "--best", action="store_true", default=False,
+                         help="in best mode, image is the most recent in all repositories")
+p_changelog.add_argument("-v", action="store_true", dest="verbose", default=False,
+                         help="display changelog for all versions")
+p_changelog.add_argument("image", help="<path|[repository/]image[:version]>")
+p_changelog.set_defaults(func=c_changelog)
 
 # check command parser
 p_check = subparsers.add_parser("check", help=c_check.__doc__.lower())

@@ -232,18 +232,27 @@ class Repository(object):
         if not istools.isfile(self.config.path):
             raise Exception("Repository must be local")
         local_files = set(os.listdir(self.config.path))
+        local_files.remove(self.config.dbname)
+        local_files.remove(self.config.lastname)
         db_files = set(self.getallmd5())
-        db_files.add(self.config.dbname)
-        db_files.add( self.config.lastname)
-        # compute missing and unref files list
+        # check missing files
+        arrow("Checking missing files")
         missing_files = db_files - local_files
-        unref_files = local_files - db_files
         if len(missing_files) > 0:
-            arrow("Missing files:")
             out(os.linesep.join(missing_files))
+        # check unreferenced files
+        arrow("Checking unreferenced files")
+        unref_files = local_files - db_files
         if len(unref_files) > 0:
-            arrow("Unreferenced files:")
             out(os.linesep.join(unref_files))
+        # check corruption of local files
+        arrow("Checking corrupted files")
+        for f in local_files:
+            fo = PipeFile(f)
+            fo.consume()
+            fo.close()
+            if fo.md5 != f:
+                out(f)
 
     def clean(self):
         '''

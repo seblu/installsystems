@@ -51,6 +51,34 @@ class Image(object):
         if re.match("^\d+$", buf) is None:
             raise Exception("Invalid image version %s" % buf)
 
+    @staticmethod
+    def compare_versions(v1, v2):
+        '''
+        Compare v1 and v2
+        return > 0 if v1 > v2
+        return < 0 if v2 > v1
+        return = 0 if v1 == v2
+        '''
+        # check v1
+        try:
+            i1 = int(v1)
+        except ValueError:
+            if isinstance(v1, basestring):
+                v1m = re.seach("\d+", v1)
+                if v1m is None:
+                    raise Exception("Invalid version %s" % v1)
+                i1 = int(v1m.group(0))
+        # check v2
+        try:
+            i2 = int(v2)
+        except ValueError:
+            if isinstance(v2, basestring):
+                v2m = re.seach("\d+", v1)
+                if v2m is None:
+                    raise Exception("Invalid version %s" % v2)
+                i2 = int(v2m.group(0))
+        return i1 - i2
+
 
 class SourceImage(Image):
     '''
@@ -84,10 +112,12 @@ class SourceImage(Image):
         examples = {}
         # create description example from template
         examples["description"] = {"path": "description",
-                                   "content": istemplate.description % {"name": "",
-                                                                        "version": "",
-                                                                        "description": "",
-                                                                        "author": ""}}
+                                   "content": istemplate.description % {
+                "name": "",
+                "version": "1",
+                "description": "",
+                "author": "",
+                "min_is_version": installsystems.version}}
         # create changelog example from template
         examples["changelog"] = {"path": "changelog", "content": istemplate.changelog}
         # create parser example from template
@@ -363,8 +393,18 @@ class SourceImage(Image):
             cp.read(descpath)
             for n in ("name","version", "description", "author"):
                 d[n] = cp.get("image", n)
+            # get min image version
+            if cp.has_option("image", "is_min_version"):
+                d["is_min_version"] = cp.get("image", "is_min_version")
+            else:
+                d["is_min_version"] = 0
+            # check image name
             self.check_image_name(d["name"])
+            # check image version
             self.check_image_version(d["version"])
+            # check installsystems min version
+            if self.compare_versions(installsystems.version, d["is_min_version"]) < 0:
+                raise Exception("Minimum Installsystems version not satisfied")
         except Exception as e:
             raise Exception("Bad description: %s" % e)
         return d
@@ -514,6 +554,10 @@ class PackageImage(Image):
             desc.update(json.loads(img_desc))
             self.check_image_name(desc["name"])
             self.check_image_version(desc["version"])
+            # check installsystems min version
+            if "is_min_version" in desc:
+                if self.compare_versions(installsystems.version, desc["is_min_version"]) < 0:
+                    raise Exception("Minimum Installsystems version not satisfied")
         except Exception as e:
             raise Exception("Invalid description: %s" % e)
         # try to load changelog

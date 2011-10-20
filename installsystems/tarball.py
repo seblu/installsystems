@@ -9,7 +9,7 @@ Tarball wrapper
 import os
 import sys
 import time
-import tarfile
+import installsystems.tarfile as tarfile # needed until python2.7
 import StringIO
 import re
 import fnmatch

@@ -13,7 +13,6 @@ import json
 import difflib
 import ConfigParser
 import subprocess
-import tarfile
 import re
 import shutil
 import gzip
@@ -22,6 +21,7 @@ import cStringIO
 import installsystems
 import installsystems.template as istemplate
 import installsystems.tools as istools
+import installsystems.tarfile as tarfile #until python2.7 is default
 from installsystems.printer import *
 from installsystems.tools import PipeFile
 from installsystems.tarball import Tarball

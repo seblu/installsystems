@@ -117,6 +117,12 @@ def c_check(parser, args):
     for reponame in args.repository:
         repoman[reponame].check()
 
+def c_chroot(parser, args):
+    '''
+    Helper to go cleanly inside a chroot
+    '''
+    istools.chroot(args.path, shell=args.shell, mount=not args.no_mount)
+
 def c_clean(parser, args):
     '''
     Remove unreferenced files from repoistory
@@ -365,6 +371,15 @@ p_changelog.set_defaults(func=c_changelog)
 p_check = subparsers.add_parser("check", help=c_check.__doc__.lower())
 p_check.add_argument("repository", nargs="+", help="repositories to check")
 p_check.set_defaults(func=c_check)
+
+# chroot command parser
+p_chroot = subparsers.add_parser("chroot", help=c_chroot.__doc__.lower())
+p_chroot.add_argument("-m", "--no-mount", action="store_true", default=False,
+                      help="disable mouting of /{proc,dev,sys} inside chroot")
+p_chroot.add_argument("-s", "--shell", default="/bin/bash",
+                      help="shell to call inside chroot")
+p_chroot.add_argument("path")
+p_chroot.set_defaults(func=c_chroot)
 
 # clean command parser
 p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())

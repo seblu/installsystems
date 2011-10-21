@@ -13,6 +13,8 @@ import shutil
 import urllib2
 import time
 
+from subprocess import call, check_call, CalledProcessError
+
 from installsystems.progressbar import ProgressBar, Percentage, FileTransferSpeed
 from installsystems.progressbar import Bar, BouncingBar, ETA, UnknownLength
 from installsystems.tarball import Tarball
@@ -327,3 +329,55 @@ def human_size(num):
             return "%3.1f%s" % (num, x)
         num /= 1024.0
     return "%3.1f%s" % (num, x)
+
+def chroot(path, shell="/bin/bash", mount=True):
+    '''
+    Chroot inside a directory and call shell
+    if mount is true, mount /{proc,dev,sys} inside the chroot
+    '''
+    # try to guest distro
+    if os.path.exists(os.path.join(path, "etc/debian_version")):
+        distro="debian"
+    elif os.path.exists(os.path.join(path, "etc/arch-release")):
+        distro="archlinux"
+    else:
+        distro=None
+    # try to mount /proc /sys /dev
+    if mount:
+        mps = ("proc", "sys", "dev", "dev/pts")
+        arrow("Mouting filesystems")
+        for mp in mps:
+            origin =  "/%s" % mp
+            target = os.path.join(path, mp)
+            if os.path.ismount(origin) and os.path.isdir(target):
+                arrow("%s -> %s" % (origin, target), 1)
+                try:
+                    check_call(["mount",  "--bind", origin, target], close_fds=True)
+                except CalledProcessError as e:
+                    warn("Mount failed: %s.\n" % e)
+    # in case of debian disable policy
+    if distro == "debian":
+        arrow("Creating debian chroot housekeepers")
+        # create a chroot header
+        try: open(os.path.join(path, "etc/debian_chroot"), "w").write("CHROOT")
+        except: pass
+        # fake policy-d
+        try: open(os.path.join(path, "usr/sbin/policy-rc.d"), "w").write("#!/bin/bash\nexit 42\n")
+        except: pass
+    # chrooting
+    arrow("Chrooting inside %s and running %s" % (path, shell))
+    call(["chroot", path, shell], close_fds=True)
+    # cleaning debian stuff
+    if distro == "debian":
+        arrow("Removing debian chroot housekeepers")
+        for f in ("etc/debian_chroot", "usr/sbin/policy-rc.d"):
+            try: os.unlink(os.path.join(path, f))
+            except: pass
+    # unmounting
+    if mount:
+        arrow("Unmouting filesystems")
+        for mp in reversed(mps):
+            target = os.path.join(path, mp)
+            if os.path.ismount(target):
+                arrow(target, 1)
+                call(["umount", target], close_fds=True)

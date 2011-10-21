@@ -7,7 +7,7 @@ name = %(name)s
 version = %(version)s
 description = %(description)s
 author = %(author)s
-min_is_version = %(min_is_version)s
+is_min_version = %(is_min_version)s
 """
 
 changelog = u"""[1]

@@ -117,7 +117,7 @@ class SourceImage(Image):
                 "version": "1",
                 "description": "",
                 "author": "",
-                "min_is_version": installsystems.version}}
+                "is_min_version": installsystems.version}}
         # create changelog example from template
         examples["changelog"] = {"path": "changelog", "content": istemplate.changelog}
         # create parser example from template

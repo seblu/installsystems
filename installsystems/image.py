@@ -64,7 +64,7 @@ class Image(object):
             i1 = int(v1)
         except ValueError:
             if isinstance(v1, basestring):
-                v1m = re.seach("\d+", v1)
+                v1m = re.search("\d+", v1)
                 if v1m is None:
                     raise Exception("Invalid version %s" % v1)
                 i1 = int(v1m.group(0))
@@ -73,7 +73,7 @@ class Image(object):
             i2 = int(v2)
         except ValueError:
             if isinstance(v2, basestring):
-                v2m = re.seach("\d+", v1)
+                v2m = re.search("\d+", v1)
                 if v2m is None:
                     raise Exception("Invalid version %s" % v2)
                 i2 = int(v2m.group(0))

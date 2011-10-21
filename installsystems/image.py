@@ -371,7 +371,7 @@ class SourceImage(Image):
         arrow("Timestamping")
         desc["date"] = int(time.time())
         # watermark
-        desc["isversion"] = installsystems.version
+        desc["is_build_version"] = installsystems.version
         # append payload infos
         arrow("Checksumming")
         desc["payload"] = {}
@@ -579,11 +579,10 @@ class PackageImage(Image):
         out('#yellow#Date:#reset# %s' % time.ctime(self.date))
         out('#yellow#Description:#reset# %s' % self.description)
         out('#yellow#Author:#reset# %s' % self.author)
-        # field isversion is new in version 5. I can be absent.
-        try:
-            out('#yellow#IS version:#reset# %s' % self.isversion)
-        except AttributeError:
-            pass
+        if verbose:
+            # field is_build_version is new in version 5. I can be absent.
+            try: out('#yellow#IS build version:#reset# %s' % self.is_build_version)
+            except AttributeError: pass
         out('#yellow#MD5:#reset# %s' % self.md5)
         if verbose:
             payloads = self.payload

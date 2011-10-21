@@ -512,7 +512,7 @@ class RepositoryManager(object):
                 return True
         return False
 
-    def register(self, config):
+    def register(self, config, temp=False):
         '''
         Register a repository from its config
         '''
@@ -531,16 +531,16 @@ class RepositoryManager(object):
         # path is remote, we need to create a cache
         else:
             debug("Registering cached repository %s (%s)" % (config.path, config.name))
-            self.repos.append(self._cachify(config))
+            self.repos.append(self._cachify(config, temp))
 
 
-    def _cachify(self, config):
+    def _cachify(self, config, temp=False):
         '''
         Return a config of a cached repository from an orignal config file
         '''
         try:
             # Ensure destination file exists
-            if config.name is None or self.cache_path is None:
+            if temp is True or self.cache_path is None:
                 # this is a forced temporary repository or without name repo
                 tempfd, filedest = tempfile.mkstemp()
                 os.close(tempfd)

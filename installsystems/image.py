@@ -583,6 +583,9 @@ class PackageImage(Image):
             # field is_build_version is new in version 5. I can be absent.
             try: out('#yellow#IS build version:#reset# %s' % self.is_build_version)
             except AttributeError: pass
+            # field is_min_version is new in version 5. I can be absent.
+            try: out('#yellow#IS minimum version:#reset# %s' % self.is_min_version)
+            except AttributeError: pass
         out('#yellow#MD5:#reset# %s' % self.md5)
         if verbose:
             payloads = self.payload

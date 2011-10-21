@@ -1048,19 +1048,22 @@ class Changelog(dict):
         '''
         Show changelog for a given version or all
         '''
+        out('#light##yellow#Changelog:#reset#')
         # if no version take the hightest
         if version is None:
             version = max(self)
-        # in non verbose mode display only asked version if exists
-        if not verbose and version not in self:
-            return
-        out('#light##yellow#Changelog:#reset#')
         # display asked version
-        out('  #yellow#Version:#reset# %s' % version)
-        for line in self[version]:
-            out("    %s" % line)
+        if version in self:
+            self._show_version(version)
         # display all version in verbose mode
         if verbose:
             for ver in sorted((k for k in self if k < version), reverse=True):
-                out('  #yellow#Version:#reset# %s' % ver)
-                os.linesep.join(self[ver])
+                self._show_version(ver)
+
+    def _show_version(self, version):
+        '''
+        Display a version content
+        '''
+        out('  #yellow#Version:#reset# %s' % version)
+        for line in self[version]:
+            out("    %s" % line)

@@ -204,6 +204,15 @@ def c_help(parser, args):
     else:
         args.subparser.choices[args.command].print_help()
 
+def c_info(parser, args):
+    '''
+    Get info about an image
+    '''
+    repoman = load_repositories(args)
+    for image in args.image:
+        img, repo = select_image(image, repoman, args.best)
+        img.show(verbose=args.verbose, changelog=args.changelog)
+
 def c_init(parser, args):
     '''
     Create an empty repository
@@ -444,6 +453,18 @@ p_get.set_defaults(func=c_get)
 p_help = subparsers.add_parser("help", help=c_help.__doc__.lower())
 p_help.add_argument("command", nargs="?", help="command name")
 p_help.set_defaults(func=c_help, subparser=subparsers)
+
+# info command parser
+p_info = subparsers.add_parser("info", help=c_info.__doc__.lower())
+p_info.add_argument("-v", action="store_true", dest="verbose", default=False,
+                    help="verbose output")
+p_info.add_argument("-c", "--changelog", action="store_true", default=False,
+                    help="display image changelog")
+p_info.add_argument("-b", "--best", action="store_true", default=False,
+                    help="in best mode, image is the most recent in all repositories")
+p_info.add_argument("image", nargs="+",
+                    help="image syntax is <path|[repository/]image[:version]>")
+p_info.set_defaults(func=c_info)
 
 # init command parser
 p_init = subparsers.add_parser("init", help=c_init.__doc__.lower())

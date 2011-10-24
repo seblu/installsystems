@@ -111,7 +111,7 @@ def c_changelog(parser, args):
 
 def c_check(parser, args):
     '''
-    Check for unreferenced and missing files inside a repository
+    Sanity checks on repositories
     '''
     repoman = load_repositories(args)
     for reponame in args.repository:

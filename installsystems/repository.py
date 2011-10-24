@@ -135,16 +135,16 @@ class Repository(object):
         except Exception as e:
             raise Exception("Update last file failed: %s" % e)
 
-    def last(self):
+    def last(self, name):
         '''
-        Return the last value
+        Return last version of name in repo or -1 if not found
         '''
-        try:
-            last_path = os.path.join(config.path, config.lastname)
-            return int(open(last_path, "r").read().rstrip())
-        except Exception as e:
-            raise Exception("Read last file failed: %s" % e)
-        return 0
+        r = self.db.ask("SELECT version FROM image WHERE name = ? ORDER BY version DESC LIMIT 1", (name,)).fetchone()
+        # no row => no way
+        if r is None:
+            return -1
+        # return last
+        return r[0]
 
     def add(self, image, delete=False):
         '''
@@ -432,17 +432,6 @@ class Repository(object):
         b = self.db.ask("SELECT md5 FROM payload WHERE image_md5 = ?",
                         (a[0],)).fetchall()
         return [ a[0] ] + [ x[0] for x in b ]
-
-    def last(self, name):
-        '''
-        Return last version of name in repo or -1 if not found
-        '''
-        r = self.db.ask("SELECT version FROM image WHERE name = ? ORDER BY version DESC LIMIT 1", (name,)).fetchone()
-        # no row => no way
-        if r is None:
-            return -1
-        # return last
-        return r[0]
 
 
 class RepositoryManager(object):

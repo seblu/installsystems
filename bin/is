@@ -490,7 +490,7 @@ p_list.add_argument("-b", "--best", action="store_true", default=False,
 p_list.add_argument("-c", "--changelog", action="store_true", default=False,
                     help="display image changelog")
 p_list.add_argument("-p", "--as-path", action="store_true", default=False,
-                    help="display repoistory content as path")
+                    help="display repository content as path")
 p_list.add_argument("object", nargs="*",
                     help="object syntax is <path|repository|[repository/]image[:version]>")
 p_list.set_defaults(func=c_list, subparser=p_list)

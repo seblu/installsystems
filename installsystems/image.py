@@ -554,10 +554,12 @@ class PackageImage(Image):
             desc.update(json.loads(img_desc))
             self.check_image_name(desc["name"])
             self.check_image_version(desc["version"])
+            # add is_min_version if not present
+            if "is_min_version" not in desc:
+                desc["is_min_version"] = 0
             # check installsystems min version
-            if "is_min_version" in desc:
-                if self.compare_versions(installsystems.version, desc["is_min_version"]) < 0:
-                    raise Exception("Minimum Installsystems version not satisfied")
+            if self.compare_versions(installsystems.version, desc["is_min_version"]) < 0:
+                raise Exception("Minimum Installsystems version not satisfied")
         except Exception as e:
             raise Exception("Invalid description: %s" % e)
         # try to load changelog

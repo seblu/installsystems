@@ -2,12 +2,12 @@
 
 # list local repositories
 _repo() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is list | grep -E '^.[a-Z]+$')"  -- "$cur"))
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list | grep -v '\[offline\]')"  -- "$cur"))
 }
 
 # list all images available in any online repositories
 _image() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color list -p '*')" -- "$cur") $(compgen -f -X "!*.isimage" -- "$cur"))
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list -p '*')" -- "$cur") $(compgen -f -X "!*.isimage" -- "$cur"))
 }
 
 # generate completion from optional arguments

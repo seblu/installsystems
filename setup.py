@@ -20,6 +20,7 @@ setup(
     data_files=(
         ('/etc/installsystems/', ('samples/repository.conf',
                                   'samples/installsystems.conf')),
+        ('/etc/bash_completion.d/', ('completion/bash/is',)),
         ),
     classifiers=[
         'Operating System :: Unix',

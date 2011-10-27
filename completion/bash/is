@@ -1,0 +1,134 @@
+# bash completion for installsytems
+
+# list local repositories
+_repo() {
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is list | grep -E '^.[a-Z]+$')"  -- "$cur"))
+}
+
+# list all images available in any online repositories
+_image() {
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color list -p '*')" -- "$cur") $(compgen -f -X "!*.isimage" -- "$cur"))
+}
+
+# generate completion from optional arguments
+_opt() {
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$*" -- "${cur}"))
+}
+
+_is() {
+    local cur prev cword
+    local -a cmds opts
+    COMPREPLY=()
+    COMP_WORDBREAKS="${COMP_WORDBREAKS//:}"
+    _get_comp_words_by_ref cur prev cword
+    _get_first_arg
+    cmds=('add' 'build' 'cat' 'changelog' 'check' 'chroot' 'clean' 'copy' 'del'
+	'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'move' 'new' 'search' 'version' 'diff')
+    opts=('-h'  '--help'
+	'-V'  '--version'
+	'-d'  '--debug'
+	'-q'  '--quiet'
+	'-R'  '--repo-config'
+	'-f'  '--repo-filter'
+	'-r'  '--repo-config'
+	'-c'  '--config'
+	'-C'  '--cache'
+	'-t'  '--timeout'
+	'--no-cache'  '--no-color')
+
+    case "$arg" in
+	'')
+	    [[ "$cur" == -* ]] && _opt "${opts[@]}" || _opt "${cmds[@]}"
+	    ;;
+	add)
+	    [[ "$cur" == -* ]] && _opt "-h --help -p --preserve" && return 0
+	    (( cword == 2 )) && _repo
+            (( cword > 2 )) && _filedir '?(u)isimage'
+            ;;
+	build)
+            [[ "$cur" == -* ]] && _opt '-h --help -f --force -c --no-check' && return 0
+            (( cword == 2 )) && _filedir -d
+            ;;
+	cat)
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+            (( cword == 2 )) && _image
+            ;;
+        changelog)
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best -v --all-version' && return 0
+            _image
+            ;;
+        check)
+	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+            _repo
+            ;;
+	chroot)
+            [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount -s --shell' && return 0
+            _filedir -d
+            ;;
+        clean)
+	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+            _repo
+            ;;
+	copy)
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+	    (( cword == 2 )) && _image
+	    (( cword > 2 )) && _image && _repo
+            ;;
+	del)
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
+            _image
+            ;;
+	diff)
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+            (( cword < 4 )) && c_args=$(images)
+            ;;
+	extract)
+            [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p -D' && return 0
+	    (( cword == 2 )) && _image
+            (( cword == 3 )) && _filedir -d
+            ;;
+	get)
+            [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p' && return 0
+            _image
+            ;;
+	help)
+	    (( cword == 2 )) && _opt "${cmds[@]}"
+            ;;
+	info)
+            [[ "$cur" == -* ]] && _opt '-v -c --changelog -b --best' && return 0
+            _image
+            ;;
+	init)
+	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+	    _filedir -d
+	    ;;
+	install)
+            [[ "$cur" == -* ]] && _opt '-b --best' && return 0
+            (( cword == 2 )) && _image
+            ;;
+	list)
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best -v -c --changelog -p --as-path' && return 0
+	    _repo
+	    _image
+            ;;
+	move)
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
+            _image
+            ;;
+	new)
+	    [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0
+            _filedir -d
+            ;;
+	search)
+	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+            ;;
+	version)
+	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+	    ;;
+        esac
+    return 0
+}
+
+complete -F _is is
+
+# ex: ts=4 sw=4 et filetype=sh

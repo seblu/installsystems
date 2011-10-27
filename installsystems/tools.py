@@ -15,6 +15,7 @@ import time
 
 from subprocess import call, check_call, CalledProcessError
 
+import installsystems
 from installsystems.progressbar import ProgressBar, Percentage, FileTransferSpeed
 from installsystems.progressbar import Bar, BouncingBar, ETA, UnknownLength
 from installsystems.tarball import Tarball
@@ -216,6 +217,8 @@ class PipeFile(object):
         '''
         Set this property to true enable progress bar
         '''
+        if installsystems.quiet is True:
+            return
         if val == True and not hasattr(self, "_progressbar_started"):
             self._progressbar_started = True
             self._progressbar.start()

@@ -633,7 +633,7 @@ class PackageImage(Image):
             arrow(filename)
             out(self._tarball.get_str(filename))
 
-    def download(self, directory, force=False, payload=False):
+    def download(self, directory, force=False, image=True, payload=False):
         '''
         Download image in directory
         Doesn't use in memory image because we cannot access it
@@ -641,26 +641,27 @@ class PackageImage(Image):
         '''
         # check if destination exists
         directory = os.path.abspath(directory)
-        dest = os.path.join(directory, self.filename)
-        if not force and os.path.exists(dest):
-            raise Exception("Image destination already exists: %s" % dest)
-        # some display
-        arrow("Downloading image in %s" % directory)
-        debug("Downloading %s from %s" % (self.id, self.path))
-        # open source
-        fs = PipeFile(self.path, progressbar=True)
-        # check if announced file size is good
-        if fs.size is not None and self.size != fs.size:
-            raise Exception("Downloading image %s failed: Invalid announced size" % self.name)
-        # open destination
-        fd = open(self.filename, "wb")
-        fs.consume(fd)
-        fs.close()
-        fd.close()
-        if self.size != fs.consumed_size:
-            raise Exception("Download image %s failed: Invalid size" % self.name)
-        if self.md5 != fs.md5:
-            raise Exception("Download image %s failed: Invalid MD5" % self.name)
+        if image:
+            dest = os.path.join(directory, self.filename)
+            if not force and os.path.exists(dest):
+                raise Exception("Image destination already exists: %s" % dest)
+            # some display
+            arrow("Downloading image in %s" % directory)
+            debug("Downloading %s from %s" % (self.id, self.path))
+            # open source
+            fs = PipeFile(self.path, progressbar=True)
+            # check if announced file size is good
+            if fs.size is not None and self.size != fs.size:
+                raise Exception("Downloading image %s failed: Invalid announced size" % self.name)
+            # open destination
+            fd = open(self.filename, "wb")
+            fs.consume(fd)
+            fs.close()
+            fd.close()
+            if self.size != fs.consumed_size:
+                raise Exception("Download image %s failed: Invalid size" % self.name)
+            if self.md5 != fs.md5:
+                raise Exception("Download image %s failed: Invalid MD5" % self.name)
         if payload:
             for payname in self.payload:
                 arrow("Downloading payload %s in %s" % (payname, directory))

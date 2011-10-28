@@ -193,7 +193,7 @@ def c_get(parser, args):
     repoman = load_repositories(args)
     for image in args.image:
         img, repo = select_image(image, repoman, args.best)
-        img.download(".", payload=args.payload, force=args.force)
+        img.download(".", image=not args.noimage, payload=args.payload, force=args.force)
 
 def c_help(parser, args):
     '''
@@ -441,6 +441,8 @@ p_extract.set_defaults(func=c_extract)
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
 p_get.add_argument("-p", action="store_true", dest="payload", default=False,
                    help="get payloads")
+p_get.add_argument("-I", action="store_true", dest="noimage", default=False,
+                   help="do not get image")
 p_get.add_argument("-f", "--force", action="store_true", default=False,
                    help="overwrite existing destinations")
 p_get.add_argument("-b", "--best", action="store_true", default=False,

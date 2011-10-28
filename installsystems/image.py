@@ -325,7 +325,7 @@ class SourceImage(Image):
         ti.uname = ti.gname = "root"
         tarball.addfile(ti)
         # adding each file
-        for fi in os.listdir(directory):
+        for fi in sorted(os.listdir(directory)):
             fp = os.path.join(directory, fi)
             # check name
             if not re.match("\d+-.*\.py$", fi):
@@ -348,7 +348,7 @@ class SourceImage(Image):
         arrow("Checking %s scripts" % basedirectory)
         arrowlevel(1)
         # checking each file
-        for fi in os.listdir(directory):
+        for fi in sorted(os.listdir(directory)):
             # check name
             if not re.match("\d+-.*\.py$", fi):
                 debug("%s skipped: invalid name" % fi)

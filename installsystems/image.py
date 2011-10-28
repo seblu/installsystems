@@ -331,6 +331,10 @@ class SourceImage(Image):
             if not re.match("\d+-.*\.py$", fi):
                 debug("%s skipped: invalid name" % fi)
                 continue
+            # check execution bit
+            if not os.access(fp, os.X_OK):
+                debug("%s skipped: not executable" % fi)
+                continue
             # adding file
             ti = tarball.gettarinfo(fp, arcname=os.path.join(basedirectory, fi))
             ti.mode = 0755
@@ -349,12 +353,17 @@ class SourceImage(Image):
         arrowlevel(1)
         # checking each file
         for fi in sorted(os.listdir(directory)):
+            fp = os.path.join(directory, fi)
             # check name
             if not re.match("\d+-.*\.py$", fi):
                 debug("%s skipped: invalid name" % fi)
                 continue
+            # check execution bit
+            if not os.access(fp, os.X_OK):
+                debug("%s skipped: not executable" % fi)
+                continue
             # compiling file
-            fs = open(os.path.join(directory, fi), "rb").read()
+            fs = open(fp, "rb").read()
             compile(fs, fi, mode="exec")
             arrow(fi)
         arrowlevel(-1)

@@ -163,7 +163,7 @@ def c_del(parser, args):
                                                              repo.config.name))
             if not confirm():
                 raise Exception("Aborted!")
-        repo.delete(img.name, img.version)
+        repo.delete(img.name, img.version, payloads=not args.preserve)
 
 def c_diff(parser, args):
     '''
@@ -412,6 +412,8 @@ p_del.add_argument("-b", "--best", action="store_true", default=False,
                    help="in best mode, image is the most recent in all repositories")
 p_del.add_argument("-f", "--force", action="store_true", default=False,
                    help="delete image without confirmation")
+p_del.add_argument("-p", "--preserve", action="store_true", default=False,
+                   help="preserve payloads. doesn't remove it from repository")
 p_del.set_defaults(func=c_del)
 
 # diff command parser

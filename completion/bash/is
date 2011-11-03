@@ -79,7 +79,7 @@ _is() {
 	    (( args > 2 )) && _image && _repo
             ;;
 	del)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force -p --preserve' && return 0
             _image
             ;;
 	diff)

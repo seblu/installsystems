@@ -287,7 +287,7 @@ class Repository(object):
         else:
             arrow("Nothing to clean")
 
-    def delete(self, name, version):
+    def delete(self, name, version, payloads=True):
         '''
         Delete an image from repository
         '''
@@ -307,8 +307,11 @@ class Repository(object):
         self.db.ask("DELETE FROM image WHERE md5 = ?",
                         (md5s[0],)).fetchone()
         self.db.commit()
-        # Removing script image
+        # Removing files
         arrow("Removing files from pool")
+        # if asked don't remove payloads
+        if not payloads:
+            md5s = [ md5s[0] ]
         arrowlevel(1)
         for md5 in md5s:
             self._remove_file(md5)

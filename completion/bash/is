@@ -42,16 +42,19 @@ _is() {
 	    ;;
 	add)
 	    [[ "$cur" == -* ]] && _opt "-h --help -p --preserve" && return 0
-	    (( cword == 2 )) && _repo
-            (( cword > 2 )) && _filedir '?(u)isimage'
+	    _count_args
+	    (( args == 2 )) && _repo
+            (( args > 2 )) && _filedir '?(u)isimage'
             ;;
 	build)
             [[ "$cur" == -* ]] && _opt '-h --help -f --force -c --no-check' && return 0
-            (( cword == 2 )) && _filedir -d
+	    _count_args
+            (( args == 2 )) && _filedir -d
             ;;
 	cat)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
-            (( cword == 2 )) && _image
+	    _count_args
+            (( args == 2 )) && _image
             ;;
         changelog)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best -v --all-version' && return 0
@@ -71,8 +74,9 @@ _is() {
             ;;
 	copy)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
-	    (( cword == 2 )) && _image
-	    (( cword > 2 )) && _image && _repo
+	    _count_args
+	    (( args == 2 )) && _image
+	    (( args > 2 )) && _image && _repo
             ;;
 	del)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
@@ -80,19 +84,22 @@ _is() {
             ;;
 	diff)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
-            (( cword < 4 )) && c_args=$(images)
+	    _count_args
+            (( args < 4 )) && c_args=$(images)
             ;;
 	extract)
             [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p -D' && return 0
-	    (( cword == 2 )) && _image
-            (( cword == 3 )) && _filedir -d
+	    _count_args
+	    (( args == 2 )) && _image
+            (( args == 3 )) && _filedir -d
             ;;
 	get)
             [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p' && return 0
             _image
             ;;
 	help)
-	    (( cword == 2 )) && _opt "${cmds[@]}"
+	    _count_args
+	    (( args == 2 )) && _opt "${cmds[@]}"
             ;;
 	info)
             [[ "$cur" == -* ]] && _opt '-v -c --changelog -b --best' && return 0
@@ -104,7 +111,8 @@ _is() {
 	    ;;
 	install)
             [[ "$cur" == -* ]] && _opt '-b --best' && return 0
-            (( cword == 2 )) && _image
+	    _count_args
+            (( args == 2 )) && _image
             ;;
 	list)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best -v -c --changelog -p --as-path' && return 0

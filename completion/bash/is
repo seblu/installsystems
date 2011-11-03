@@ -113,6 +113,7 @@ _is() {
             [[ "$cur" == -* ]] && _opt '-b --best' && return 0
 	    _count_args
             (( args == 2 )) && _image
+	    (( args > 2 )) && _filedir
             ;;
 	list)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best -v -c --changelog -p --as-path' && return 0

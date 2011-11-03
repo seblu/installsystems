@@ -356,15 +356,15 @@ class SourceImage(Image):
             fp = os.path.join(directory, fi)
             # check name
             if not re.match("\d+-.*\.py$", fi):
-                debug("%s skipped: invalid name" % fi)
+                debug("%s skipped: invalid name" % fp)
                 continue
             # check execution bit
             if not os.access(fp, os.X_OK):
-                debug("%s skipped: not executable" % fi)
+                debug("%s skipped: not executable" % fp)
                 continue
             # compiling file
-            fs = open(fp, "rb").read()
-            compile(fs, fi, mode="exec")
+            fs = open(fp, "r").read()
+            compile(fs, fp, mode="exec")
             arrow(fi)
         arrowlevel(-1)
 

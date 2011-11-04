@@ -333,18 +333,21 @@ def human_size(num):
         num /= 1024.0
     return "%3.1f%s" % (num, x)
 
-def chroot(path, shell="/bin/bash", mount=True):
+def guess_distro(path):
     '''
-    Chroot inside a directory and call shell
-    if mount is true, mount /{proc,dev,sys} inside the chroot
+    Try to detect which distro is inside a directory
     '''
-    # try to guest distro
     if os.path.exists(os.path.join(path, "etc/debian_version")):
-        distro="debian"
+        return "debian"
     elif os.path.exists(os.path.join(path, "etc/arch-release")):
-        distro="archlinux"
-    else:
-        distro=None
+        return "archlinux"
+    return None
+
+def prepare_chroot(path, mount=True):
+    '''
+    Preate a chroot environment by mouting /{proc,sys,dev,dev/pts}
+    and try to guess dest os to avoid daemon lauching
+    '''
     # try to mount /proc /sys /dev
     if mount:
         mps = ("proc", "sys", "dev", "dev/pts")
@@ -358,6 +361,8 @@ def chroot(path, shell="/bin/bash", mount=True):
                     check_call(["mount",  "--bind", origin, target], close_fds=True)
                 except CalledProcessError as e:
                     warn("Mount failed: %s.\n" % e)
+    # try to guest distro
+    distro = guess_distro(path)
     # in case of debian disable policy
     if distro == "debian":
         arrow("Creating debian chroot housekeepers")
@@ -365,11 +370,16 @@ def chroot(path, shell="/bin/bash", mount=True):
         try: open(os.path.join(path, "etc/debian_chroot"), "w").write("CHROOT")
         except: pass
         # fake policy-d
-        try: open(os.path.join(path, "usr/sbin/policy-rc.d"), "w").write("#!/bin/bash\nexit 42\n")
+        policy_path = os.path.join(path, "usr/sbin/policy-rc.d")
+        try: open(policy_path, "w").write("#!/bin/bash\nexit 42\n")
         except: pass
-    # chrooting
-    arrow("Chrooting inside %s and running %s" % (path, shell))
-    call(["chroot", path, shell], close_fds=True)
+
+def unprepare_chroot(path, mount=True):
+    '''
+    Rollback preparation of a chroot environment inside a directory
+    '''
+    # try to guest distro
+    distro = guess_distro(path)
     # cleaning debian stuff
     if distro == "debian":
         arrow("Removing debian chroot housekeepers")
@@ -378,9 +388,23 @@ def chroot(path, shell="/bin/bash", mount=True):
             except: pass
     # unmounting
     if mount:
+        mps = ("proc", "sys", "dev", "dev/pts")
         arrow("Unmouting filesystems")
         for mp in reversed(mps):
             target = os.path.join(path, mp)
             if os.path.ismount(target):
                 arrow(target, 1)
                 call(["umount", target], close_fds=True)
+
+def chroot(path, shell="/bin/bash", mount=True):
+    '''
+    Chroot inside a directory and call shell
+    if mount is true, mount /{proc,dev,sys} inside the chroot
+    '''
+    # prepare to chroot
+    prepare_chroot(path, mount)
+    # chrooting
+    arrow("Chrooting inside %s and running %s" % (path, shell))
+    call(["chroot", path, shell], close_fds=True)
+    # revert preparation of chroot
+    unprepare_chroot(path, mount)

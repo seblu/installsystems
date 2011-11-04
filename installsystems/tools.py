@@ -361,6 +361,12 @@ def prepare_chroot(path, mount=True):
                     check_call(["mount",  "--bind", origin, target], close_fds=True)
                 except CalledProcessError as e:
                     warn("Mount failed: %s.\n" % e)
+    # trick resolv.conf
+    if os.path.exists("/etc/resolv.conf"):
+        resolv_path = os.path.join(path, "etc/resolv.conf")
+        if os.path.exists(resolv_path):
+            os.rename(resolv_path, "%s.isbackup" % resolv_path)
+        shutil.copy("/etc/resolv.conf", resolv_path)
     # try to guest distro
     distro = guess_distro(path)
     # in case of debian disable policy
@@ -380,6 +386,14 @@ def unprepare_chroot(path, mount=True):
     '''
     Rollback preparation of a chroot environment inside a directory
     '''
+    # untrick resolv.conf
+    if os.path.exists("/etc/resolv.conf"):
+        resolv_path = os.path.join(path, "etc/resolv.conf")
+        if os.path.exists(resolv_path):
+            os.unlink(resolv_path)
+        if os.path.exists("%s.isbackup" % resolv_path):
+            os.rename("%s.isbackup" % resolv_path, resolv_path)
+
     # try to guest distro
     distro = guess_distro(path)
     # cleaning debian stuff

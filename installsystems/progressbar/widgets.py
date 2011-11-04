@@ -140,6 +140,27 @@ class FileTransferSpeed(Widget):
 
         return self.format % (scaled, self.prefixes[power], self.unit)
 
+class FileTransferSize(Widget):
+    'Widget for showing the transfer size (useful for file transfers).'
+
+    format = '%6.2f %s%s'
+    prefixes = ' kMGTPEZY'
+    __slots__ = ('unit', 'format')
+
+    def __init__(self, unit='B'):
+        self.unit = unit
+
+    def update(self, pbar):
+        'Updates the widget with the current SI prefixed speed.'
+
+        if pbar.currval < 2e-6: # =~ 0
+            scaled = power = 0
+        else:
+            power = int(math.log(pbar.currval, 1000))
+            scaled = pbar.currval / 1000.**power
+
+        return self.format % (scaled, self.prefixes[power], self.unit)
+
 
 class AnimatedMarker(Widget):
     '''An animated marker for the progress bar which defaults to appear as if

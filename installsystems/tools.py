@@ -16,7 +16,8 @@ import time
 from subprocess import call, check_call, CalledProcessError
 
 import installsystems
-from installsystems.progressbar import ProgressBar, Percentage, FileTransferSpeed
+from installsystems.progressbar import ProgressBar, Percentage
+from installsystems.progressbar import FileTransferSpeed, FileTransferSize
 from installsystems.progressbar import Bar, BouncingBar, ETA, UnknownLength
 from installsystems.tarball import Tarball
 from installsystems.printer import *
@@ -72,7 +73,7 @@ class PipeFile(object):
         # init progress bar
         # we use 0 because a null file is cannot show a progression during write
         if self.size == 0:
-            widget = [ BouncingBar(), " ", FileTransferSpeed() ]
+            widget = [ FileTransferSize(), " ", BouncingBar(), " ", FileTransferSpeed() ]
             maxval = UnknownLength
         else:
             widget = [ Percentage(), " ", Bar(), " ", FileTransferSpeed(), " ", ETA() ]

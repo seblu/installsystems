@@ -375,9 +375,9 @@ def prepare_chroot(path, mount=True):
         # create a chroot header
         try: open(os.path.join(path, "etc/debian_chroot"), "w").write("CHROOT")
         except: pass
-        # fake policy-rc.d
+        # fake policy-rc.d. It must exit 101, it's an expected exitcode.
         policy_path = os.path.join(path, "usr/sbin/policy-rc.d")
-        try: open(policy_path, "w").write("#!/bin/bash\nexit 42\n")
+        try: open(policy_path, "w").write("#!/bin/bash\nexit 101\n")
         except: pass
         # policy-rc.d needs to be executable
         chrights(policy_path, mode=0755)

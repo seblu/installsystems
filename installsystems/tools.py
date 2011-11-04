@@ -369,10 +369,12 @@ def prepare_chroot(path, mount=True):
         # create a chroot header
         try: open(os.path.join(path, "etc/debian_chroot"), "w").write("CHROOT")
         except: pass
-        # fake policy-d
+        # fake policy-rc.d
         policy_path = os.path.join(path, "usr/sbin/policy-rc.d")
         try: open(policy_path, "w").write("#!/bin/bash\nexit 42\n")
         except: pass
+        # policy-rc.d needs to be executable
+        chrights(policy_path, mode=0755)
 
 def unprepare_chroot(path, mount=True):
     '''

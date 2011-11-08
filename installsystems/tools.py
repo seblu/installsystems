@@ -363,11 +363,16 @@ def prepare_chroot(path, mount=True):
                 except CalledProcessError as e:
                     warn("Mount failed: %s.\n" % e)
     # trick resolv.conf
-    if os.path.exists("/etc/resolv.conf"):
-        resolv_path = os.path.join(path, "etc/resolv.conf")
-        if os.path.exists(resolv_path):
-            os.rename(resolv_path, "%s.isbackup" % resolv_path)
-        shutil.copy("/etc/resolv.conf", resolv_path)
+    try:
+        if os.path.exists("/etc/resolv.conf"):
+            resolv_path = os.path.join(path, "etc/resolv.conf")
+            if os.path.exists(resolv_path):
+                os.rename(resolv_path, "%s.isbackup" % resolv_path)
+            if not os.path.exists(os.path.dirname(resolv_path)):
+                os.makedirs(os.path.dirname(resolv_path))
+            shutil.copy("/etc/resolv.conf", resolv_path)
+    except Exception as e:
+        warn("resolv.conf tricks fail: %s" % e)
     # try to guest distro
     distro = guess_distro(path)
     # in case of debian disable policy

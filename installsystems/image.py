@@ -457,14 +457,14 @@ class PackageImage(Image):
         for f in fromfiles | tofiles:
             # preparing from info
             if f in fromfiles:
-                fromfile = os.path.join(pkg1.id, f)
+                fromfile = os.path.join(pkg1.filename, f)
                 fromdata = pkg1._tarball.extractfile(f).readlines()
             else:
                 fromfile = "/dev/null"
                 fromdata = ""
             # preparing to info
             if f in tofiles:
-                tofile = os.path.join(pkg2.id, f)
+                tofile = os.path.join(pkg2.filename, f)
                 todata = pkg2._tarball.extractfile(f).readlines()
             else:
                 tofile = "/dev/null"
@@ -517,13 +517,14 @@ class PackageImage(Image):
         # build payloads info
         self.payload = {}
         for pname, pval in self._metadata["payload"].items():
+            pfilename = "%s-%s%s" % (self.filename[:-len(Image.extension)],
+                                     pname, Payload.extension)
             if self.md5name:
                 ppath = os.path.join(self.base_path,
                                      self._metadata["payload"][pname]["md5"])
             else:
-                ppath = os.path.join(self.base_path,
-                                     "%s-%s%s" % (self.id, pname, Payload.extension))
-            self.payload[pname] = Payload(pname, self.id, ppath, **pval)
+                ppath = os.path.join(self.base_path, pfilename)
+            self.payload[pname] = Payload(pname, pfilename, ppath, **pval)
 
     def __getattr__(self, name):
         '''
@@ -534,18 +535,11 @@ class PackageImage(Image):
         raise AttributeError
 
     @property
-    def id(self):
-        '''
-        Return image versionned name / id
-        '''
-        return "%s-%s" % (self.name, self.version)
-
-    @property
     def filename(self):
         '''
         Return image filename
         '''
-        return "%s%s" % (self.id, self.extension)
+        return "%s-%s%s" % (self.name, self.version, self.extension)
 
     def read_metadata(self):
         '''
@@ -656,7 +650,7 @@ class PackageImage(Image):
                 raise Exception("Image destination already exists: %s" % dest)
             # some display
             arrow("Downloading image in %s" % directory)
-            debug("Downloading %s from %s" % (self.id, self.path))
+            debug("Downloading %s from %s" % (self.filename, self.path))
             # open source
             fs = PipeFile(self.path, progressbar=True)
             # check if announced file size is good
@@ -763,9 +757,9 @@ class Payload(object):
     extension = ".isdata"
     legit_attr = ('isdir', 'md5', 'size', 'uid', 'gid', 'mode', 'mtime')
 
-    def __init__(self, name, imgid, path, **kwargs):
+    def __init__(self, name, filename, path, **kwargs):
         object.__setattr__(self, "name", name)
-        object.__setattr__(self, "imgid", imgid)
+        object.__setattr__(self, "filename", filename)
         object.__setattr__(self, "path", path)
         # register legit param
         for attr in self.legit_attr:
@@ -846,13 +840,6 @@ class Payload(object):
             return 0666 & ~umask
 
     @property
-    def filename(self):
-        '''
-        Return the filename of the original payload
-        '''
-        return "%s-%s%s" % (self.imgid, self.name, self.extension)
-
-    @property
     def mtime(self):
         '''
         Return last modification time of orginal payload
@@ -906,11 +893,12 @@ class Payload(object):
             if not force:
                 raise Exception("File %s already exists" % dest)
         # Open remote file
-        debug("Downloading %s from %s" % (self.name, self.path))
+        debug("Downloading payload %s from %s" % (self.filename, self.path))
         fs = PipeFile(self.path, progressbar=True)
         # check if announced file size is good
         if fs.size is not None and self.size != fs.size:
-            raise Exception("Downloading payload %s failed: Invalid announced size" % self.name)
+            raise Exception("Downloading payload %s failed: Invalid announced size" %
+                            self.name)
         fd = open(dest, "wb")
         fs.consume(fd)
         # closing fo

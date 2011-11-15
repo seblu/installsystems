@@ -12,6 +12,7 @@ import hashlib
 import shutil
 import urllib2
 import time
+import math
 
 from subprocess import call, check_call, CalledProcessError
 
@@ -324,15 +325,17 @@ def getsize(path):
                     total_sz += filestat.st_size
     return total_sz
 
-def human_size(num):
+def human_size(num, unit='B'):
     '''
     Return human readable size
     '''
-    for x in ['Bytes', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB']:
-        if num < 1024.0:
-            return "%3.1f%s" % (num, x)
-        num /= 1024.0
-    return "%3.1f%s" % (num, x)
+    prefixes = ('','Ki', 'Mi', 'Gi', 'Ti','Pi', 'Ei', 'Zi', 'Yi')
+    power = int(math.log(num, 1024))
+    # max is YiB
+    if power >= len(prefixes):
+        power = len(prefixes) - 1
+    scaled = num / float(1024 ** power)
+    return "%3.1f%s%s" % (scaled, prefixes[power], unit)
 
 def guess_distro(path):
     '''

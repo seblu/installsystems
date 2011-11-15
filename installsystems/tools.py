@@ -337,6 +337,12 @@ def human_size(num, unit='B'):
     scaled = num / float(1024 ** power)
     return "%3.1f%s%s" % (scaled, prefixes[power], unit)
 
+def time_rfc2822(timestamp):
+    '''
+    Return a rfc2822 format time string from an unix timestamp
+    '''
+    return time.strftime("%a, %d %b %Y %H:%M:%S %z", time.gmtime(timestamp))
+
 def guess_distro(path):
     '''
     Try to detect which distro is inside a directory

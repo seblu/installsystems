@@ -513,7 +513,7 @@ class PackageImage(Image):
         # print info
         arrow("Image %s v%s loaded" % (self.name, self.version))
         arrow("Author: %s" % self.author, 1)
-        arrow("Date: %s" % time.ctime(self.date), 1)
+        arrow("Date: %s" % istools.time_rfc2822(self.date), 1)
         # build payloads info
         self.payload = {}
         for pname, pval in self._metadata["payload"].items():
@@ -587,7 +587,7 @@ class PackageImage(Image):
         '''
         out('#light##yellow#Name:#reset# %s' % self.name)
         out('#light##yellow#Version:#reset# %s' % self.version)
-        out('#yellow#Date:#reset# %s' % time.ctime(self.date))
+        out('#yellow#Date:#reset# %s' % istools.time_rfc2822(self.date))
         out('#yellow#Description:#reset# %s' % self.description)
         out('#yellow#Author:#reset# %s' % self.author)
         if verbose:
@@ -603,7 +603,7 @@ class PackageImage(Image):
             for payload_name in payloads:
                 payload = payloads[payload_name]
                 out('#light##yellow#Payload:#reset# %s' % payload_name)
-                out('  #yellow#Date:#reset# %s' % time.ctime(payload.mtime))
+                out('  #yellow#Date:#reset# %s' % istools.rfc2822(payload.mtime))
                 out('  #yellow#Size:#reset# %s' % (istools.human_size(payload.size)))
                 out('  #yellow#MD5:#reset# %s' % payload.md5)
         # display image content

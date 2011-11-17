@@ -1,3 +1,74 @@
+installsystems (5) unstable; urgency=low
+
+  Matthieu Gonnet (2):
+      is extract -D generate a description file from the description.json file
+      Fix typo
+
+  Sebastien Luttringer (61):
+      Introduce PipeFile in place of uopen
+      fix database init
+      Implement ssh transport
+      Repository add now user PipeFile
+      Add isversion inside images
+      Display progress bar during image creatio
+      use PipeFile.consume() in place of shutil.copyfileobj
+      Add changelog to images
+      Introduce changelog
+      Fix invalid payload namming during download
+      Offline state is now settable in repository.conf
+      Paramiko is not a hard dependency.
+      Rollback to python 2.6
+      Doesn't display warning when we are not in debug mode
+      fix missing progressbar package inside setup.py
+      Fix issue with utf8 encoding in author
+      fix extracting payload with utf8 filenames
+      fix is new traceback
+      allow format,description.json,changelog to be writable by user
+      is list display changelog only with -c or -v option
+      is new doesn't overwrite by default
+      Add command changelog
+      fix repo.show doesn't have changelog parameter
+      is list can display repository content with full path
+      add --no-color option to is
+      fix loading of parameters from config files
+      Reintroduce commit 184b64a23084a75513d48d336470f8048dd68b60
+      repository check now display corrupted files
+      add a minimal installsystems version option
+      rename isversion into is_build_version
+      image show display is_min_version in verbose mode
+      doesn't display changelog in list if no -c args in verbose mode
+      fix bad is_min_version syntax
+      fix changelog display which leads to a traceback
+      fix temporary caching of command line repostories
+      fix typo in compare_versio
+      add chroot command
+      add command info
+      fix typo
+      remove double definition of last in repository
+      fix presence of is_min_version during read_metadata
+      Add bash-completion
+      add long --all-version to -v in changelog
+      no progressbar in quiet mode
+      fix regex and is call in bash-completion
+      build command check and add script in alpha order
+      is get can now download only payloads
+      script without execution bit are not added in image
+      fix bash completion with positional argument and options
+      Allow del command to keep payload inside repository
+      use filepath and not filename in error in check_script
+      install bash comp list file after image
+      split tools' chroot in 3 functions
+      debian chroot hellper policy-rd needs to be executable
+      add resolv.conf copying in prepare chroot tricks
+      policy-rc.d must exit 101 in chroot
+      Add a download size information on download progressbar
+      fix error when chrooting inside a root without /etc
+      improve human_size computation
+      display time in rfc2822 format
+      remove image.id and use image.filename instead
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Thu, 17 Nov 2011 12:56:57 +0100
+
 installsystems (4) unstable; urgency=low
 
   Aurélien Dunand (13):

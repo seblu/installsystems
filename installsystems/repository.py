@@ -248,7 +248,7 @@ class Repository(object):
         # check corruption of local files
         arrow("Checking corrupted files")
         for f in local_files:
-            fo = PipeFile(f)
+            fo = PipeFile(os.path.join(self.config.path, f))
             fo.consume()
             fo.close()
             if fo.md5 != f:

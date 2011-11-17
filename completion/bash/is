@@ -7,7 +7,7 @@ _repo() {
 
 # list all images available in any online repositories
 _image() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list -p '*')" -- "$cur") $(compgen -f -X "!*.isimage" -- "$cur"))
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list -p '*')" -- "$cur") $(compgen -f -X '!*.isimage' -- "$cur"))
 }
 
 # generate completion from optional arguments

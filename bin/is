@@ -551,7 +551,6 @@ try:
     args.func(p_main, args)
 except Exception as e:
     error(e)
-    exit(2)
 except KeyboardInterrupt:
     warn("Keyboard Interrupted")
     exit(1)

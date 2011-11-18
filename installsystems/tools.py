@@ -365,7 +365,9 @@ def prepare_chroot(path, mount=True):
         for mp in mps:
             origin =  "/%s" % mp
             target = os.path.join(path, mp)
-            if os.path.ismount(origin) and os.path.isdir(target):
+            if os.path.ismount(target):
+                warn("%s is already a mountpoint, skipped" % target)
+            elif os.path.ismount(origin) and os.path.isdir(target):
                 arrow("%s -> %s" % (origin, target), 1)
                 try:
                     check_call(["mount",  "--bind", origin, target], close_fds=True)

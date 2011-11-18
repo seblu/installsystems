@@ -358,9 +358,9 @@ def prepare_chroot(path, mount=True):
     Preate a chroot environment by mouting /{proc,sys,dev,dev/pts}
     and try to guess dest os to avoid daemon lauching
     '''
-    # try to mount /proc /sys /dev
+    # try to mount /proc /sys /dev /dev/pts /dev/shm
     if mount:
-        mps = ("proc", "sys", "dev", "dev/pts")
+        mps = ("proc", "sys", "dev", "dev/pts", "dev/shm")
         arrow("Mouting filesystems")
         for mp in mps:
             origin =  "/%s" % mp
@@ -419,7 +419,7 @@ def unprepare_chroot(path, mount=True):
             except: pass
     # unmounting
     if mount:
-        mps = ("proc", "sys", "dev", "dev/pts")
+        mps = ("proc", "sys", "dev", "dev/pts", "dev/shm")
         arrow("Unmouting filesystems")
         for mp in reversed(mps):
             target = os.path.join(path, mp)

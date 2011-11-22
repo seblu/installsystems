@@ -13,10 +13,10 @@ import datetime
 import re
 import fnmatch
 import warnings
+import argparse
 import installsystems
 import installsystems.printer
 import installsystems.tools as istools
-import installsystems.argparse as argparse # to be removed when python2.7
 from installsystems.printer import *
 from installsystems.repository import Repository
 from installsystems.repository import RepositoryManager

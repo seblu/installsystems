@@ -21,7 +21,7 @@ parser = """# -*- python -*-
 # parser object is installsystems argument parser
 
 import os
-import installsystems.argparse as argparse
+import argparse
 from installsystems.printer import arrow
 
 class TargetAction(argparse.Action):

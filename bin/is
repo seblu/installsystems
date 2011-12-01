@@ -184,7 +184,7 @@ def c_extract(parser, args):
     repoman = load_repositories(args)
     img, repo = select_image(args.image, repoman, args.best)
     img.extract(args.path, payload=args.payload, force=args.force,
-                gendescription=args.gendescription)
+                gendescription=args.gen_description)
 
 def c_get(parser, args):
     '''
@@ -193,7 +193,7 @@ def c_get(parser, args):
     repoman = load_repositories(args)
     for image in args.image:
         img, repo = select_image(image, repoman, args.best)
-        img.download(".", image=not args.noimage, payload=args.payload, force=args.force)
+        img.download(".", image=not args.no_image, payload=args.payload, force=args.force)
 
 def c_help(parser, args):
     '''
@@ -438,9 +438,9 @@ p_diff.set_defaults(func=c_diff)
 
 # extract command parser
 p_extract = subparsers.add_parser("extract", help=c_extract.__doc__.lower())
-p_extract.add_argument("-D", action="store_true", dest="gendescription", default=False,
+p_extract.add_argument("-g", "--gen-description", action="store_true", default=False,
                        help="generate a description file from metadata")
-p_extract.add_argument("-p", action="store_true", dest="payload", default=False,
+p_extract.add_argument("-p", "--payload", action="store_true", default=False,
                        help="extract payloads")
 p_extract.add_argument("-f", "--force", action="store_true", default=False,
                        help="overwrite existing destinations")
@@ -453,9 +453,9 @@ p_extract.set_defaults(func=c_extract)
 
 # get command parser
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
-p_get.add_argument("-p", action="store_true", dest="payload", default=False,
+p_get.add_argument("-p", "--payload", action="store_true", default=False,
                    help="get payloads")
-p_get.add_argument("-I", action="store_true", dest="noimage", default=False,
+p_get.add_argument("-I", "--no-image", action="store_true", default=False,
                    help="do not get image")
 p_get.add_argument("-f", "--force", action="store_true", default=False,
                    help="overwrite existing destinations")
@@ -472,7 +472,7 @@ p_help.set_defaults(func=c_help, subparser=subparsers)
 
 # info command parser
 p_info = subparsers.add_parser("info", help=c_info.__doc__.lower())
-p_info.add_argument("-v", action="store_true", dest="verbose", default=False,
+p_info.add_argument("-v", "--verbose", action="store_true", default=False,
                     help="verbose output")
 p_info.add_argument("-c", "--changelog", action="store_true", default=False,
                     help="display image changelog")
@@ -499,7 +499,7 @@ p_install.set_defaults(func=c_install, subparser=p_install)
 
 # list command parser
 p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
-p_list.add_argument("-v", action="store_true", dest="verbose", default=False,
+p_list.add_argument("-v", "--verbose", action="store_true", default=False,
                     help="verbose output")
 p_list.add_argument("-b", "--best", action="store_true", default=False,
                     help="in best mode, image is the most recent in all repositories")

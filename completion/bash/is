@@ -88,13 +88,13 @@ _is() {
             (( args < 4 )) && c_args=$(images)
             ;;
 	extract)
-            [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p -D' && return 0
+            [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p --payload -g --gen-description' && return 0
 	    _count_args
 	    (( args == 2 )) && _image
             (( args == 3 )) && _filedir -d
             ;;
 	get)
-            [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p' && return 0
+            [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best --payload -I --no-image' && return 0
             _image
             ;;
 	help)
@@ -102,7 +102,7 @@ _is() {
 	    (( args == 2 )) && _opt "${cmds[@]}"
             ;;
 	info)
-            [[ "$cur" == -* ]] && _opt '-v -c --changelog -b --best' && return 0
+            [[ "$cur" == -* ]] && _opt '-v --verbose -c --changelog -b --best' && return 0
             _image
             ;;
 	init)
@@ -116,7 +116,7 @@ _is() {
 	    (( args > 2 )) && _filedir
             ;;
 	list)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best -v -c --changelog -p --as-path' && return 0
+            [[ "$cur" == -* ]] && _opt '-h --help -b --best --verbose -c --changelog -p --as-path' && return 0
 	    _repo
 	    _image
             ;;

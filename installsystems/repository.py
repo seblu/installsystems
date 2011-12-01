@@ -505,17 +505,21 @@ class RepositoryManager(object):
                 return True
         return False
 
-    def register(self, config, temp=False):
+    def register(self, config, temp=False, offline=False):
         '''
         Register a repository from its config
+        temp: repository is stored in a temporary location
+        offline: repository is marked offline
         '''
         # check filter on name
         if self.filter is not None:
             if not fnmatch.fnmatch(config.name, self.filter):
                 return
         # repository is offline
-        if config.offline:
+        if config.offline or offline:
             debug("Registering offline repository %s (%s)" % (config.path, config.name))
+            # we must force offline in cast of argument offline
+            config.offline = True
             self.repos.append(Repository(config))
         # if path is local, no needs to create a cache
         elif istools.isfile(config.path):
@@ -627,15 +631,23 @@ class RepositoryManager(object):
                 return repo.get(name, version), repo
         raise Exception("Unable to find image %s v%s" % (name, version))
 
-    def show(self, verbose=False):
+    def show(self, pattern, online=True, offline=True, url=False, state=True):
         '''
         Show repository inside manager
+        online: list online repository
+        offline: list offline repository
+        verbose: display path
         '''
-        for repo in self.repos:
+        for reponame in fnmatch.filter(self.names, pattern):
+            repo = self[reponame]
+            if repo.config.offline and not offline:
+                continue
+            if not repo.config.offline and not online:
+                continue
             s = "#light##blue#%s#reset#"% repo.config.name
-            if verbose:
+            if url:
                 s += " (%s)" % repo.config.path
-            if repo.config.offline:
+            if state and repo.config.offline:
                 s +=  " #light##red#[offline]#reset#"
             out(s)
 
@@ -660,7 +672,7 @@ class RepositoryConfig(object):
         Raise exception is repository name is invalid
         '''
         if re.match("^[-_\w]+$", name) is None:
-            raise Exception("Invalid repository name %s" % buf)
+            raise Exception("Invalid repository name %s" % name)
         return name
 
     def __init__(self, name, **kwargs):

@@ -24,7 +24,7 @@ from installsystems.repository import RepositoryConfig
 from installsystems.image import PackageImage, SourceImage
 from installsystems.config import MainConfigFile, RepoConfigFile
 
-def load_repositories(args):
+def load_repositories(args, force_offline=False):
     '''
     Load repositories on a repository manager
     '''
@@ -37,10 +37,10 @@ def load_repositories(args):
     # load repo configs from command line
     if args.repo_path is not None:
         repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
-                                          path=args.repo_path), temp=True)
+                                          path=args.repo_path), temp=True, offline=force_offline)
     # load repo configs from config
     for repoconf in RepoConfigFile(args.repo_config).repos:
-        repoman.register(repoconf)
+        repoman.register(repoconf, offline=force_offline)
     return repoman
 
 def select_image(name, repoman, best=False):
@@ -255,7 +255,7 @@ def c_list(parser, args):
     repoman = load_repositories(args)
     if len(args.object) == 0:
         arrow("Repositories")
-        repoman.show(verbose=args.verbose)
+        repoman.show('*', url=args.verbose)
     else:
         for o in args.object:
             repos = fnmatch.filter(repoman.onlines, o)
@@ -295,6 +295,18 @@ def c_new(parser, args):
     Create a new source image
     '''
     SourceImage.create(args.path, args.force)
+
+def c_repo(parser, args):
+    '''
+    Get information about repositories
+    '''
+    # List available repositories
+    repoman = load_repositories(args, force_offline=args.local)
+    # if len(args.repository) == 0:
+    #     args.repository = ['*']
+    for pattern in args.repository:
+        repoman.show(pattern, online=not args.offline,
+                     offline=not args.online, url=args.verbose, state=not args.no_state)
 
 def c_search(parser, args):
     '''
@@ -516,6 +528,23 @@ p_new.add_argument("-f", "--force", action="store_true", default=False,
                    help="overwrite existing source image")
 p_new.add_argument("path", help="new image directory path")
 p_new.set_defaults(func=c_new)
+
+# repo command parser
+p_repo = subparsers.add_parser("repo", help=c_repo.__doc__.lower())
+p_repo.add_argument("-v", "--verbose", action="store_true", default=False,
+                    help="verbose output")
+p_repo.add_argument("-o", "--online", action="store_true", default=False,
+                    help="list only online repository")
+p_repo.add_argument("-O", "--offline", action="store_true", default=False,
+                    help="list only offline repository")
+p_repo.add_argument("-l", "--local", action="store_true", default=False,
+                    help="force repository to be offline. This just list repository name without connection")
+p_repo.add_argument("-S", "--no-state", action="store_true", default=False,
+                    help="doesn't display repository state (online/offline)")
+
+p_repo.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
+p_repo.set_defaults(func=c_repo)
+
 
 # search command parser
 p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())

@@ -7,6 +7,7 @@ Repository stuff
 '''
 
 import os
+import re
 import time
 import shutil
 import pwd
@@ -653,9 +654,18 @@ class RepositoryConfig(object):
     Repository configuration container
     '''
 
+    @staticmethod
+    def check_repository_name(name):
+        '''
+        Raise exception is repository name is invalid
+        '''
+        if re.match("^[-_\w]+$", name) is None:
+            raise Exception("Invalid repository name %s" % buf)
+        return name
+
     def __init__(self, name, **kwargs):
         # set default value for arguments
-        self.name = name
+        self.name = self.check_repository_name(name)
         self.path = ""
         self._offline = False
         self._dbpath = None

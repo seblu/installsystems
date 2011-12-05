@@ -19,8 +19,6 @@ class Database(object):
     It needs to be local cause of sqlite3 which need to open a file
     '''
 
-    db_format = "1"
-
     @classmethod
     def create(cls, path):
         arrow("Creating repository database")
@@ -49,6 +47,11 @@ class Database(object):
             raise Exception("Database not exists")
         self.conn = sqlite3.connect(self.path, isolation_level=None)
         self.conn.execute("PRAGMA foreign_keys = ON")
+        # we make a query to be sure format is valid
+        try:
+            self.ask("SELECT * FROM image")
+        except:
+            raise Exception("Invalid database format")
 
     def begin(self):
         '''

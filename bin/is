@@ -24,12 +24,12 @@ from installsystems.repository import RepositoryConfig
 from installsystems.image import PackageImage, SourceImage
 from installsystems.config import MainConfigFile, RepoConfigFile
 
-def load_repositories(args, force_offline=False):
+def load_repositories(args):
     '''
     Load repositories on a repository manager
     '''
     # remove cache is asked
-    if args.no_cache:
+    if hasattr(args, "no_cache") and args.no_cache:
         args.cache = None
     # init repo cache object
     repoman = RepositoryManager(args.cache, timeout=args.timeout, filter=args.repo_filter)
@@ -37,10 +37,14 @@ def load_repositories(args, force_offline=False):
     # load repo configs from command line
     if args.repo_path is not None:
         repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
-                                          path=args.repo_path), temp=True, offline=force_offline)
+                                          path=args.repo_path), temp=True,
+                         nosync=hasattr(args, "no_sync") and args.no_sync,
+                         offline=hasattr(args, "force_offline") and args.force_offline)
     # load repo configs from config
     for repoconf in RepoConfigFile(args.repo_config).repos:
-        repoman.register(repoconf, offline=force_offline)
+        repoman.register(repoconf,
+                         nosync=hasattr(args, "no_sync") and args.no_sync,
+                         offline=hasattr(args, "force_offline") and args.force_offline)
     return repoman
 
 def select_image(name, repoman, best=False):
@@ -291,7 +295,7 @@ def c_repo(parser, args):
     '''
     Get information about repositories
     '''
-    repoman = load_repositories(args, force_offline=args.local)
+    repoman = load_repositories(args)
     for pattern in args.repository:
         repoman.show_repos(pattern, online=not args.offline,
                      offline=not args.online, url=args.verbose, state=not args.no_state)
@@ -503,6 +507,8 @@ p_list.add_argument("-u", "--url", action="store_true", default=False,
                     help="display image url")
 p_list.add_argument("-D", "--description", action="store_true", default=False,
                     help="display image description")
+p_list.add_argument("--no-sync", action="store_true", default=False,
+                    help="doesn't sync repository before listing")
 p_list.add_argument("image", nargs="*", default=['*'],
                     help="image syntax is [repository/]image[:version]")
 p_list.set_defaults(func=c_list, subparser=p_list)
@@ -533,10 +539,10 @@ p_repo.add_argument("-o", "--online", action="store_true", default=False,
                     help="list only online repository")
 p_repo.add_argument("-O", "--offline", action="store_true", default=False,
                     help="list only offline repository")
-p_repo.add_argument("-l", "--local", action="store_true", default=False,
-                    help="force repository to be offline. This just list repository name without connection")
 p_repo.add_argument("-S", "--no-state", action="store_true", default=False,
                     help="doesn't display repository state (online/offline)")
+p_repo.add_argument("--force-offline", action="store_true", default=False,
+                    help="force repository to be offline")
 
 p_repo.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
 p_repo.set_defaults(func=c_repo)

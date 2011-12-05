@@ -489,10 +489,11 @@ class RepositoryManager(object):
                 return True
         return False
 
-    def register(self, config, temp=False, offline=False):
+    def register(self, config, temp=False, nosync=False, offline=False):
         '''
         Register a repository from its config
         temp: repository is stored in a temporary location
+        nosync: register repository as online, but no sync is done before
         offline: repository is marked offline
         '''
         # check filter on name
@@ -512,14 +513,18 @@ class RepositoryManager(object):
         # path is remote, we need to create a cache
         else:
             debug("Registering cached repository %s (%s)" % (config.path, config.name))
-            self.repos.append(self._cachify(config, temp))
+            self.repos.append(self._cachify(config, temp, nosync))
 
-
-    def _cachify(self, config, temp=False):
+    def _cachify(self, config, temp=False, nosync=False):
         '''
         Return a config of a cached repository from an orignal config file
+        :param config: repository configuration
+        :param temp: repository db should be stored in a temporary location
+        :param nosync: if a cache exists, don't try to update it
         '''
         try:
+            if temp and nosync:
+                raise IOError("unable to cache, sync is disabled")
             # Ensure destination file exists
             if temp is True or self.cache_path is None:
                 # this is a forced temporary repository or without name repo
@@ -531,34 +536,34 @@ class RepositoryManager(object):
                 # create file if not exists
                 if not os.path.exists(filedest):
                     open(filedest, "wb")
-            # Open remote database
-            rdb = PipeFile(config.dbpath, timeout=self.timeout)
-            # get remote last modification
-            if rdb.mtime is None:
-                # We doesn't have modification time, we use the last file
-                try:
-                    rlast = int(PipeFile(config.lastpath, mode='r',
-                                         timeout=self.timeout).read().strip())
-                except IOError:
-                    rlast = -1
-            else:
-                rlast = rdb.mtime
-            # get local last value
-            llast = int(os.stat(filedest).st_mtime)
-            # if repo is out of date, download it
-            if rlast != llast:
-                arrow("Downloading %s" % config.dbpath)
-
-                rdb.progressbar = True
-                ldb = open(filedest, "wb")
-                rdb.consume(ldb)
-                ldb.close()
-                rdb.close()
-                istools.chrights(filedest,
-                                 uid=config.uid,
-                                 gid=config.gid,
-                                 mode=config.fmod,
-                                 mtime=rlast)
+            if not nosync:
+                # Open remote database
+                rdb = PipeFile(config.dbpath, timeout=self.timeout)
+                # get remote last modification
+                if rdb.mtime is None:
+                    # We doesn't have modification time, we use the last file
+                    try:
+                        rlast = int(PipeFile(config.lastpath, mode='r',
+                                             timeout=self.timeout).read().strip())
+                    except IOError:
+                        rlast = -1
+                else:
+                    rlast = rdb.mtime
+                # get local last value
+                llast = int(os.stat(filedest).st_mtime)
+                # if repo is out of date, download it
+                if rlast != llast:
+                    arrow("Downloading %s" % config.dbpath)
+                    rdb.progressbar = True
+                    ldb = open(filedest, "wb")
+                    rdb.consume(ldb)
+                    ldb.close()
+                    rdb.close()
+                    istools.chrights(filedest,
+                                     uid=config.uid,
+                                     gid=config.gid,
+                                     mode=config.fmod,
+                                     mtime=rlast)
             config.dbpath = filedest
         except IOError as e:
             # if something append bad during caching, we mark repo as offline

@@ -2,12 +2,12 @@
 
 # list local repositories
 _repo() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color repo -lS)"  -- "$cur"))
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color repo --no-state --force-offline)"  -- "$cur"))
 }
 
 # list all images available in any online repositories
 _remote_image() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list)" -- "$cur"))
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list --no-sync)" -- "$cur"))
 }
 
 # list all local (files) images
@@ -127,7 +127,7 @@ _is() {
 	    (( args > 2 )) && _filedir
             ;;
 	list)
-            [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -a --author -u --url -D --description' && return 0
+            [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -a --author -u --url -D --description --no-sync' && return 0
 	    _remote_image
             ;;
 	move)
@@ -139,7 +139,7 @@ _is() {
             _filedir -d
             ;;
 	repo)
-            [[ "$cur" == -* ]] && _opt '-h --help -v --verbose -o --online -O --offline -l --local -S --no-state' && return 0
+            [[ "$cur" == -* ]] && _opt '-h --help -v --verbose -o --online -O --offline -S --no-state --force-offline' && return 0
 	    _repo
 	    ;;
 	search)

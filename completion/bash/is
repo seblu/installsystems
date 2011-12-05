@@ -6,8 +6,19 @@ _repo() {
 }
 
 # list all images available in any online repositories
+_remote_image() {
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list)" -- "$cur"))
+}
+
+# list all local (files) images
+_local_image() {
+    COMPREPLY=("${COMPREPLY[@]}" $(compgen -f -X '!*.isimage' -- "$cur"))
+}
+
+# list local and remote images
 _image() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list -p '*')" -- "$cur") $(compgen -f -X '!*.isimage' -- "$cur"))
+    _local_image
+    _remote_image
 }
 
 # generate completion from optional arguments
@@ -75,17 +86,17 @@ _is() {
 	copy)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
 	    _count_args
-	    (( args == 2 )) && _image
-	    (( args > 2 )) && _image && _repo
+	    (( args == 2 )) && _remote_image
+	    (( args > 2 )) && _remote_image && _repo
             ;;
 	del)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force -p --preserve' && return 0
-            _image
+            _remote_image
             ;;
 	diff)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
 	    _count_args
-            (( args < 4 )) && c_args=$(images)
+            (( args < 4 )) && _image
             ;;
 	extract)
             [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p --payload -g --gen-description' && return 0
@@ -95,7 +106,7 @@ _is() {
             ;;
 	get)
             [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best --payload -I --no-image' && return 0
-            _image
+            _remote_image
             ;;
 	help)
 	    _count_args
@@ -116,13 +127,12 @@ _is() {
 	    (( args > 2 )) && _filedir
             ;;
 	list)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best --verbose -c --changelog -p --as-path' && return 0
-	    _repo
-	    _image
+            [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -a --author -u --url -D --description' && return 0
+	    _remote_image
             ;;
 	move)
             [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
-            _image
+            _remote_image
             ;;
 	new)
 	    [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0

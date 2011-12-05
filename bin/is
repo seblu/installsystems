@@ -251,20 +251,11 @@ def c_list(parser, args):
     '''
     List images in repository or image content
     '''
-    # List available repositories
     repoman = load_repositories(args)
-    if len(args.object) == 0:
-        arrow("Repositories")
-        repoman.show('*', url=args.verbose)
-    else:
-        for o in args.object:
-            repos = fnmatch.filter(repoman.onlines, o)
-            if len(repos) > 0:
-                for reponame in repos:
-                    repoman[reponame].show(verbose=args.verbose, aspath=args.as_path)
-            else:
-                img, repo = select_image(o, repoman, args.best)
-                img.show(verbose=args.verbose, changelog=args.changelog)
+    for pattern in args.image:
+        repoman.show_images(pattern, o_long=args.long, o_json=args.json,
+                            o_md5=args.md5, o_date=args.date, o_author=args.author,
+                            o_size=args.size, o_url=args.url, o_description=args.description)
 
 def c_move(parser, args):
     '''
@@ -300,12 +291,9 @@ def c_repo(parser, args):
     '''
     Get information about repositories
     '''
-    # List available repositories
     repoman = load_repositories(args, force_offline=args.local)
-    # if len(args.repository) == 0:
-    #     args.repository = ['*']
     for pattern in args.repository:
-        repoman.show(pattern, online=not args.offline,
+        repoman.show_repos(pattern, online=not args.offline,
                      offline=not args.online, url=args.verbose, state=not args.no_state)
 
 def c_search(parser, args):
@@ -499,16 +487,24 @@ p_install.set_defaults(func=c_install, subparser=p_install)
 
 # list command parser
 p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
-p_list.add_argument("-v", "--verbose", action="store_true", default=False,
-                    help="verbose output")
-p_list.add_argument("-b", "--best", action="store_true", default=False,
-                    help="in best mode, image is the most recent in all repositories")
-p_list.add_argument("-c", "--changelog", action="store_true", default=False,
-                    help="display image changelog")
-p_list.add_argument("-p", "--as-path", action="store_true", default=False,
-                    help="display repository content as path")
-p_list.add_argument("object", nargs="*",
-                    help="object syntax is <path|repository|[repository/]image[:version]>")
+p_list.add_argument("-j", "--json", action="store_true", default=False,
+                    help="long display")
+p_list.add_argument("-l", "--long", action="store_true", default=False,
+                    help="long display")
+p_list.add_argument("-m", "--md5", action="store_true", default=False,
+                    help="display image md5")
+p_list.add_argument("-s", "--size", action="store_true", default=False,
+                    help="display image size")
+p_list.add_argument("-d", "--date", action="store_true", default=False,
+                    help="display image date")
+p_list.add_argument("-a", "--author", action="store_true", default=False,
+                    help="display image author")
+p_list.add_argument("-u", "--url", action="store_true", default=False,
+                    help="display image url")
+p_list.add_argument("-D", "--description", action="store_true", default=False,
+                    help="display image description")
+p_list.add_argument("image", nargs="*", default=['*'],
+                    help="image syntax is [repository/]image[:version]")
 p_list.set_defaults(func=c_list, subparser=p_list)
 
 # move command parser

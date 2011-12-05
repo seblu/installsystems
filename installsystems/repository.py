@@ -12,6 +12,7 @@ import time
 import shutil
 import pwd
 import grp
+import json
 import tempfile
 import fnmatch
 import cStringIO
@@ -320,37 +321,20 @@ class Repository(object):
         # update last file
         self.update_last()
 
-    def show(self, verbose=False, aspath=False):
+    def images(self):
         '''
-        List images in repository
+        Return a dict of informations on images
         '''
-        if aspath:
-            images = self.db.ask("SELECT md5, name, version  FROM image ORDER BY name, version").fetchall()
-            for (image_md5, image_name, image_version) in images:
-                s = "#light##blue#%s#reset#/#light##yellow#%s#reset#:#light##red#%s#reset#" % (
-                    self.config.name, image_name, image_version)
-                if verbose:
-                    s += " [%s]" % image_md5
-                out(s)
-        else:
-            arrow(self.config.name)
-            images = self.db.ask("SELECT md5, name, version, date,\
+        db_images = self.db.ask("SELECT md5, name, version, date,\
                 author, description, size FROM image ORDER BY name, version").fetchall()
-            for (image_md5, image_name, image_version, image_date, image_author,
-                 image_description, image_size) in images:
-                out("#light##yellow#%s #reset#v%s" % (image_name, image_version))
-                if verbose:
-                    out("  #yellow#Date:#reset# %s" % istools.time_rfc2822(image_date))
-                    out("  #yellow#Description:#reset# %s" % image_description)
-                    out("  #yellow#Author:#reset# %s" % image_author)
-                    out("  #yellow#MD5:#reset# %s" % image_md5)
-                    payloads = self.db.ask("SELECT md5, name, size FROM payload\
-                                    WHERE image_md5 = ?", (image_md5,)).fetchall()
-                    for payload_md5, payload_name, payload_size in payloads:
-                        out("  #light##yellow#Payload:#reset# %s" % payload_name)
-                        out("    #yellow#Size:#reset# %s" % (istools.human_size(payload_size)))
-                        out("    #yellow#MD5:#reset# %s" % payload_md5)
-                    out()
+        images = []
+        field = ("md5", "name", "version", "date", "author", "description", "size")
+        for info in db_images:
+            d = dict(zip(field, info))
+            d["repo"] = self.config.name
+            d["url"] = os.path.join(self.config.path, d["md5"])
+            images.append(d)
+        return images
 
     def search(self, pattern):
         '''
@@ -631,7 +615,7 @@ class RepositoryManager(object):
                 return repo.get(name, version), repo
         raise Exception("Unable to find image %s v%s" % (name, version))
 
-    def show(self, pattern, online=True, offline=True, url=False, state=True):
+    def show_repos(self, pattern, online=True, offline=True, url=False, state=True):
         '''
         Show repository inside manager
         online: list online repository
@@ -649,6 +633,50 @@ class RepositoryManager(object):
                 s += " (%s)" % repo.config.path
             if state and repo.config.offline:
                 s +=  " #light##red#[offline]#reset#"
+            out(s)
+
+    def show_images(self, pattern, o_json=False, o_long=False,
+                    o_md5=False, o_date=False, o_author=False, o_size=False,
+                    o_url=False, o_description=False):
+        '''
+        Show repository inside manager
+        json: display output in json
+        long: display output in long format
+        all images parameter can be given in arguments to displayed
+        '''
+        # building image list
+        images = {}
+        for reponame in self.onlines:
+            for img in self[reponame].images():
+                imgname = u"%s/%s:%s" % (reponame, img["name"], img["version"])
+                images[imgname] = img
+        # filter with pattern
+        for k in images.keys():
+            if not fnmatch.fnmatch(k, pattern):
+                del images[k]
+        # display result
+        if o_json:
+            s = json.dumps(images)
+        else:
+            l = []
+            for imgp in sorted(images.keys()):
+                img = images[imgp]
+                l.append(u"#light##blue#%s#reset#/#light#%s#reset#:#light##purple#%s#reset#" % (
+                        img["repo"], img["name"], img["version"]))
+                if o_md5 or o_long:
+                    l.append(u" #light#md5:#reset# %s" % img["md5"])
+                if o_date or o_long:
+                    l.append(u" #light#date:#reset# %s" % istools.time_rfc2822(img["date"]))
+                if o_author or o_long:
+                    l.append(u" #light#author:#reset# %s" % img["author"])
+                if o_size or o_long:
+                    l.append(u" #light#size:#reset# %s" % istools.human_size(img["size"]))
+                if o_url or o_long:
+                    l.append(u" #light#url:#reset# %s" % img["url"])
+                if o_description or o_long:
+                    l.append(u" #light#description:#reset# %s" % img["description"])
+            s = os.linesep.join(l)
+        if len(s) > 0:
             out(s)
 
     def search(self, pattern):

@@ -291,6 +291,12 @@ def c_new(parser, args):
     '''
     SourceImage.create(args.path, args.force)
 
+def c_prepare_chroot(parser, args):
+    '''
+    Prepare a chroot
+    '''
+    istools.prepare_chroot(args.path, mount=not args.no_mount)
+
 def c_repo(parser, args):
     '''
     Get information about repositories
@@ -306,6 +312,12 @@ def c_search(parser, args):
     '''
     repoman = load_repositories(args)
     repoman.search(args.pattern)
+
+def c_unprepare_chroot(parser, args):
+    '''
+    Remove preparation of a chroot
+    '''
+    istools.unprepare_chroot(args.path, mount=not args.no_umount)
 
 def c_version(parser, args):
     '''
@@ -531,6 +543,13 @@ p_new.add_argument("-f", "--force", action="store_true", default=False,
 p_new.add_argument("path", help="new image directory path")
 p_new.set_defaults(func=c_new)
 
+# prepare_chroot command parser
+p_prepare_chroot = subparsers.add_parser("prepare_chroot", help=c_prepare_chroot.__doc__.lower())
+p_prepare_chroot.add_argument("-m", "--no-mount", action="store_true", default=False,
+                              help="disable mouting of /{proc,dev,sys}")
+p_prepare_chroot.add_argument("path")
+p_prepare_chroot.set_defaults(func=c_prepare_chroot)
+
 # repo command parser
 p_repo = subparsers.add_parser("repo", help=c_repo.__doc__.lower())
 p_repo.add_argument("-v", "--verbose", action="store_true", default=False,
@@ -543,15 +562,20 @@ p_repo.add_argument("-S", "--no-state", action="store_true", default=False,
                     help="doesn't display repository state (online/offline)")
 p_repo.add_argument("--force-offline", action="store_true", default=False,
                     help="force repository to be offline")
-
 p_repo.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
 p_repo.set_defaults(func=c_repo)
-
 
 # search command parser
 p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())
 p_search.add_argument("pattern", help="pattern to search in repositories")
 p_search.set_defaults(func=c_search)
+
+# unprepare_chroot command parser
+p_unprepare_chroot = subparsers.add_parser("unprepare_chroot", help=c_unprepare_chroot.__doc__.lower())
+p_unprepare_chroot.add_argument("-m", "--no-umount", action="store_true", default=False,
+                                help="disable unmouting of /{proc,dev,sys}")
+p_unprepare_chroot.add_argument("path")
+p_unprepare_chroot.set_defaults(func=c_unprepare_chroot)
 
 # version command parser
 p_version = subparsers.add_parser("version", help=c_version.__doc__.lower())

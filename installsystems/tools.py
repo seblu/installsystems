@@ -373,25 +373,39 @@ def prepare_chroot(path, mount=True):
                     check_call(["mount",  "--bind", origin, target], close_fds=True)
                 except CalledProcessError as e:
                     warn("Mount failed: %s.\n" % e)
+    arrow("Cheating")
+    # check path is a kind of linux FHS
+    if not os.path.exists(os.path.join(path, "etc")) or not os.path.exists(os.path.join(path, "usr")):
+        return
     # trick resolv.conf
     try:
-        if os.path.exists("/etc/resolv.conf") and os.path.exists(os.path.join(path, "etc")):
-            resolv_path = os.path.join(path, "etc/resolv.conf")
+        if os.path.exists("/etc/resolv.conf"):
+            arrow("resolv.conf", 1)
+            resolv_path = os.path.join(path, "etc", "resolv.conf")
             if os.path.exists(resolv_path):
                 os.rename(resolv_path, "%s.isbackup" % resolv_path)
             shutil.copy("/etc/resolv.conf", resolv_path)
     except Exception as e:
         warn("resolv.conf tricks fail: %s" % e)
+    # trick mtab
+    try:
+        mtab_path = os.path.join(path, "etc", "mtab")
+        arrow("mtab", 1)
+        if os.path.exists(mtab_path):
+            os.rename(mtab_path, "%s.isbackup" % mtab_path)
+        os.symlink("/proc/self/mounts", mtab_path)
+    except Exception as e:
+        warn("mtab tricks fail: %s" % e)
     # try to guest distro
     distro = guess_distro(path)
     # in case of debian disable policy
     if distro == "debian":
-        arrow("Creating debian chroot housekeepers")
+        arrow("Debian specific", 1)
         # create a chroot header
-        try: open(os.path.join(path, "etc/debian_chroot"), "w").write("CHROOT")
+        try: open(os.path.join(path, "etc", "debian_chroot"), "w").write("CHROOT")
         except: pass
         # fake policy-rc.d. It must exit 101, it's an expected exitcode.
-        policy_path = os.path.join(path, "usr/sbin/policy-rc.d")
+        policy_path = os.path.join(path, "usr", "sbin", "policy-rc.d")
         try: open(policy_path, "w").write("#!/bin/bash\nexit 101\n")
         except: pass
         # policy-rc.d needs to be executable
@@ -401,22 +415,32 @@ def unprepare_chroot(path, mount=True):
     '''
     Rollback preparation of a chroot environment inside a directory
     '''
-    # untrick resolv.conf
-    if os.path.exists("/etc/resolv.conf") and os.path.exists(os.path.join(path, "etc"))::
-        resolv_path = os.path.join(path, "etc/resolv.conf")
-        if os.path.exists(resolv_path):
-            os.unlink(resolv_path)
-        if os.path.exists("%s.isbackup" % resolv_path):
-            os.rename("%s.isbackup" % resolv_path, resolv_path)
-
-    # try to guest distro
-    distro = guess_distro(path)
-    # cleaning debian stuff
-    if distro == "debian":
-        arrow("Removing debian chroot housekeepers")
-        for f in ("etc/debian_chroot", "usr/sbin/policy-rc.d"):
-            try: os.unlink(os.path.join(path, f))
-            except: pass
+    arrow("Uncheating")
+    # check path is a kind of linux FHS
+    if os.path.exists(os.path.join(path, "etc")) and os.path.exists(os.path.join(path, "usr")):
+        # untrick mtab
+        mtab_path = os.path.join(path, "etc", "mtab")
+        arrow("mtab", 1)
+        if os.path.exists(mtab_path):
+            os.unlink(mtab_path)
+        if os.path.exists("%s.isbackup" % mtab_path):
+            os.rename("%s.isbackup" % mtab_path, mtab_path)
+        # untrick resolv.conf
+        if os.path.exists("/etc/resolv.conf"):
+            arrow("resolv.conf", 1)
+            resolv_path = os.path.join(path, "etc", "resolv.conf")
+            if os.path.exists(resolv_path):
+                os.unlink(resolv_path)
+            if os.path.exists("%s.isbackup" % resolv_path):
+                os.rename("%s.isbackup" % resolv_path, resolv_path)
+        # try to guest distro
+        distro = guess_distro(path)
+        # cleaning debian stuff
+        if distro == "debian":
+            arrow("Debian specific", 1)
+            for f in ("etc/debian_chroot", "usr/sbin/policy-rc.d"):
+                try: os.unlink(os.path.join(path, f))
+                except: pass
     # unmounting
     if mount:
         mps = ("proc", "sys", "dev", "dev/pts", "dev/shm")

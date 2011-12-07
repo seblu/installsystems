@@ -51,34 +51,14 @@ class Image(object):
         if re.match("^\d+$", buf) is None:
             raise Exception("Invalid image version %s" % buf)
 
+
     @staticmethod
     def compare_versions(v1, v2):
         '''
-        Compare v1 and v2
-        return > 0 if v1 > v2
-        return < 0 if v2 > v1
-        return = 0 if v1 == v2
+        For backward compatibility, image class offer a method to compare image versions
+        But code is now inside tools
         '''
-        # check v1
-        try:
-            i1 = int(v1)
-        except ValueError:
-            if isinstance(v1, basestring):
-                v1m = re.search("\d+", v1)
-                if v1m is None:
-                    raise Exception("Invalid version %s" % v1)
-                i1 = int(v1m.group(0))
-        # check v2
-        try:
-            i2 = int(v2)
-        except ValueError:
-            if isinstance(v2, basestring):
-                v2m = re.search("\d+", v1)
-                if v2m is None:
-                    raise Exception("Invalid version %s" % v2)
-                i2 = int(v2m.group(0))
-        return i1 - i2
-
+        return istools.compare_versions(v1, v2)
 
 class SourceImage(Image):
     '''

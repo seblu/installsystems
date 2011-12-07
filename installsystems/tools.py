@@ -463,3 +463,33 @@ def chroot(path, shell="/bin/bash", mount=True):
     call(["chroot", path, shell], close_fds=True)
     # revert preparation of chroot
     unprepare_chroot(path, mount)
+
+def compare_versions(v1, v2):
+    '''
+    This function compare version :param v1: and version :param v2:
+    Compare v1 and v2
+    return > 0 if v1 > v2
+    return < 0 if v2 > v1
+    return = 0 if v1 == v2
+    '''
+
+    def get_ver(version):
+        '''Return float version'''
+        if type(version) is int or type(version) is float:
+            return float(version)
+        elif isinstance(version, basestring):
+            iv = re.match("^(\d+)(?:([-~+])\w*)?$", version)
+            if iv is None:
+                raise TypeError('Invalid version: %s' % version)
+            rv = float(iv.group(1))
+            if iv.group(2) == "~":
+                rv -= 0.1
+            else:
+                rv += 0.1
+            return rv
+        else:
+            raise TypeError('Invalid version: %s' % version)
+
+    fv1 = get_ver(v1)
+    fv2 = get_ver(v2)
+    return fv1 - fv2

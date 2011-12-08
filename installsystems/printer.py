@@ -8,6 +8,7 @@ Install Systems Printer module
 
 import sys
 import os
+import re
 import installsystems
 
 NOCOLOR = False
@@ -48,11 +49,8 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
     Print message colorised in fd ended by endl
     '''
     # color subsitution
-    for c in COLOR:
-        if not fd.isatty() or NOCOLOR:
-            message = message.replace("#%s#" % c, "")
-        else:
-            message = message.replace("#%s#" % c, COLOR[c])
+    color_pattern = "#(%s)#" % "|".join(COLOR)
+    message = re.sub(color_pattern, lambda obj: COLOR[obj.group(1)], message)
     # convert unicode into str before write
     # this can cause issue on python 2.6
     if type(message) == unicode:

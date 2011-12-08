@@ -68,13 +68,15 @@ class Repository(object):
     def __init__(self, config):
         self.config = config
         self.version = 1
-        if not config.offline:
+        self.local = istools.isfile(self.config.path)
+        if not self.config.offline:
             try:
                 self.db = Database(config.dbpath)
             except:
                 self.config.offline = True
-        if config.offline:
+        if self.config.offline:
             debug("Repository %s is offline" % config.name)
+
 
     def __getattribute__(self, name):
         '''
@@ -83,8 +85,8 @@ class Repository(object):
         because repository is not initialized
         '''
         config = object.__getattribute__(self, "config")
-        # config and init are always accessible
-        if name in ("init", "config"):
+        # config, init, local are always accessible
+        if name in ("init", "config", "local"):
             return object.__getattribute__(self, name)
         # if no db (not init or not accessible) raise error
         if config.offline:
@@ -97,7 +99,7 @@ class Repository(object):
         '''
         config = self.config
         # check local repository
-        if not istools.isfile(self.config.path):
+        if not self.local:
             raise Exception("Repository creation must be local")
         # create base directories
         arrow("Creating base directories")
@@ -128,7 +130,7 @@ class Repository(object):
         Update last file to current time
         '''
         # check local repository
-        if not istools.isfile(self.config.path):
+        if not self.local:
             raise Exception("Repository addition must be local")
         try:
             arrow("Updating last file")
@@ -155,7 +157,7 @@ class Repository(object):
         if delete is true, remove original files
         '''
         # check local repository
-        if not istools.isfile(self.config.path):
+        if not self.local:
             raise Exception("Repository addition must be local")
         # cannot add already existant image
         if self.has(image.name, image.version):
@@ -232,7 +234,7 @@ class Repository(object):
         Check repository for unreferenced and missing files
         '''
         # Check if the repo is local
-        if not istools.isfile(self.config.path):
+        if not self.local:
             raise Exception("Repository must be local")
         local_files = set(os.listdir(self.config.path))
         local_files.remove(self.config.dbname)
@@ -262,7 +264,7 @@ class Repository(object):
         Clean the repository's content
         '''
         # Check if the repo is local
-        if not istools.isfile(self.config.path):
+        if not self.local:
             raise Exception("Repository must be local")
         allmd5 = set(self.getallmd5())
         repofiles = set(os.listdir(self.config.path)) - set([self.config.dbname, self.config.lastname])
@@ -295,7 +297,7 @@ class Repository(object):
         Delete an image from repository
         '''
         # check local repository
-        if not istools.isfile(self.config.path):
+        if not self.local:
             raise Exception("Repository deletion must be local")
         # get md5 of files related to images (exception is raised if not exists
         md5s = self.getmd5(name, version)
@@ -621,18 +623,25 @@ class RepositoryManager(object):
                 return repo.get(name, version), repo
         raise Exception("Unable to find image %s v%s" % (name, version))
 
-    def show_repos(self, pattern, online=True, offline=True, url=False, state=True):
+    def show_repos(self, pattern, local=None, online=None, url=False, state=True):
         '''
         Show repository inside manager
-        online: list online repository
-        offline: list offline repository
-        verbose: display path
+        if :param online: is true, list only online repositories
+        if :param online: is false, list only offline repostiories
+        if :param online: is None, list both online and offline repostiories.
+        if :param local: is true, list only local repositories
+        if :param local: is false, list only remote repostiories
+        if :param local: is None, list both local and remote repostiories.
         '''
         for reponame in fnmatch.filter(self.names, pattern):
             repo = self[reponame]
-            if repo.config.offline and not offline:
+            if repo.config.offline and online is True:
                 continue
-            if not repo.config.offline and not online:
+            if not repo.config.offline and online is False:
+                continue
+            if repo.local and local is False:
+                continue
+            if not repo.local and local is True:
                 continue
             s = "#light##blue#%s#reset#"% repo.config.name
             if url:

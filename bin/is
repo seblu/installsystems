@@ -81,7 +81,7 @@ def c_add(parser, args):
 
 def c_build(parser, args):
     '''
-    Build an image source
+    Build an image source in current directory
     '''
     # build start time
     t0 = time.time()

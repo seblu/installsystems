@@ -148,13 +148,13 @@ class SourceImage(Image):
         '''
         for d in (self.base_path, self.parser_path, self.setup_path, self.payload_path):
             if not os.path.exists(d):
-                raise Exception("Missing directory: %s" % d)
+                raise Exception("Invalid source image: %s is missing" % d)
             if not os.path.isdir(d):
-                raise Exception("Not a directory: %s" % d)
+                raise Exception("Invalid source image: %s is not a directory" % d)
             if not os.access(d, os.R_OK|os.X_OK):
-                raise Exception("Unable to access to %s" % d)
+                raise Exception("Invalid source image: unable to access to %s" % d)
         if not os.path.exists(os.path.join(self.base_path, "description")):
-            raise Exception("No description file")
+            raise Exception("Invalid source image: no description file")
 
     def build(self, force=False, force_payload=False, check=True):
         '''

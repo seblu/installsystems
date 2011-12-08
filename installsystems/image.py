@@ -51,7 +51,6 @@ class Image(object):
         if re.match("^\d+$", buf) is None:
             raise Exception("Invalid image version %s" % buf)
 
-
     @staticmethod
     def compare_versions(v1, v2):
         '''
@@ -223,7 +222,10 @@ class SourceImage(Image):
         l_l = []
         for pay in candidates:
             source_path = os.path.join(self.payload_path, pay)
-            dest_path = "%s-%s-%s%s" % (self.description["name"],
+            dest_path = "%s-%s%s" % (self.description["name"],
+                                     pay,
+                                     Payload.extension)
+            link_path = "%s-%s-%s%s" % (self.description["name"],
                                         self.description["version"],
                                         pay,
                                         Payload.extension)
@@ -237,6 +239,9 @@ class SourceImage(Image):
                     self._create_payload_tarball(dest_path, source_path)
                 else:
                     self._create_payload_file(dest_path, source_path)
+            if os.path.exists(link_path):
+                os.unlink(link_path)
+            os.symlink(dest_path, link_path)
             # create payload object
             payobj = Payload(pay, "%s-%s" % (self.description["name"], self.description["version"]),
                              dest_path, isdir=isdir)

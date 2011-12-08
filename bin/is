@@ -367,10 +367,10 @@ p_add.set_defaults(func=c_add)
 
 # build command parser
 p_build = subparsers.add_parser("build", help=c_build.__doc__.lower())
-p_build.add_argument("-f", "--force", action="store_true", default=False,
-                     help="overwrite existing image")
 p_build.add_argument("-c", "--no-check", action="store_true", default=False,
                      help="do not check compilation before adding scripts")
+p_build.add_argument("-f", "--force", action="store_true", default=False,
+                     help="overwrite existing image")
 p_build.add_argument("path", nargs="?", default=".")
 p_build.set_defaults(func=c_build)
 
@@ -442,14 +442,14 @@ p_diff.set_defaults(func=c_diff)
 
 # extract command parser
 p_extract = subparsers.add_parser("extract", help=c_extract.__doc__.lower())
+p_extract.add_argument("-b", "--best", action="store_true", default=False,
+                       help="in best mode, image is the most recent in all repositories")
+p_extract.add_argument("-f", "--force", action="store_true", default=False,
+                       help="overwrite existing destinations")
 p_extract.add_argument("-g", "--gen-description", action="store_true", default=False,
                        help="generate a description file from metadata")
 p_extract.add_argument("-p", "--payload", action="store_true", default=False,
                        help="extract payloads")
-p_extract.add_argument("-f", "--force", action="store_true", default=False,
-                       help="overwrite existing destinations")
-p_extract.add_argument("-b", "--best", action="store_true", default=False,
-                       help="in best mode, image is the most recent in all repositories")
 p_extract.add_argument("image",
                        help="image syntax is <path|[repository/]image[:version]>")
 p_extract.add_argument("path", help="image will be extracted in path")
@@ -457,14 +457,14 @@ p_extract.set_defaults(func=c_extract)
 
 # get command parser
 p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
-p_get.add_argument("-p", "--payload", action="store_true", default=False,
-                   help="get payloads")
-p_get.add_argument("-I", "--no-image", action="store_true", default=False,
-                   help="do not get image")
-p_get.add_argument("-f", "--force", action="store_true", default=False,
-                   help="overwrite existing destinations")
 p_get.add_argument("-b", "--best", action="store_true", default=False,
                    help="in best mode, image is the most recent in all repositories")
+p_get.add_argument("-f", "--force", action="store_true", default=False,
+                   help="overwrite existing destinations")
+p_get.add_argument("-I", "--no-image", action="store_true", default=False,
+                   help="do not get image")
+p_get.add_argument("-p", "--payload", action="store_true", default=False,
+                   help="get payloads")
 p_get.add_argument("image", nargs="+",
                    help="image syntax is <path|[repository/]image[:version]>")
 p_get.set_defaults(func=c_get)
@@ -476,12 +476,12 @@ p_help.set_defaults(func=c_help, subparser=subparsers)
 
 # info command parser
 p_info = subparsers.add_parser("info", help=c_info.__doc__.lower())
-p_info.add_argument("-v", "--verbose", action="store_true", default=False,
-                    help="verbose output")
-p_info.add_argument("-c", "--changelog", action="store_true", default=False,
-                    help="display image changelog")
 p_info.add_argument("-b", "--best", action="store_true", default=False,
                     help="in best mode, image is the most recent in all repositories")
+p_info.add_argument("-c", "--changelog", action="store_true", default=False,
+                    help="display image changelog")
+p_info.add_argument("-v", "--verbose", action="store_true", default=False,
+                    help="verbose output")
 p_info.add_argument("image", nargs="+",
                     help="image syntax is <path|[repository/]image[:version]>")
 p_info.set_defaults(func=c_info)
@@ -503,34 +503,34 @@ p_install.set_defaults(func=c_install, subparser=p_install)
 
 # list command parser
 p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
+p_list.add_argument("-a", "--author", action="store_true", default=False,
+                    help="display image author")
+p_list.add_argument("-d", "--date", action="store_true", default=False,
+                    help="display image date")
+p_list.add_argument("-D", "--description", action="store_true", default=False,
+                    help="display image description")
 p_list.add_argument("-j", "--json", action="store_true", default=False,
                     help="long display")
 p_list.add_argument("-l", "--long", action="store_true", default=False,
                     help="long display")
 p_list.add_argument("-m", "--md5", action="store_true", default=False,
                     help="display image md5")
-p_list.add_argument("-s", "--size", action="store_true", default=False,
-                    help="display image size")
-p_list.add_argument("-d", "--date", action="store_true", default=False,
-                    help="display image date")
-p_list.add_argument("-a", "--author", action="store_true", default=False,
-                    help="display image author")
-p_list.add_argument("-u", "--url", action="store_true", default=False,
-                    help="display image url")
-p_list.add_argument("-D", "--description", action="store_true", default=False,
-                    help="display image description")
 p_list.add_argument("--no-sync", action="store_true", default=False,
                     help="doesn't sync repository before listing")
+p_list.add_argument("-s", "--size", action="store_true", default=False,
+                    help="display image size")
+p_list.add_argument("-u", "--url", action="store_true", default=False,
+                    help="display image url")
 p_list.add_argument("image", nargs="*", default=['*'],
                     help="image syntax is [repository/]image[:version]")
 p_list.set_defaults(func=c_list, subparser=p_list)
 
 # move command parser
 p_move = subparsers.add_parser("move", help=c_move.__doc__.lower())
-p_move.add_argument("-f", "--force", action="store_true", default=False,
-                    help="move image without confirmation")
 p_move.add_argument("-b", "--best", action="store_true", default=False,
                     help="in best mode, image is the most recent in all repositories")
+p_move.add_argument("-f", "--force", action="store_true", default=False,
+                    help="move image without confirmation")
 p_move.add_argument("image", nargs="+",
                     help="image syntax is <path|[repository/]image[:version]>")
 p_move.add_argument("repository", help="destination repository")
@@ -552,16 +552,16 @@ p_prepare_chroot.set_defaults(func=c_prepare_chroot)
 
 # repo command parser
 p_repo = subparsers.add_parser("repo", help=c_repo.__doc__.lower())
-p_repo.add_argument("-v", "--verbose", action="store_true", default=False,
-                    help="verbose output")
+p_repo.add_argument("--force-offline", action="store_true", default=False,
+                    help="force repository to be offline")
 p_repo.add_argument("-o", "--online", action="store_true", default=False,
                     help="list only online repository")
 p_repo.add_argument("-O", "--offline", action="store_true", default=False,
                     help="list only offline repository")
 p_repo.add_argument("-S", "--no-state", action="store_true", default=False,
                     help="doesn't display repository state (online/offline)")
-p_repo.add_argument("--force-offline", action="store_true", default=False,
-                    help="force repository to be offline")
+p_repo.add_argument("-v", "--verbose", action="store_true", default=False,
+                    help="verbose output")
 p_repo.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
 p_repo.set_defaults(func=c_repo)
 

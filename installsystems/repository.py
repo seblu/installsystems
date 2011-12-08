@@ -595,6 +595,22 @@ class RepositoryManager(object):
         '''
         return [ r.config.name for r in self.repos if r.config.offline ]
 
+    def images(self, pattern):
+        '''
+        Return a list of available images
+        '''
+        # building image list
+        images = {}
+        for reponame in self.onlines:
+            for img in self[reponame].images():
+                imgname = u"%s/%s:%s" % (reponame, img["name"], img["version"])
+                images[imgname] = img
+        # filter with pattern
+        for k in images.keys():
+            if not fnmatch.fnmatch(k, pattern):
+                del images[k]
+        return images
+
     def get(self, name, version=None, best=False):
         '''
         Crawl repositories to get an image
@@ -664,16 +680,8 @@ class RepositoryManager(object):
         long: display output in long format
         all images parameter can be given in arguments to displayed
         '''
-        # building image list
-        images = {}
-        for reponame in self.onlines:
-            for img in self[reponame].images():
-                imgname = u"%s/%s:%s" % (reponame, img["name"], img["version"])
-                images[imgname] = img
-        # filter with pattern
-        for k in images.keys():
-            if not fnmatch.fnmatch(k, pattern):
-                del images[k]
+        # get image list
+        images = self.images(pattern)
         # display result
         if o_json:
             s = json.dumps(images)

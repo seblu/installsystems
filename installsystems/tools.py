@@ -478,9 +478,9 @@ def compare_versions(v1, v2):
         if type(version) is int or type(version) is float:
             return float(version)
         elif isinstance(version, basestring):
-            iv = re.match("^(\d+)(?:([-~+])\w*)?$", version)
+            iv = re.match("^(\d+)(?:([-~+]).*)?$", version)
             if iv is None:
-                raise TypeError('Invalid version: %s' % version)
+                raise TypeError('Invalid version format: %s' % version)
             rv = float(iv.group(1))
             if iv.group(2) == "~":
                 rv -= 0.1
@@ -488,7 +488,7 @@ def compare_versions(v1, v2):
                 rv += 0.1
             return rv
         else:
-            raise TypeError('Invalid version: %s' % version)
+            raise TypeError('Invalid version format: %s' % version)
 
     fv1 = get_ver(v1)
     fv2 = get_ver(v2)

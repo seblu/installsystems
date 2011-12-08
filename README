@@ -6,7 +6,7 @@ __________________________
 A valid version is an integer without dot.
 A version n, may be followed by a ~, to indicate it's inferior to n
 A version n, may be followed by a +, to indicate it's superior to n
-Any following ascii chars after ~ or + are ignored
+Any following chars after ~ or + are ignored
 
 Examples:
   1 < 2

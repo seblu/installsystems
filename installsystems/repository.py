@@ -643,11 +643,16 @@ class RepositoryManager(object):
                 continue
             if not repo.local and local is True:
                 continue
-            s = "#light##blue#%s#reset#"% repo.config.name
+            so = "#l##r#Off#R# " if repo.config.offline else "#l##g#On#R#  "
+            sl = "#l##y#Local#R#  " if repo.local else "#l##c#Remote#R# "
+            rc = "#l##r#" if repo.config.offline else "#l##g#"
+            s = ""
+            if state:
+                s +=  "%s%s " % (so, sl)
+                rc = "#l##b#"
+            s += "%s%s#R#"% (rc, repo.config.name)
             if url:
-                s += " (%s)" % repo.config.path
-            if state and repo.config.offline:
-                s +=  " #light##red#[offline]#reset#"
+                s += "  (%s)" % repo.config.path
             out(s)
 
     def show_images(self, pattern, o_json=False, o_long=False,

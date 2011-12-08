@@ -304,7 +304,7 @@ def c_repo(parser, args):
     repoman = load_repositories(args)
     for pattern in args.repository:
         repoman.show_repos(pattern, online=args.online, local=args.local,
-                           url=args.verbose, state=not args.no_state)
+                           url=args.url, state=args.state)
 
 def c_search(parser, args):
     '''
@@ -566,10 +566,10 @@ p_repo_mgroup.add_argument("-o", "--online", action="store_true", default=None,
                            help="list online repository (filter)")
 p_repo_mgroup.add_argument("-O", "--offline", action="store_false", dest="online",
                            help="list offline repository (filter)")
-p_repo.add_argument("-S", "--no-state", action="store_true", default=False,
-                    help="doesn't display repository state (online/offline)")
-p_repo.add_argument("-v", "--verbose", action="store_true", default=False,
-                    help="verbose output")
+p_repo.add_argument("-s", "--state", action="store_true", default=False,
+                    help="display repository state (online/offline/local/remote)")
+p_repo.add_argument("-u", "--url", action="store_true", default=False,
+                    help="display repository url")
 p_repo.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
 p_repo.set_defaults(func=c_repo)
 

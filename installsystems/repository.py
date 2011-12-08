@@ -67,6 +67,7 @@ class Repository(object):
 
     def __init__(self, config):
         self.config = config
+        self.version = 1
         if not config.offline:
             try:
                 self.db = Database(config.dbpath)

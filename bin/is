@@ -88,7 +88,7 @@ def c_build(parser, args):
     # load source image
     simg = SourceImage(args.path)
     # do the job
-    simg.build(force=args.force, check=not args.no_check)
+    simg.build(force=args.force, force_payload=args.payload, check=not args.no_check)
     # compute building time
     t1 = time.time()
     dt = int(t1 - t0)
@@ -370,7 +370,9 @@ p_build = subparsers.add_parser("build", help=c_build.__doc__.lower())
 p_build.add_argument("-c", "--no-check", action="store_true", default=False,
                      help="do not check compilation before adding scripts")
 p_build.add_argument("-f", "--force", action="store_true", default=False,
-                     help="overwrite existing image")
+                     help="rebuild image if already exists")
+p_build.add_argument("-p", "--payload", action="store_true", default=False,
+                     help="rebuild payloads if already exists")
 p_build.add_argument("path", nargs="?", default=".")
 p_build.set_defaults(func=c_build)
 

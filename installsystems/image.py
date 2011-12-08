@@ -156,7 +156,7 @@ class SourceImage(Image):
         if not os.path.exists(os.path.join(self.base_path, "description")):
             raise Exception("No description file")
 
-    def build(self, force=False, check=True):
+    def build(self, force=False, force_payload=False, check=True):
         '''
         Create packaged image
         '''
@@ -168,7 +168,7 @@ class SourceImage(Image):
             self.check_scripts(self.parser_path)
             self.check_scripts(self.setup_path)
         # Create payload files
-        payloads = self.create_payloads()
+        payloads = self.create_payloads(force=force_payload)
         # generate a JSON description
         jdesc = self.generate_json_description(payloads)
         # creating scripts tarball
@@ -204,7 +204,7 @@ class SourceImage(Image):
         tarball.close()
         arrowlevel(-1)
 
-    def create_payloads(self):
+    def create_payloads(self, force=False):
         '''
         Create all data payloads in current directory
         Doesn't compute md5 during creation because tarball can
@@ -231,7 +231,7 @@ class SourceImage(Image):
                                         Payload.extension)
             source_stat = os.stat(source_path)
             isdir = stat.S_ISDIR(source_stat.st_mode)
-            if os.path.exists(dest_path):
+            if os.path.exists(dest_path) and not force:
                 arrow("Payload %s already exists" % dest_path)
             else:
                 arrow("Creating payload %s" % dest_path)

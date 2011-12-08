@@ -58,7 +58,7 @@ _is() {
             (( args > 2 )) && _filedir '?(u)isimage'
             ;;
 	build)
-            [[ "$cur" == -* ]] && _opt '-h --help -f --force -c --no-check' && return 0
+            [[ "$cur" == -* ]] && _opt '-h --help -f --force -p --payload -c --no-check' && return 0
 	    _count_args
             (( args == 2 )) && _filedir -d
             ;;

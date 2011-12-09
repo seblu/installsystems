@@ -257,7 +257,7 @@ def c_list(parser, args):
     '''
     repoman = load_repositories(args)
     for pattern in args.image:
-        repoman.show_images(pattern, o_long=args.long, o_json=args.json,
+        repoman.show_images(pattern, all_version=args.all_version, o_long=args.long, o_json=args.json,
                             o_md5=args.md5, o_date=args.date, o_author=args.author,
                             o_size=args.size, o_url=args.url, o_description=args.description)
 
@@ -505,7 +505,9 @@ p_install.set_defaults(func=c_install, subparser=p_install)
 
 # list command parser
 p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
-p_list.add_argument("-a", "--author", action="store_true", default=False,
+p_list.add_argument("-a", "--all-version", action="store_true", default=False,
+                    help="list all versions of the same image")
+p_list.add_argument("-A", "--author", action="store_true", default=False,
                     help="display image author")
 p_list.add_argument("-d", "--date", action="store_true", default=False,
                     help="display image date")

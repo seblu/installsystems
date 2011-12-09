@@ -595,7 +595,7 @@ class RepositoryManager(object):
         '''
         return [ r.config.name for r in self.repos if r.config.offline ]
 
-    def images(self, pattern):
+    def images(self, pattern, all_version=True):
         '''
         Return a list of available images
         '''
@@ -609,6 +609,17 @@ class RepositoryManager(object):
         for k in images.keys():
             if not fnmatch.fnmatch(k, pattern):
                 del images[k]
+        # filter multiple versions
+        if not all_version:
+            for repo in set((images[i]["repo"] for i in images)):
+                for img in set((images[i]["name"] for i in images if images[i]["repo"] == repo)):
+                    versions = [ images[i]['version']
+                                 for i in images if images[i]["repo"] == repo and images[i]["name"] == img ]
+                    f = lambda x,y: x if istools.compare_versions(x, y) > 0 else y
+                    last = reduce(f, versions)
+                    versions.remove(last)
+                    for rmv in versions:
+                        del images["%s/%s:%s" % (repo, img, rmv)]
         return images
 
     def get(self, name, version=None, best=False):
@@ -671,7 +682,7 @@ class RepositoryManager(object):
                 s += "  (%s)" % repo.config.path
             out(s)
 
-    def show_images(self, pattern, o_json=False, o_long=False,
+    def show_images(self, pattern, all_version=True, o_json=False, o_long=False,
                     o_md5=False, o_date=False, o_author=False, o_size=False,
                     o_url=False, o_description=False):
         '''
@@ -681,7 +692,7 @@ class RepositoryManager(object):
         all images parameter can be given in arguments to displayed
         '''
         # get image list
-        images = self.images(pattern)
+        images = self.images(pattern, all_version)
         # display result
         if o_json:
             s = json.dumps(images)

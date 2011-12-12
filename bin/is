@@ -229,21 +229,24 @@ def c_install(parser, args):
     '''
     Install an image
     '''
+    # remove old image args
+    args.parser._remove_action([d for d in args.parser._actions if d.dest == "image"][0])
+    # create a subparser for current image to have a sexy display of args
+    #args.image = "roger"
+    subparser = args.parser.add_subparsers().add_parser(args.image)
     # select image to install
     repoman = load_repositories(args)
     img = select_image(args.image, repoman, args.best)[0]
-    # add default show help options
-    args.subparser.add_argument("-h", "--help", action="help", default=argparse.SUPPRESS,
-                                help="show program's version number and exit")
     # Print setup information
     arrow("Installing %s v%s" % (img.name, img.version))
     # install start time
     t0 = time.time()
     # run parser scripts with parser parser argument
-    img.run_parser(parser=args.subparser)
+    img.run_parser(parser=subparser)
     # call parser again, with extended attributes
     arrow("Parsing arguments")
-    args = parser.parse_args(namespace=args)
+    #parser.print_help()
+    args = parser.parse_args()
     # run setup scripts
     img.run_setup(namespace=args)
     # compute building time
@@ -498,10 +501,10 @@ p_init.set_defaults(func=c_init)
 p_install = subparsers.add_parser("install", add_help=False,
                                   help=c_install.__doc__.lower())
 p_install.add_argument("-b", "--best", action="store_true", default=False,
-                       help="in best mode, image is the most recent in all repositories")
+                       help="take the most recent image in all searchable repositories")
 p_install.add_argument("image",
                        help="image syntax is <path|[repository/]image[:version]>")
-p_install.set_defaults(func=c_install, subparser=p_install)
+p_install.set_defaults(func=c_install, parser=p_install)
 
 # list command parser
 p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
@@ -527,7 +530,7 @@ p_list.add_argument("-u", "--url", action="store_true", default=False,
                     help="display image url")
 p_list.add_argument("image", nargs="*", default=['*'],
                     help="image syntax is [repository/]image[:version]")
-p_list.set_defaults(func=c_list, subparser=p_list)
+p_list.set_defaults(func=c_list)
 
 # move command parser
 p_move = subparsers.add_parser("move", help=c_move.__doc__.lower())
@@ -592,7 +595,7 @@ p_version = subparsers.add_parser("version", help=c_version.__doc__.lower())
 p_version.set_defaults(func=c_version)
 
 try:
-    # Parse and run
+    # first (partial) parsing
     args = p_main.parse_known_args()[0]
     # set debug and quiet mode before merge
     installsystems.debug = args.debug
@@ -610,6 +613,7 @@ try:
     if args.no_color:
         installsystems.printer.NOCOLOR = True
     # except for install command we parse all args!
+    # install command is responsible of parsing
     if args.func is not c_install:
         args = p_main.parse_args(namespace=args)
     # let's go

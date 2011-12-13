@@ -37,8 +37,7 @@ def load_repositories(args):
         args.cache = None
     # split filter in list
     if args.repo_filter is not None:
-        args.repo_filter = [f for f in  re.split("[ ,\n\t\v]+", args.repo_filter)
-                            if f != ""]
+        args.repo_filter = split_repositories(args.repo_filter)
     # init repo cache object
     repoman = RepositoryManager(args.cache, timeout=args.timeout, filter=args.repo_filter)
     # register repositories (order matter)
@@ -54,6 +53,14 @@ def load_repositories(args):
                          nosync=hasattr(args, "no_sync") and args.no_sync,
                          offline=hasattr(args, "force_offline") and args.force_offline)
     return repoman
+
+def split_repositories(repos, filter=None):
+    '''
+    Return a list of repository from an comma/space separated list of repo
+    '''
+    if filter is None:
+        filter = lambda x: x != ""
+    return [r for r in  re.split("[ ,\n\t\v]+", repos) if filter(r)]
 
 def select_image(name, repoman, best=False):
     '''
@@ -77,8 +84,8 @@ def select_image(name, repoman, best=False):
         if repo is None:
             # split search path as a list
             if args.repo_search is not None:
-                args.repo_search = [s for s in re.split("[ ,\n\t\v]+", args.repo_search)
-                                    if s in repoman.onlines]
+                args.repo_search = split_repositories(args.repo_search,
+                                                      lambda x: x in repoman.onlines)
             else:
                 args.repo_search = []
             # if we have only one repo, search in it
@@ -285,8 +292,11 @@ def c_list(parser, args):
     List images in repository or image content
     '''
     repoman = load_repositories(args)
+    if args.search is not None:
+        args.search = split_repositories(args.repo_search, lambda x: x in repoman.onlines)
     for pattern in args.image:
-        repoman.show_images(pattern, all_version=args.all_version, o_long=args.long, o_json=args.json,
+        repoman.show_images(pattern, all_version=args.all_version, search=args.search,
+                            o_long=args.long, o_json=args.json,
                             o_md5=args.md5, o_date=args.date, o_author=args.author,
                             o_size=args.size, o_url=args.url, o_description=args.description)
 
@@ -560,6 +570,8 @@ p_list.add_argument("-s", "--size", action="store_true", default=False,
                     help="display image size")
 p_list.add_argument("-u", "--url", action="store_true", default=False,
                     help="display image url")
+p_list.add_argument("-S", "--search", action="store_true", default=None,
+                    help="only list image in search path")
 p_list.add_argument("image", nargs="*", default=['*'],
                     help="image syntax is [repository/]image[:version]")
 p_list.set_defaults(func=c_list)

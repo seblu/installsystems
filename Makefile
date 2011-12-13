@@ -1,6 +1,6 @@
 ## Makefile
 
-.PHONY: all tar deb clean cleanbuild buildd dsc
+.PHONY: all tar deb clean cleanbuild buildd dsc doc
 
 NAME=installsystems
 VERSION=$(shell sed -rn 's/version = "([^"]+)"/\1/p' installsystems/__init__.py)
@@ -14,6 +14,9 @@ $(NAME)-$(VERSION).tar.gz:
 	git archive --prefix=$(NAME)-$(VERSION)/ HEAD | gzip -9 > $(NAME)-$(VERSION).tar.gz
 
 tar: cleantar $(NAME)-$(VERSION).tar.gz
+
+doc:
+	cd doc && make html
 
 dsc: cleanbuild $(NAME)-$(VERSION).tar.gz
 	mkdir $(BUILD_DIR)

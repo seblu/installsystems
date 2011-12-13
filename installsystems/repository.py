@@ -12,7 +12,6 @@ import time
 import shutil
 import pwd
 import grp
-import json
 import tempfile
 import fnmatch
 import cStringIO
@@ -655,75 +654,6 @@ class RepositoryManager(object):
                 return self[repo].get(name, version), repo
         raise Exception("No image %s v%s in %s" % (
                 name, version, search))
-
-    def show_repos(self, pattern, local=None, online=None, url=False, state=True):
-        '''
-        Show repository inside manager
-        if :param online: is true, list only online repositories
-        if :param online: is false, list only offline repostiories
-        if :param online: is None, list both online and offline repostiories.
-        if :param local: is true, list only local repositories
-        if :param local: is false, list only remote repostiories
-        if :param local: is None, list both local and remote repostiories.
-        '''
-        for reponame in fnmatch.filter(self.names, pattern):
-            repo = self[reponame]
-            if repo.config.offline and online is True:
-                continue
-            if not repo.config.offline and online is False:
-                continue
-            if repo.local and local is False:
-                continue
-            if not repo.local and local is True:
-                continue
-            so = "#l##r#Off#R# " if repo.config.offline else "#l##g#On#R#  "
-            sl = "#l##y#Local#R#  " if repo.local else "#l##c#Remote#R# "
-            rc = "#l##r#" if repo.config.offline else "#l##g#"
-            s = ""
-            if state:
-                s +=  "%s%s " % (so, sl)
-                rc = "#l##b#"
-            s += "%s%s#R#"% (rc, repo.config.name)
-            if url:
-                s += "  (%s)" % repo.config.path
-            out(s)
-
-    def show_images(self, pattern, all_version=True, search=None,
-                    o_json=False, o_long=False,
-                    o_md5=False, o_date=False, o_author=False, o_size=False,
-                    o_url=False, o_description=False):
-        '''
-        Show repository inside manager
-        json: display output in json
-        long: display output in long format
-        all images parameter can be given in arguments to displayed
-        '''
-        # get image list
-        images = self.images(pattern, all_version, search)
-        # display result
-        if o_json:
-            s = json.dumps(images)
-        else:
-            l = []
-            for imgp in sorted(images.keys()):
-                img = images[imgp]
-                l.append(u"%s#R#/#l##b#%s#R#:#p#%s#R#" % (
-                        img["repo"], img["name"], img["version"]))
-                if o_md5 or o_long:
-                    l[-1] = l[-1] + u" (#y#%s#R#)" % img["md5"]
-                if o_date or o_long:
-                    l.append(u"  #l#date:#R# %s" % istools.time_rfc2822(img["date"]))
-                if o_author or o_long:
-                    l.append(u"  #l#author:#R# %s" % img["author"])
-                if o_size or o_long:
-                    l.append(u"  #l#size:#R# %s" % istools.human_size(img["size"]))
-                if o_url or o_long:
-                    l.append(u"  #l#url:#R# %s" % img["url"])
-                if o_description or o_long:
-                    l.append(u"  #l#description:#R# %s" % img["description"])
-            s = os.linesep.join(l)
-        if len(s) > 0:
-            out(s)
 
     def search(self, pattern):
         '''

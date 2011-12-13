@@ -51,6 +51,8 @@ class MainConfigFile(ConfigFile):
     Program configuration file
     '''
 
+    valid_options = ("debug", "quiet", "no_cache", "no_color", "timeout", "cache", "repo_search", "repo_filter", "repo_config")
+
     def __init__(self, filename, prefix=os.path.basename(sys.argv[0])):
         self.prefix = prefix
         ConfigFile.__init__(self, filename)
@@ -81,8 +83,14 @@ class MainConfigFile(ConfigFile):
         Merge current loaded option with a namespace from argparse
         '''
         for option, value in self._config.items():
+            # check option is valid
+            if option not in self.valid_options:
+                warn("Invalid option %s in %s, skipped" % (option, self.path))
+                continue
+            # no option is specified in command line, set it
             if not hasattr(namespace, option):
                 setattr(namespace, option, value)
+            # handle by default none options
             elif getattr(namespace, option) == None:
                 # we need to handle boolean differently
                 if option in ("debug", "quiet", "no_cache", "no_color"):
@@ -94,11 +102,12 @@ class MainConfigFile(ConfigFile):
                     except ValueError:
                         raise Exception("Invalid %s: Not a number" % option)
                     setattr(namespace, option, n)
-                # we can handle string more carefuly
-                elif option in ("cache", "repo_filter", "repo_config"):
+                # handle strings
+                elif option in ("cache", "repo_search", "repo_filter"):
                     setattr(namespace, option, value)
-                else:
-                    warn("Invalid option %s in %s, skipped" % (option, self.path))
+            # repo_config is a special parameter, default value is repository
+            elif option == "repo_config" and option.repo_config == "repository":
+                setattr(namespace, option, value)
 
     def _cache_paths(self):
         '''

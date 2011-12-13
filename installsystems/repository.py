@@ -391,7 +391,8 @@ class Repository(object):
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name, version)).fetchone()
         if r is None:
-            raise Exception("Unable to find image %s v%s" % (name, version))
+            raise Exception("Unable to find image %s v%s in %s" % (name, version,
+                                                                   self.config.name))
         path = os.path.join(self.config.path, r[0])
         # getting the file
         arrow("Loading image %s v%s from repository %s" % (name,
@@ -436,7 +437,7 @@ class RepositoryManager(object):
         self.timeout = 3 if timeout is None else timeout
         self.repos = []
         self.tempfiles = []
-        self.filter = filter
+        self.filter = [] if filter is None else filter
         if cache_path is None:
             self.cache_path = None
             debug("No repository cache")
@@ -500,8 +501,9 @@ class RepositoryManager(object):
         offline: repository is marked offline
         '''
         # check filter on name
-        if self.filter is not None:
-            if not fnmatch.fnmatch(config.name, self.filter):
+        if len(self.filter) > 0:
+            if config.name not in self.filter:
+                debug("Filtering repository %s" % config.name)
                 return
         # repository is offline
         if config.offline or offline:
@@ -622,19 +624,20 @@ class RepositoryManager(object):
                         del images["%s/%s:%s" % (repo, img, rmv)]
         return images
 
-    def get(self, name, version=None, best=False):
+    def get(self, name, version=None, search=None, best=False):
         '''
-        Crawl repositories to get an image
+        Crawl searchable repositories to get an image
 
         best mode search the most recent version accross all repo
         else it search the first match
         '''
+        if search is None:
+            search = []
         # search last version if needed
         if version is None:
             version = -1
-            for repo in self.repos:
-                if repo.config.offline: continue
-                current = repo.last(name)
+            for repo in search:
+                current = self[repo].last(name)
                 # if not best mode, we found our version
                 if not best and current > 0:
                     version = current
@@ -642,13 +645,14 @@ class RepositoryManager(object):
                 version = max(version, current)
             # if version < 0, il n'y a pas d'image
             if version < 0:
-                raise Exception("Unable to find image %s" % name)
+                raise Exception("Unable to find image %s in %s" % (
+                        name, search))
         # search image in repos
-        for repo in self.repos:
-            if repo.config.offline:  continue
-            if repo.has(name, version):
-                return repo.get(name, version), repo
-        raise Exception("Unable to find image %s v%s" % (name, version))
+        for repo in search:
+            if self[repo].has(name, version):
+                return self[repo].get(name, version), repo
+        raise Exception("No image %s v%s in %s" % (
+                name, version, search))
 
     def show_repos(self, pattern, local=None, online=None, url=False, state=True):
         '''
@@ -722,8 +726,7 @@ class RepositoryManager(object):
         '''
         Search pattern accross all registered repositories
         '''
-        for repo in self.repos:
-            if repo.config.offline:  continue
+        for repo in self.onlines:
             arrow(repo.config.name)
             repo.search(pattern)
 

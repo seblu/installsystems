@@ -493,3 +493,13 @@ def compare_versions(v1, v2):
     fv1 = get_ver(v1)
     fv2 = get_ver(v2)
     return fv1 - fv2
+
+def split_image_path(path):
+    '''
+    Split an image path (repo/image:version)
+    in a tuple (repo, image, version)
+    '''
+    x = re.match(u"^(?:([-_\w]+)/)?([-_\w]+)(?::v?(\d+))?$", path)
+    if x is None:
+        raise Exception("invalid image path: %s" % path)
+    return x.group(1,2,3)

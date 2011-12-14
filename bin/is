@@ -412,10 +412,17 @@ def c_repo(parser, args):
     '''
     Get information about repositories
     '''
+    # in cleaning mode we doesn't needs to get repositories
+    if args.purge:
+        args.force_offline = True
     repoman = load_repositories(args)
     for pattern in args.repository:
-        show_repositories(repoman, pattern, online=args.online, local=args.local,
-                          url=args.url, state=args.state)
+        if args.purge:
+            repoman.purge_cache(pattern)
+        else:
+            show_repositories(repoman, pattern,
+                              online=args.online, local=args.local,
+                              url=args.url, state=args.state)
 
 def c_search(parser, args):
     '''
@@ -675,8 +682,6 @@ p_prepare_chroot.set_defaults(func=c_prepare_chroot)
 
 # repo command parser
 p_repo = subparsers.add_parser("repo", help=c_repo.__doc__.lower())
-p_repo.add_argument("--force-offline", action="store_true", default=False,
-                    help="force repository to be offline")
 p_repo_mgroup = p_repo.add_mutually_exclusive_group()
 p_repo_mgroup.add_argument("-l", "--local", action="store_true", default=None,
                            help="list local repository (filter)")
@@ -687,6 +692,10 @@ p_repo_mgroup.add_argument("-o", "--online", action="store_true", default=None,
                            help="list online repository (filter)")
 p_repo_mgroup.add_argument("-O", "--offline", action="store_false", dest="online",
                            help="list offline repository (filter)")
+p_repo.add_argument("--purge", action="store_true", default=False,
+                    help="remove cache databases")
+p_repo.add_argument("--force-offline", action="store_true", default=False,
+                    help="force repository to be offline")
 p_repo.add_argument("-s", "--state", action="store_true", default=False,
                     help="display repository state (online/offline/local/remote)")
 p_repo.add_argument("-u", "--url", action="store_true", default=False,

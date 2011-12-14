@@ -528,7 +528,7 @@ class RepositoryManager(object):
         '''
         try:
             if temp and nosync:
-                raise IOError("unable to cache, sync is disabled")
+                raise IOError("Unable to cache, sync is disabled")
             # Ensure destination file exists
             if temp is True or self.cache_path is None:
                 # this is a forced temporary repository or without name repo
@@ -662,6 +662,22 @@ class RepositoryManager(object):
         for repo in self.onlines:
             arrow(repo.config.name)
             repo.search(pattern)
+
+    def purge_cache(self, pattern):
+        '''
+        Remove local cached repository files
+        '''
+        for reponame in fnmatch.filter(self.names, pattern):
+            arrow("Purging cache of repository %s" % reponame)
+            db = os.path.join(self.cache_path, reponame)
+            if os.path.exists(db):
+                try:
+                    os.unlink(db)
+                    arrow("done", 1)
+                except:
+                    arrow("failed", 1)
+            else:
+                arrow("nothing to do", 1)
 
 
 class RepositoryConfig(object):

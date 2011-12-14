@@ -15,7 +15,7 @@ Description: InstallSytems Installer
 
 Package: python-installsystems
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, python-paramiko, python-argparse
+Depends: ${misc:Depends}, ${python:Depends}, python-paramiko, python-argparse (>= 1.2.1)
 XB-Python-Version: ${python:Versions}
 Description: InstallSystems Python modules
  This package provides InstallSystems framework

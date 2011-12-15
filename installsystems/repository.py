@@ -161,8 +161,6 @@ class Repository(object):
         # cannot add already existant image
         if self.has(image.name, image.version):
             raise Exception("Image already in database, delete first!")
-        # checking data tarballs md5 before copy
-        image.check("Check image and payload before copy")
         # adding file to repository
         arrow("Copying images and payload")
         for obj in [ image ] + image.payload.values():
@@ -185,7 +183,7 @@ class Repository(object):
         # checking must be done with original md5
         r_image.md5 = image.md5
         # checking image and payload after copy
-        r_image.check("Check image and payload after copy")
+        r_image.check("Check image and payload")
         # add description to db
         arrow("Adding metadata")
         self.db.begin()

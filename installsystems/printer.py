@@ -50,7 +50,11 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
     '''
     # color subsitution
     color_pattern = "#(%s)#" % "|".join(COLOR)
-    message = re.sub(color_pattern, lambda obj: COLOR[obj.group(1)], message)
+    if not fd.isatty() or NOCOLOR:
+        f = lambda obj: ""
+    else:
+        f = lambda obj: COLOR[obj.group(1)]
+    message = re.sub(color_pattern, f, message)
     # convert unicode into str before write
     # this can cause issue on python 2.6
     if type(message) == unicode:

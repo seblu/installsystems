@@ -505,6 +505,13 @@ def chroot(path, shell="/bin/bash", mount=True):
     # revert preparation of chroot
     unprepare_chroot(path, mount)
 
+def is_version(version):
+    '''
+    Check if version is valid
+    '''
+    if re.match("^(\d+)(?:([-~+]).*)?$", version) is None:
+        raise TypeError("Invalid version format %s" % buf)
+
 def compare_versions(v1, v2):
     '''
     This function compare version :param v1: and version :param v2:

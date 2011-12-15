@@ -186,14 +186,14 @@ class SourceImage(Image):
             tarball = Tarball.open(self.image_name, mode="w:gz", dereference=True)
         except Exception as e:
             raise Exception("Unable to create tarball %s: %s" % (self.image_name, e))
-        # add .description.json
+        # add description.json
         arrow("Add description.json")
         tarball.add_str("description.json", jdescription, tarfile.REGTYPE, 0644)
         # add changelog
         if self.changelog is not None:
             arrow("Add changelog")
             tarball.add_str("changelog", self.changelog.verbatim, tarfile.REGTYPE, 0644)
-        # add .format
+        # add format
         arrow("Add format")
         tarball.add_str("format", self.format, tarfile.REGTYPE, 0644)
         # add parser scripts

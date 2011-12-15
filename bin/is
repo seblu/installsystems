@@ -265,7 +265,7 @@ def c_del(parser, args):
         if repo is None:
             raise Exception("You cannot delete an image outside a repository")
         if not args.force:
-            warn("The following opereation cannot be reversed!")
+            warn("The following operation cannot be reversed!")
             out("You will delete %s v%s in repository %s" % (img.name,
                                                              img.version,
                                                              repo.config.name))
@@ -470,7 +470,7 @@ p_main.add_argument("-f", "--repo-filter", metavar="REPO,REPO,...",
 p_main.add_argument("-r", "--repo-path", metavar="PATH",
                     help="define a temporary repository")
 p_main.add_argument("-C", "--cache", metavar="PATH",
-                    help="path of the repository cache")
+                    help="path of repositories cache")
 p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
                     metavar="SECONDS", help="download timeout (default 3)")
 p_main.add_argument("--no-cache", action="store_true", default=None,
@@ -638,7 +638,7 @@ p_list.add_argument("-d", "--date", action="store_true", default=False,
 p_list.add_argument("-D", "--description", action="store_true", default=False,
                     help="display image description")
 p_list.add_argument("-j", "--json", action="store_true", default=False,
-                    help="long display")
+                    help="output is formated in json")
 p_list.add_argument("-l", "--long", action="store_true", default=False,
                     help="long display")
 p_list.add_argument("-m", "--md5", action="store_true", default=False,

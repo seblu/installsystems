@@ -471,12 +471,12 @@ p_main.add_argument("-r", "--repo-path", metavar="PATH",
                     help="define a temporary repository")
 p_main.add_argument("-C", "--cache", metavar="PATH",
                     help="path of the repository cache")
+p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
+                    metavar="SECONDS", help="download timeout (default 3)")
 p_main.add_argument("--no-cache", action="store_true", default=None,
                     help="not use persistent db caching")
 p_main.add_argument("--no-color", action="store_true", default=None,
                     help="dot not display colored output")
-p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
-                    metavar="SECONDS", help="download timeout (default 3)")
 
 # create a subparsers for each command
 subparsers = p_main.add_subparsers()
@@ -643,14 +643,14 @@ p_list.add_argument("-l", "--long", action="store_true", default=False,
                     help="long display")
 p_list.add_argument("-m", "--md5", action="store_true", default=False,
                     help="display image md5")
-p_list.add_argument("--no-sync", action="store_true", default=False,
-                    help="doesn't sync repository before listing")
 p_list.add_argument("-s", "--size", action="store_true", default=False,
                     help="display image size")
 p_list.add_argument("-u", "--url", action="store_true", default=False,
                     help="display image url")
 p_list.add_argument("-S", "--search", action="store_true", default=None,
                     help="only list image in search path")
+p_list.add_argument("--no-sync", action="store_true", default=False,
+                    help="doesn't sync repository before listing")
 p_list.add_argument("image", nargs="*", default=['*'],
                     help="image syntax is [repository/]image[:version]")
 p_list.set_defaults(func=c_list)
@@ -692,14 +692,14 @@ p_repo_mgroup.add_argument("-o", "--online", action="store_true", default=None,
                            help="list online repository (filter)")
 p_repo_mgroup.add_argument("-O", "--offline", action="store_false", dest="online",
                            help="list offline repository (filter)")
-p_repo.add_argument("--purge", action="store_true", default=False,
-                    help="remove cache databases")
-p_repo.add_argument("--force-offline", action="store_true", default=False,
-                    help="force repository to be offline")
 p_repo.add_argument("-s", "--state", action="store_true", default=False,
                     help="display repository state (online/offline/local/remote)")
 p_repo.add_argument("-u", "--url", action="store_true", default=False,
                     help="display repository url")
+p_repo.add_argument("--purge", action="store_true", default=False,
+                    help="remove cache databases")
+p_repo.add_argument("--force-offline", action="store_true", default=False,
+                    help="force repository to be offline")
 p_repo.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
 p_repo.set_defaults(func=c_repo)
 

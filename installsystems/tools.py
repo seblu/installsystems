@@ -373,27 +373,38 @@ def prepare_chroot(path, mount=True):
                     check_call(["mount",  "--bind", origin, target], close_fds=True)
                 except CalledProcessError as e:
                     warn("Mount failed: %s.\n" % e)
-    arrow("Cheating")
+    arrow("Tricks")
+    exists = os.path.exists
+    join = os.path.join
     # check path is a kind of linux FHS
-    if not os.path.exists(os.path.join(path, "etc")) or not os.path.exists(os.path.join(path, "usr")):
+    if not exists(join(path, "etc")) or not exists(join(path, "usr")):
         return
     # trick resolv.conf
     try:
-        if os.path.exists("/etc/resolv.conf"):
+        resolv_path = join(path, "etc", "resolv.conf")
+        resolv_backup_path = join(path, "etc", "resolv.conf.isbackup")
+        resolv_trick_path = join(path, "etc", "resolv.conf.istrick")
+        if (exists("/etc/resolv.conf")
+            and not exists(resolv_backup_path)
+            and not exists(resolv_trick_path)):
             arrow("resolv.conf", 1)
-            resolv_path = os.path.join(path, "etc", "resolv.conf")
-            if os.path.exists(resolv_path):
-                os.rename(resolv_path, "%s.isbackup" % resolv_path)
+            if exists(resolv_path):
+                os.rename(resolv_path, resolv_backup_path)
+            else:
+                open(resolv_trick_path, "wb")
             shutil.copy("/etc/resolv.conf", resolv_path)
     except Exception as e:
         warn("resolv.conf tricks fail: %s" % e)
     # trick mtab
     try:
-        mtab_path = os.path.join(path, "etc", "mtab")
-        arrow("mtab", 1)
-        if os.path.exists(mtab_path):
-            os.rename(mtab_path, "%s.isbackup" % mtab_path)
-        os.symlink("/proc/self/mounts", mtab_path)
+        mtab_path = join(path, "etc", "mtab")
+        mtab_backup_path = join(path, "etc", "mtab.isbackup")
+        mtab_trick_path = join(path, "etc", "mtab.istrick")
+        if not exists(mtab_backup_path) and not exists(mtab_trick_path):
+            arrow("mtab", 1)
+            if os.path.exists(mtab_path):
+                os.rename(mtab_path, mtab_backup_path)
+            os.symlink("/proc/self/mounts", mtab_path)
     except Exception as e:
         warn("mtab tricks fail: %s" % e)
     # try to guest distro
@@ -402,10 +413,10 @@ def prepare_chroot(path, mount=True):
     if distro == "debian":
         arrow("Debian specific", 1)
         # create a chroot header
-        try: open(os.path.join(path, "etc", "debian_chroot"), "w").write("CHROOT")
+        try: open(join(path, "etc", "debian_chroot"), "w").write("CHROOT")
         except: pass
         # fake policy-rc.d. It must exit 101, it's an expected exitcode.
-        policy_path = os.path.join(path, "usr", "sbin", "policy-rc.d")
+        policy_path = join(path, "usr", "sbin", "policy-rc.d")
         try: open(policy_path, "w").write("#!/bin/bash\nexit 101\n")
         except: pass
         # policy-rc.d needs to be executable
@@ -415,38 +426,68 @@ def unprepare_chroot(path, mount=True):
     '''
     Rollback preparation of a chroot environment inside a directory
     '''
-    arrow("Uncheating")
+    arrow("Untricks")
+    exists = os.path.exists
+    join = os.path.join
     # check path is a kind of linux FHS
-    if os.path.exists(os.path.join(path, "etc")) and os.path.exists(os.path.join(path, "usr")):
+    if exists(os.path.join(path, "etc")) and exists(os.path.join(path, "usr")):
         # untrick mtab
-        mtab_path = os.path.join(path, "etc", "mtab")
-        arrow("mtab", 1)
-        if os.path.exists(mtab_path):
-            os.unlink(mtab_path)
-        if os.path.exists("%s.isbackup" % mtab_path):
-            os.rename("%s.isbackup" % mtab_path, mtab_path)
+        mtab_path = join(path, "etc", "mtab")
+        mtab_backup_path = join(path, "etc", "mtab.isbackup")
+        mtab_trick_path = join(path, "etc", "mtab.istrick")
+        if exists(mtab_backup_path) or exists(mtab_trick_path):
+            arrow("mtab", 1)
+            # order matter !
+            if exists(mtab_trick_path):
+                try: os.unlink(mtab_path)
+                except OSError: pass
+                try:
+                    os.unlink(mtab_trick_path)
+                except OSError:
+                    warn("Unable to remove %s" % mtab_trick_path)
+            if exists(mtab_backup_path):
+                try: os.unlink(mtab_path)
+                except OSError: pass
+                try:
+                    os.rename(mtab_backup_path, mtab_path)
+                except OSError:
+                    warn("Unable to restore %s" % mtab_backup_path)
+
         # untrick resolv.conf
-        if os.path.exists("/etc/resolv.conf"):
+        resolv_path = join(path, "etc", "resolv.conf")
+        resolv_backup_path = join(path, "etc", "resolv.conf.isbackup")
+        resolv_trick_path = join(path, "etc", "resolv.conf.istrick")
+        if exists(resolv_backup_path) or exists(resolv_trick_path):
             arrow("resolv.conf", 1)
-            resolv_path = os.path.join(path, "etc", "resolv.conf")
-            if os.path.exists(resolv_path):
-                os.unlink(resolv_path)
-            if os.path.exists("%s.isbackup" % resolv_path):
-                os.rename("%s.isbackup" % resolv_path, resolv_path)
+            # order matter !
+            if exists(resolv_trick_path):
+                try: os.unlink(resolv_path)
+                except OSError: pass
+                try:
+                    os.unlink(resolv_trick_path)
+                except OSError:
+                    warn("Unable to remove %s" % resolv_trick_path)
+            if exists(resolv_backup_path):
+                try: os.unlink(resolv_path)
+                except OSError: pass
+                try:
+                    os.rename(resolv_backup_path, resolv_path)
+                except OSError:
+                    warn("Unable to restore %s" % resolv_backup_path)
         # try to guest distro
         distro = guess_distro(path)
         # cleaning debian stuff
         if distro == "debian":
             arrow("Debian specific", 1)
             for f in ("etc/debian_chroot", "usr/sbin/policy-rc.d"):
-                try: os.unlink(os.path.join(path, f))
+                try: os.unlink(join(path, f))
                 except: pass
     # unmounting
     if mount:
         mps = ("proc", "sys", "dev", "dev/pts", "dev/shm")
         arrow("Unmouting filesystems")
         for mp in reversed(mps):
-            target = os.path.join(path, mp)
+            target = join(path, mp)
             if os.path.ismount(target):
                 arrow(target, 1)
                 call(["umount", target], close_fds=True)

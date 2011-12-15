@@ -649,7 +649,7 @@ class RepositoryManager(object):
         # search image in repos
         for repo in search:
             if self[repo].has(name, version):
-                return self[repo].get(name, version), repo
+                return self[repo].get(name, version), self[repo]
         raise Exception("No image %s v%s in %s" % (
                 name, version, search))
 

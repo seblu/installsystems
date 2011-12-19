@@ -2,156 +2,157 @@
 
 # list local repositories
 _repo() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color repo --no-state --force-offline)"  -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color repo --no-state --force-offline)"  -- "$cur"))
 }
 
 # list all images available in any online repositories
 _remote_image() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list --no-sync)" -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color list --no-sync)" -- "$cur"))
 }
 
 # list all local (files) images
 _local_image() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -f -X '!*.isimage' -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -f -X '!*.isimage' -- "$cur"))
 }
 
 # list local and remote images
 _image() {
-    _local_image
-    _remote_image
+   _local_image
+   _remote_image
 }
 
 # generate completion from optional arguments
 _opt() {
-    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$*" -- "${cur}"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$*" -- "${cur}"))
 }
 
 _is() {
-    local cur prev cword
-    local -a cmds opts
-    COMPREPLY=()
-    COMP_WORDBREAKS="${COMP_WORDBREAKS//:}"
-    _get_comp_words_by_ref cur prev cword
-    _get_first_arg
-    cmds=('add' 'build' 'cat' 'changelog' 'check' 'chroot' 'clean' 'copy' 'del'
-	'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'move' 'new' 'repo' 'search' 'version' 'diff')
-    opts=('-h'  '--help'
-	'-V'  '--version'
-	'-d'  '--debug'
-	'-q'  '--quiet'
-	'-R'  '--repo-config'
-	'-f'  '--repo-filter'
-	'-r'  '--repo-config'
-	'-c'  '--config'
-	'-C'  '--cache'
-	'-t'  '--timeout'
-	'--no-cache'  '--no-color')
+   local cur prev cword
+   local -a cmds opts
+   COMPREPLY=()
+   COMP_WORDBREAKS="${COMP_WORDBREAKS//:}"
+   _get_comp_words_by_ref cur prev cword
+   _get_first_arg
+   cmds=('add' 'build' 'cat' 'changelog' 'check' 'chroot' 'clean' 'copy' 'del'
+       'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'move' 'new' 'repo'
+       'search' 'version' 'diff')
+   opts=('-h'  '--help'
+   '-V'  '--version'
+   '-d'  '--debug'
+   '-q'  '--quiet'
+   '-R'  '--repo-config'
+   '-f'  '--repo-filter'
+   '-r'  '--repo-config'
+   '-c'  '--config'
+   '-C'  '--cache'
+   '-t'  '--timeout'
+   '--no-cache'  '--no-color')
 
-    case "$arg" in
-	'')
-	    [[ "$cur" == -* ]] && _opt "${opts[@]}" || _opt "${cmds[@]}"
-	    ;;
-	add)
-	    [[ "$cur" == -* ]] && _opt "-h --help -p --preserve" && return 0
-	    _count_args
-	    (( args == 2 )) && _repo
-            (( args > 2 )) && _filedir '?(u)isimage'
-            ;;
-	build)
-            [[ "$cur" == -* ]] && _opt '-h --help -f --force -p --payload -c --no-check' && return 0
-	    _count_args
-            (( args == 2 )) && _filedir -d
-            ;;
-	cat)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
-	    _count_args
-            (( args == 2 )) && _image
-            ;;
-        changelog)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best -v --all-version' && return 0
-            _image
-            ;;
-        check)
-	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
-            _repo
-            ;;
-	chroot)
-            [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount -s --shell' && return 0
-            _filedir -d
-            ;;
-        clean)
-	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
-            _repo
-            ;;
-	copy)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
-	    _count_args
-	    (( args == 2 )) && _remote_image
-	    (( args > 2 )) && _remote_image && _repo
-            ;;
-	del)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force -p --preserve' && return 0
-            _remote_image
-            ;;
-	diff)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
-	    _count_args
-            (( args < 4 )) && _image
-            ;;
-	extract)
-            [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p --payload -g --gen-description' && return 0
-	    _count_args
-	    (( args == 2 )) && _image
-            (( args == 3 )) && _filedir -d
-            ;;
-	get)
-            [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best --payload -I --no-image' && return 0
-            _remote_image
-            ;;
-	help)
-	    _count_args
-	    (( args == 2 )) && _opt "${cmds[@]}"
-            ;;
-	info)
-            [[ "$cur" == -* ]] && _opt '-v --verbose -c --changelog -b --best' && return 0
-            _image
-            ;;
-	init)
-	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
-	    _filedir -d
-	    ;;
-	install)
-            [[ "$cur" == -* ]] && _opt '-b --best' && return 0
-	    _count_args
-            (( args == 2 )) && _image
-	    (( args > 2 )) && _filedir
-            ;;
-	list)
-            [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -a --all-version -A --author -u --url -D --description -S --search --no-sync' && return 0
-	    _remote_image
-            ;;
-	move)
-            [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
-            _remote_image
-            ;;
-	new)
-	    [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0
-            _filedir -d
-            ;;
-	repo)
-            [[ "$cur" == -* ]] && _opt '-h --help -l --local -r --remote -o --online -O --offline -s --state --force-offline --purge -u --url' && return 0
-	    _repo
-	    ;;
-	search)
-	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
-            ;;
-	version)
-	    [[ "$cur" == -* ]] && _opt '-h --help' && return 0
-	    ;;
-        esac
-    return 0
+   case "$arg" in
+      '')
+         [[ "$cur" == -* ]] && _opt "${opts[@]}" || _opt "${cmds[@]}"
+      ;;
+      add)
+         [[ "$cur" == -* ]] && _opt "-h --help -p --preserve" && return 0
+         _count_args
+         (( args == 2 )) && _repo
+         (( args > 2 )) && _filedir '?(u)isimage'
+      ;;
+      build)
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force -p --payload -c --no-check' && return 0
+         _count_args
+         (( args == 2 )) && _filedir -d
+      ;;
+      cat)
+         [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+         _count_args
+         (( args == 2 )) && _image
+      ;;
+      changelog)
+         [[ "$cur" == -* ]] && _opt '-h --help -b --best -v --all-version' && return 0
+         _image
+      ;;
+      check)
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+         _repo
+      ;;
+      chroot)
+         [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount -s --shell' && return 0
+         _filedir -d
+      ;;
+      clean)
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+         _repo
+      ;;
+      copy)
+         [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+         _count_args
+         (( args == 2 )) && _remote_image
+         (( args > 2 )) && _remote_image && _repo
+      ;;
+      del)
+         [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force -p --preserve' && return 0
+         _remote_image
+      ;;
+      diff)
+         [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+         _count_args
+         (( args < 4 )) && _image
+      ;;
+      extract)
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p --payload -g --gen-description' && return 0
+         _count_args
+         (( args == 2 )) && _image
+         (( args == 3 )) && _filedir -d
+      ;;
+      get)
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best --payload -I --no-image' && return 0
+         _remote_image
+      ;;
+      help)
+         _count_args
+         (( args == 2 )) && _opt "${cmds[@]}"
+      ;;
+      info)
+         [[ "$cur" == -* ]] && _opt '-v --verbose -c --changelog -b --best' && return 0
+         _image
+      ;;
+      init)
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+         _filedir -d
+      ;;
+      install)
+         [[ "$cur" == -* ]] && _opt '-b --best' && return 0
+         _count_args
+         (( args == 2 )) && _image
+         (( args > 2 )) && _filedir
+      ;;
+      list)
+         [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -a --all-version -A --author -u --url -D --description -S --search --no-sync' && return 0
+         _remote_image
+      ;;
+      move)
+         [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
+         _remote_image
+      ;;
+      new)
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0
+         _filedir -d
+      ;;
+      repo)
+         [[ "$cur" == -* ]] && _opt '-h --help -l --local -r --remote -o --online -O --offline -s --state --force-offline --purge -u --url' && return 0
+         _repo
+      ;;
+      search)
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+      ;;
+      version)
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+      ;;
+   esac
+   return 0
 }
 
 complete -F _is is
 
-# ex: ts=4 sw=4 et filetype=sh
+# ex: ts=3 sw=3 et filetype=sh

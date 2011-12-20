@@ -96,7 +96,7 @@ def show_repositories(repoman, pattern, local=None, online=None,
             s += "  (%s)" % repo.config.path
         out(s)
 
-def select_image(name, repoman, best=False):
+def select_image(name, repoman, search=None, best=False):
     '''
     Select and load a package image from a standard naming type
 
@@ -117,17 +117,17 @@ def select_image(name, repoman, best=False):
         # repo is not specified, we need to crawl in path
         if repo is None:
             # split search path as a list
-            if args.repo_search is not None:
-                args.repo_search = split_repositories(args.repo_search,
-                                                      lambda x: x in repoman.onlines)
+            if search is not None:
+                search = split_repositories(search,
+                                            lambda x: x in repoman.onlines)
             else:
-                args.repo_search = []
+                search = []
             # if we have only one repo, search in it
-            if len(args.repo_search) == 0 and len(repoman.onlines) == 1:
-                args.repo_search = repoman.onlines
-            elif len(args.repo_search) == 0 and len(repoman.onlines) > 1:
+            if len(search) == 0 and len(repoman.onlines) == 1:
+                search = repoman.onlines
+            elif len(search) == 0 and len(repoman.onlines) > 1:
                 raise Exception('You must use a full image path or set a valid search path')
-            return repoman.get(image, version, search=args.repo_search, best=best)
+            return repoman.get(image, version, search=search, best=best)
         # we can ask directly repository about image
         else:
             return repoman[repo].get(image, version), repoman[repo]
@@ -173,7 +173,7 @@ def show_images(repoman, pattern, all_version=True, search=None,
 # Commands functions
 ################################################################################
 
-def c_add(parser, args):
+def c_add(args):
     '''
     Add an image package into a repository
     '''
@@ -183,7 +183,7 @@ def c_add(parser, args):
         pkg = PackageImage(image)
         repo.add(pkg, delete=not args.preserve)
 
-def c_build(parser, args):
+def c_build(args):
     '''
     Build an image source in current directory
     '''
@@ -198,26 +198,28 @@ def c_build(parser, args):
     dt = int(t1 - t0)
     arrow("Build time: %s" % datetime.timedelta(seconds=dt))
 
-def c_cat(parser, args):
+def c_cat(args):
     '''
     Display image's file
     '''
     # looks if arguments is a file or image name
     repoman = load_repositories(args)
-    img, repo = select_image(args.image, repoman, args.best)
+    img, repo = select_image(args.image, repoman,
+                             search=args.repo_search, best=args.best)
     for filename in args.file:
         img.cat(filename)
 
-def c_changelog(parser, args):
+def c_changelog(args):
     '''
     Display image's changelog
     '''
     # looks if arguments is a file or image name
     repoman = load_repositories(args)
-    img, repo = select_image(args.image, repoman, args.best)
+    img, repo = select_image(args.image, repoman,
+                             search=args.repo_search, best=args.best)
     img.changelog.show(int(img.version), args.all_version)
 
-def c_check(parser, args):
+def c_check(args):
     '''
     Sanity checks on repositories
     '''
@@ -225,13 +227,13 @@ def c_check(parser, args):
     for reponame in args.repository:
         repoman[reponame].check()
 
-def c_chroot(parser, args):
+def c_chroot(args):
     '''
     Helper to go cleanly inside a chroot
     '''
     istools.chroot(args.path, shell=args.shell, mount=not args.no_mount)
 
-def c_clean(parser, args):
+def c_clean(args):
     '''
     Remove unreferenced files from repoistory
     '''
@@ -239,14 +241,15 @@ def c_clean(parser, args):
     for reponame in args.repository:
         repoman[reponame].clean()
 
-def c_copy(parser, args):
+def c_copy(args):
     '''
     Copy an image from a repository to another one
     '''
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
     for image in args.image:
-        srcimg, srcrepo = select_image(image, repoman, args.best)
+        srcimg, srcrepo = select_image(image, repoman,
+                                       search=args.repo_search, best=args.best)
         arrow("Copying %s v%s from repository %s to %s" % (srcimg.name,
                                                            srcimg.version,
                                                            srcrepo.config.name,
@@ -255,13 +258,14 @@ def c_copy(parser, args):
         dstrepo.add(srcimg)
         arrowlevel(-1)
 
-def c_del(parser, args):
+def c_del(args):
     '''
     Remove an image package from a repository
     '''
     repoman = load_repositories(args)
     for image in args.image:
-        img, repo = select_image(image, repoman, args.best)
+        img, repo = select_image(image, repoman,
+                                 search=args.repo_search, best=args.best)
         if repo is None:
             raise Exception("You cannot delete an image outside a repository")
         if not args.force:
@@ -273,7 +277,7 @@ def c_del(parser, args):
                 raise Exception("Aborted!")
         repo.delete(img.name, img.version, payloads=not args.preserve)
 
-def c_diff(parser, args):
+def c_diff(args):
     '''
     Show diff between two repositories or images
     '''
@@ -281,47 +285,52 @@ def c_diff(parser, args):
     if args.object[0] in repoman.onlines and args.object[1] in repoman.onlines:
         Repository.diff(repoman[args.object[0]], repoman[args.object[1]])
     else:
-        img1, repo1 = select_image(args.object[0], repoman, args.best)
-        img2, repo2 = select_image(args.object[1], repoman, args.best)
+        img1, repo1 = select_image(args.object[0], repoman,
+                                   search=args.repo_search, best=args.best)
+        img2, repo2 = select_image(args.object[1], repoman,
+                                   search=args.repo_search, best=args.best)
         PackageImage.diff(img1, img2)
 
-def c_extract(parser, args):
+def c_extract(args):
     '''
     Extract an image package inside a directory
     '''
     repoman = load_repositories(args)
-    img, repo = select_image(args.image, repoman, args.best)
+    img, repo = select_image(args.image, repoman,
+                             search=args.repo_search, best=args.best)
     img.extract(args.path, payload=args.payload, force=args.force,
                 gendescription=args.gen_description)
 
-def c_get(parser, args):
+def c_get(args):
     '''
     Download a remote image in current directory
     '''
     repoman = load_repositories(args)
     for image in args.image:
-        img, repo = select_image(image, repoman, args.best)
+        img, repo = select_image(image, repoman,
+                                 search=args.repo_search, best=args.best)
         img.download(".", image=not args.no_image, payload=args.payload, force=args.force)
 
-def c_help(parser, args):
+def c_help(args):
     '''
     Show help
     '''
     if args.command not in args.subparser.choices:
-        parser.print_help()
+        args.parser.print_help()
     else:
         args.subparser.choices[args.command].print_help()
 
-def c_info(parser, args):
+def c_info(args):
     '''
     Get info about an image
     '''
     repoman = load_repositories(args)
     for image in args.image:
-        img, repo = select_image(image, repoman, args.best)
+        img, repo = select_image(image, repoman,
+                                 search=args.repo_search, best=args.best)
         img.show(verbose=args.verbose, changelog=args.changelog)
 
-def c_init(parser, args):
+def c_init(args):
     '''
     Create an empty repository
     '''
@@ -329,18 +338,19 @@ def c_init(parser, args):
     for reponame in args.repository:
         repoman[reponame].init()
 
-def c_install(parser, args):
+def c_install(args):
     '''
     Install an image
     '''
     # remove old image args
-    args.parser._remove_action([d for d in args.parser._actions if d.dest == "image"][0])
+    args.install_parser._remove_action(
+        [d for d in args.install_parser._actions if d.dest == "image"][0])
     # create a subparser for current image to have a sexy display of args
-    #args.image = "roger"
-    subparser = args.parser.add_subparsers().add_parser(args.image)
+    subparser = args.install_parser.add_subparsers().add_parser(args.image)
     # select image to install
     repoman = load_repositories(args)
-    img = select_image(args.image, repoman, args.best)[0]
+    img = select_image(args.image, repoman,
+                       search=args.repo_search, best=args.best)[0]
     # Print setup information
     arrow("Installing %s v%s" % (img.name, img.version))
     # install start time
@@ -349,8 +359,7 @@ def c_install(parser, args):
     img.run_parser(parser=subparser)
     # call parser again, with extended attributes
     arrow("Parsing arguments")
-    #parser.print_help()
-    args = parser.parse_args()
+    args = args.parser.parse_args()
     # run setup scripts
     img.run_setup(namespace=args)
     # compute building time
@@ -358,7 +367,7 @@ def c_install(parser, args):
     dt = int(t1 - t0)
     arrow("Install time: %s" % datetime.timedelta(seconds=dt))
 
-def c_list(parser, args):
+def c_list(args):
     '''
     List images in repository or image content
     '''
@@ -372,14 +381,15 @@ def c_list(parser, args):
                     o_md5=args.md5, o_date=args.date, o_author=args.author,
                     o_size=args.size, o_url=args.url, o_description=args.description)
 
-def c_move(parser, args):
+def c_move(args):
     '''
     Move an image from a repository to another one
     '''
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
     for image in args.image:
-        srcimg, srcrepo = select_image(image, repoman, args.best)
+        srcimg, srcrepo = select_image(image, repoman,
+                                       search=args.repo_search, best=args.best)
         if not args.force:
             out("You will move %s v%s from %s to %s" % (srcimg.name,
                                                         srcimg.version,
@@ -396,19 +406,19 @@ def c_move(parser, args):
         srcrepo.delete(srcimg.name, srcimg.version)
         arrowlevel(-1)
 
-def c_new(parser, args):
+def c_new(args):
     '''
     Create a new source image
     '''
     SourceImage.create(args.path, args.force)
 
-def c_prepare_chroot(parser, args):
+def c_prepare_chroot(args):
     '''
     Prepare a chroot
     '''
     istools.prepare_chroot(args.path, mount=not args.no_mount)
 
-def c_repo(parser, args):
+def c_repo(args):
     '''
     Get information about repositories
     '''
@@ -424,331 +434,316 @@ def c_repo(parser, args):
                               online=args.online, local=args.local,
                               url=args.url, state=args.state)
 
-def c_search(parser, args):
+def c_search(args):
     '''
     Search in repository
     '''
     repoman = load_repositories(args)
     repoman.search(args.pattern)
 
-def c_unprepare_chroot(parser, args):
+def c_unprepare_chroot(args):
     '''
     Remove preparation of a chroot
     '''
     istools.unprepare_chroot(args.path, mount=not args.no_umount)
 
-def c_version(parser, args):
+def c_version(args):
     '''
     Print installsystems version
     '''
     out(installsystems.version)
 
-################################################################################
-# Parser definition
-################################################################################
-
-# Top level argument parsing
-p_main = argparse.ArgumentParser()
-p_main.add_argument("-V", "--version", action="version",
-                    version=installsystems.version,
-                    help="show installsystems version")
-# exclusive group on debug/quiet
-ex_group = p_main.add_mutually_exclusive_group()
-ex_group.add_argument("-d", "--debug", action="store_true", default=None,
-                      help="active debug mode")
-ex_group.add_argument("-q", "--quiet", action="store_true", default=None,
-                      help="active quiet mode")
-# common options
-p_main.add_argument("-c", "--config", default="installsystems", metavar="PATH",
-                    help="config file path")
-p_main.add_argument("-R", "--repo-config", default="repository", metavar="REPO",
-                    help="repository config file path")
-p_main.add_argument("-s", "--repo-search", metavar="REPO,REPO,...",
-                    help="search for images inside those repositories")
-p_main.add_argument("-f", "--repo-filter", metavar="REPO,REPO,...",
-                    help="filter repositories by name")
-p_main.add_argument("-r", "--repo-path", metavar="PATH",
-                    help="define a temporary repository")
-p_main.add_argument("-C", "--cache", metavar="PATH",
-                    help="path of repositories cache")
-p_main.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
-                    metavar="SECONDS", help="download timeout (default 3)")
-p_main.add_argument("--no-cache", action="store_true", default=None,
-                    help="not use persistent db caching")
-p_main.add_argument("--no-color", action="store_true", default=None,
-                    help="dot not display colored output")
-
-# create a subparsers for each command
-subparsers = p_main.add_subparsers()
-
-# add command parser
-p_add =  subparsers.add_parser("add", help=c_add.__doc__.lower())
-p_add.add_argument("-p", "--preserve", action="store_true", default=False,
+def parser_init():
+    '''
+    Create command parser
+    '''
+    # Top level argument parsing
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-V", "--version", action="version",
+                        version=installsystems.version,
+                        help="show installsystems version")
+    # exclusive group on debug/quiet
+    g = parser.add_mutually_exclusive_group()
+    g.add_argument("-d", "--debug", action="store_true", default=None,
+                   help="active debug mode")
+    g.add_argument("-q", "--quiet", action="store_true", default=None,
+                   help="active quiet mode")
+    # common options
+    parser.add_argument("-c", "--config", default="installsystems", metavar="PATH",
+                        help="config file path")
+    parser.add_argument("-R", "--repo-config", default="repository", metavar="REPO",
+                        help="repository config file path")
+    parser.add_argument("-s", "--repo-search", metavar="REPO,REPO,...",
+                        help="search for images inside those repositories")
+    parser.add_argument("-f", "--repo-filter", metavar="REPO,REPO,...",
+                        help="filter repositories by name")
+    parser.add_argument("-r", "--repo-path", metavar="PATH",
+                        help="define a temporary repository")
+    parser.add_argument("-C", "--cache", metavar="PATH",
+                        help="path of repositories cache")
+    parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
+                        metavar="SECONDS", help="download timeout (default 3)")
+    parser.add_argument("--no-cache", action="store_true", default=None,
+                        help="not use persistent db caching")
+    parser.add_argument("--no-color", action="store_true", default=None,
+                        help="dot not display colored output")
+    # create a subparser for commands
+    subparser = parser.add_subparsers()
+    # add command parser
+    p =  subparser.add_parser("add", help=c_add.__doc__.lower())
+    p.add_argument("-p", "--preserve", action="store_true", default=False,
                    help="don't remove image after adding to database")
-p_add.add_argument("repository", help="repository where images will be added")
-p_add.add_argument("path", nargs="+", help="image path")
-p_add.set_defaults(func=c_add)
-
-# build command parser
-p_build = subparsers.add_parser("build", help=c_build.__doc__.lower())
-p_build.add_argument("-c", "--no-check", action="store_true", default=False,
-                     help="do not check compilation before adding scripts")
-p_build.add_argument("-f", "--force", action="store_true", default=False,
-                     help="rebuild image if already exists")
-p_build.add_argument("-p", "--payload", action="store_true", default=False,
-                     help="rebuild payloads if already exists")
-p_build.add_argument("path", nargs="?", default=".")
-p_build.set_defaults(func=c_build)
-
-# cat command parser
-p_cat = subparsers.add_parser("cat", help=c_cat.__doc__.lower())
-p_cat.add_argument("-b", "--best", action="store_true", default=False,
+    p.add_argument("repository", help="repository where images will be added")
+    p.add_argument("path", nargs="+", help="image path")
+    p.set_defaults(func=c_add)
+    # build command parser
+    p = subparser.add_parser("build", help=c_build.__doc__.lower())
+    p.add_argument("-c", "--no-check", action="store_true", default=False,
+                   help="do not check compilation before adding scripts")
+    p.add_argument("-f", "--force", action="store_true", default=False,
+                   help="rebuild image if already exists")
+    p.add_argument("-p", "--payload", action="store_true", default=False,
+                   help="rebuild payloads if already exists")
+    p.add_argument("path", nargs="?", default=".")
+    p.set_defaults(func=c_build)
+    # cat command parser
+    p = subparser.add_parser("cat", help=c_cat.__doc__.lower())
+    p.add_argument("-b", "--best", action="store_true", default=False,
                    help="take the most recent image in all searchable repositories")
-p_cat.add_argument("image", help="<path|[repository/]image[:version]>")
-p_cat.add_argument("file", nargs="+",
+    p.add_argument("image", help="<path|[repository/]image[:version]>")
+    p.add_argument("file", nargs="+",
                    help="file inside image to cat (globbing allowed)")
-p_cat.set_defaults(func=c_cat)
-
-# changelog command parser
-p_changelog = subparsers.add_parser("changelog", help=c_changelog.__doc__.lower())
-p_changelog.add_argument("-b", "--best", action="store_true", default=False,
-                         help="take the most recent image in all searchable repositories")
-p_changelog.add_argument("-v", "--all-version",  action="store_true", default=False,
-                         help="display changelog for all versions")
-p_changelog.add_argument("image", help="<path|[repository/]image[:version]>")
-p_changelog.set_defaults(func=c_changelog)
-
-# check command parser
-p_check = subparsers.add_parser("check", help=c_check.__doc__.lower())
-p_check.add_argument("repository", nargs="+", help="repositories to check")
-p_check.set_defaults(func=c_check)
-
-# chroot command parser
-p_chroot = subparsers.add_parser("chroot", help=c_chroot.__doc__.lower())
-p_chroot.add_argument("-m", "--no-mount", action="store_true", default=False,
-                      help="disable mouting of /{proc,dev,sys} inside chroot")
-p_chroot.add_argument("-s", "--shell", default="/bin/bash",
-                      help="shell to call inside chroot")
-p_chroot.add_argument("path")
-p_chroot.set_defaults(func=c_chroot)
-
-# clean command parser
-p_clean = subparsers.add_parser("clean", help=c_clean.__doc__.lower())
-p_clean.add_argument("repository", nargs="+", help="repositories to clean")
-p_clean.set_defaults(func=c_clean)
-
-# copy command parser
-p_copy = subparsers.add_parser("copy", help=c_copy.__doc__.lower())
-p_copy.add_argument("-b", "--best", action="store_true", default=False,
+    p.set_defaults(func=c_cat)
+    # changelog command parser
+    p = subparser.add_parser("changelog", help=c_changelog.__doc__.lower())
+    p.add_argument("-b", "--best", action="store_true", default=False,
                    help="take the most recent image in all searchable repositories")
-p_copy.add_argument("image", nargs="+",
-                    help="image syntax is <path|[repository/]image[:version]>")
-p_copy.add_argument("repository", help="destination repository")
-p_copy.set_defaults(func=c_copy)
-
-# del command parser
-p_del =  subparsers.add_parser("del", help=c_del.__doc__.lower())
-p_del.add_argument("image", nargs="+",
+    p.add_argument("-v", "--all-version",  action="store_true", default=False,
+                   help="display changelog for all versions")
+    p.add_argument("image", help="<path|[repository/]image[:version]>")
+    p.set_defaults(func=c_changelog)
+    # check command parser
+    p = subparser.add_parser("check", help=c_check.__doc__.lower())
+    p.add_argument("repository", nargs="+", help="repositories to check")
+    p.set_defaults(func=c_check)
+    # chroot command parser
+    p = subparser.add_parser("chroot", help=c_chroot.__doc__.lower())
+    p.add_argument("-m", "--no-mount", action="store_true", default=False,
+                   help="disable mouting of /{proc,dev,sys} inside chroot")
+    p.add_argument("-s", "--shell", default="/bin/bash",
+                   help="shell to call inside chroot")
+    p.add_argument("path")
+    p.set_defaults(func=c_chroot)
+    # clean command parser
+    p = subparser.add_parser("clean", help=c_clean.__doc__.lower())
+    p.add_argument("repository", nargs="+", help="repositories to clean")
+    p.set_defaults(func=c_clean)
+    # copy command parser
+    p = subparser.add_parser("copy", help=c_copy.__doc__.lower())
+    p.add_argument("-b", "--best", action="store_true", default=False,
+                   help="take the most recent image in all searchable repositories")
+    p.add_argument("image", nargs="+",
                    help="image syntax is <path|[repository/]image[:version]>")
-p_del.add_argument("-b", "--best", action="store_true", default=False,
+    p.add_argument("repository", help="destination repository")
+    p.set_defaults(func=c_copy)
+    # del command parser
+    p =  subparser.add_parser("del", help=c_del.__doc__.lower())
+    p.add_argument("image", nargs="+",
+                   help="image syntax is <path|[repository/]image[:version]>")
+    p.add_argument("-b", "--best", action="store_true", default=False,
                    help="take the most recent image in all searchable repositories")
-p_del.add_argument("-f", "--force", action="store_true", default=False,
+    p.add_argument("-f", "--force", action="store_true", default=False,
                    help="delete image without confirmation")
-p_del.add_argument("-p", "--preserve", action="store_true", default=False,
+    p.add_argument("-p", "--preserve", action="store_true", default=False,
                    help="preserve payloads. doesn't remove it from repository")
-p_del.set_defaults(func=c_del)
-
-# diff command parser
-p_diff = subparsers.add_parser("diff", help=c_diff.__doc__.lower())
-p_diff.add_argument("object", nargs=2,
-                    help="object syntax is <path|repository|[repository/]image[:version]>")
-p_diff.add_argument("-b", "--best", action="store_true", default=False,
-                    help="take the most recent image in all searchable repositories")
-p_diff.set_defaults(func=c_diff)
-
-# extract command parser
-p_extract = subparsers.add_parser("extract", help=c_extract.__doc__.lower())
-p_extract.add_argument("-b", "--best", action="store_true", default=False,
-                       help="take the most recent image in all searchable repositories")
-p_extract.add_argument("-f", "--force", action="store_true", default=False,
-                       help="overwrite existing destinations")
-p_extract.add_argument("-g", "--gen-description", action="store_true", default=False,
-                       help="generate a description file from metadata")
-p_extract.add_argument("-p", "--payload", action="store_true", default=False,
-                       help="extract payloads")
-p_extract.add_argument("image",
-                       help="image syntax is <path|[repository/]image[:version]>")
-p_extract.add_argument("path", help="image will be extracted in path")
-p_extract.set_defaults(func=c_extract)
-
-# get command parser
-p_get = subparsers.add_parser("get", help=c_get.__doc__.lower())
-p_get.add_argument("-b", "--best", action="store_true", default=False,
+    p.set_defaults(func=c_del)
+    # diff command parser
+    p = subparser.add_parser("diff", help=c_diff.__doc__.lower())
+    p.add_argument("object", nargs=2,
+                   help="object syntax is <path|repository|[repository/]image[:version]>")
+    p.add_argument("-b", "--best", action="store_true", default=False,
                    help="take the most recent image in all searchable repositories")
-p_get.add_argument("-f", "--force", action="store_true", default=False,
+    p.set_defaults(func=c_diff)
+    # extract command parser
+    p = subparser.add_parser("extract", help=c_extract.__doc__.lower())
+    p.add_argument("-b", "--best", action="store_true", default=False,
+                   help="take the most recent image in all searchable repositories")
+    p.add_argument("-f", "--force", action="store_true", default=False,
                    help="overwrite existing destinations")
-p_get.add_argument("-I", "--no-image", action="store_true", default=False,
-                   help="do not get image")
-p_get.add_argument("-p", "--payload", action="store_true", default=False,
-                   help="get payloads")
-p_get.add_argument("image", nargs="+",
+    p.add_argument("-g", "--gen-description", action="store_true", default=False,
+                   help="generate a description file from metadata")
+    p.add_argument("-p", "--payload", action="store_true", default=False,
+                   help="extract payloads")
+    p.add_argument("image",
                    help="image syntax is <path|[repository/]image[:version]>")
-p_get.set_defaults(func=c_get)
-
-# help command parser
-p_help = subparsers.add_parser("help", help=c_help.__doc__.lower())
-p_help.add_argument("command", nargs="?", help="command name")
-p_help.set_defaults(func=c_help, subparser=subparsers)
-
-# info command parser
-p_info = subparsers.add_parser("info", help=c_info.__doc__.lower())
-p_info.add_argument("-b", "--best", action="store_true", default=False,
-                    help="take the most recent image in all searchable repositories")
-p_info.add_argument("-c", "--changelog", action="store_true", default=False,
-                    help="display image changelog")
-p_info.add_argument("-v", "--verbose", action="store_true", default=False,
-                    help="verbose output")
-p_info.add_argument("image", nargs="+",
-                    help="image syntax is <path|[repository/]image[:version]>")
-p_info.set_defaults(func=c_info)
-
-# init command parser
-p_init = subparsers.add_parser("init", help=c_init.__doc__.lower())
-p_init.add_argument("repository", nargs="+",
-                    help="repository to initialize")
-p_init.set_defaults(func=c_init)
-
-# install command parser
-p_install = subparsers.add_parser("install", add_help=False,
-                                  help=c_install.__doc__.lower())
-p_install.add_argument("-b", "--best", action="store_true", default=False,
-                       help="take the most recent image in all searchable repositories")
-p_install.add_argument("image",
-                       help="image syntax is <path|[repository/]image[:version]>")
-p_install.set_defaults(func=c_install, parser=p_install)
-
-# list command parser
-p_list = subparsers.add_parser("list", help=c_list.__doc__.lower())
-p_list.add_argument("-a", "--all-version", action="store_true", default=False,
-                    help="list all versions of the same image")
-p_list.add_argument("-A", "--author", action="store_true", default=False,
-                    help="display image author")
-p_list.add_argument("-d", "--date", action="store_true", default=False,
-                    help="display image date")
-p_list.add_argument("-D", "--description", action="store_true", default=False,
-                    help="display image description")
-p_list.add_argument("-j", "--json", action="store_true", default=False,
-                    help="output is formated in json")
-p_list.add_argument("-l", "--long", action="store_true", default=False,
-                    help="long display")
-p_list.add_argument("-m", "--md5", action="store_true", default=False,
-                    help="display image md5")
-p_list.add_argument("-s", "--size", action="store_true", default=False,
-                    help="display image size")
-p_list.add_argument("-u", "--url", action="store_true", default=False,
-                    help="display image url")
-p_list.add_argument("-S", "--search", action="store_true", default=None,
-                    help="only list image in search path")
-p_list.add_argument("--no-sync", action="store_true", default=False,
-                    help="doesn't sync repository before listing")
-p_list.add_argument("image", nargs="*", default=['*'],
-                    help="image syntax is [repository/]image[:version]")
-p_list.set_defaults(func=c_list)
-
-# move command parser
-p_move = subparsers.add_parser("move", help=c_move.__doc__.lower())
-p_move.add_argument("-b", "--best", action="store_true", default=False,
-                    help="take the most recent image in all searchable repositories")
-p_move.add_argument("-f", "--force", action="store_true", default=False,
-                    help="move image without confirmation")
-p_move.add_argument("image", nargs="+",
-                    help="image syntax is <path|[repository/]image[:version]>")
-p_move.add_argument("repository", help="destination repository")
-p_move.set_defaults(func=c_move)
-
-# new command parser
-p_new = subparsers.add_parser("new", help=c_new.__doc__.lower())
-p_new.add_argument("-f", "--force", action="store_true", default=False,
+    p.add_argument("path", help="image will be extracted in path")
+    p.set_defaults(func=c_extract)
+    # get command parser
+    p = subparser.add_parser("get", help=c_get.__doc__.lower())
+    p.add_argument("-b", "--best", action="store_true", default=False,
+                   help="take the most recent image in all searchable repositories")
+    p.add_argument("-f", "--force", action="store_true", default=False,
+                   help="overwrite existing destinations")
+    p.add_argument("-I", "--no-image", action="store_true", default=False,
+                   help="do not get image")
+    p.add_argument("-p", "--payload", action="store_true", default=False,
+                   help="get payloads")
+    p.add_argument("image", nargs="+",
+                   help="image syntax is <path|[repository/]image[:version]>")
+    p.set_defaults(func=c_get)
+    # help command parser
+    p = subparser.add_parser("help", help=c_help.__doc__.lower())
+    p.add_argument("command", nargs="?", help="command name")
+    p.set_defaults(func=c_help, parser=parser, subparser=subparser)
+    # info command parser
+    p = subparser.add_parser("info", help=c_info.__doc__.lower())
+    p.add_argument("-b", "--best", action="store_true", default=False,
+                   help="take the most recent image in all searchable repositories")
+    p.add_argument("-c", "--changelog", action="store_true", default=False,
+                   help="display image changelog")
+    p.add_argument("-v", "--verbose", action="store_true", default=False,
+                   help="verbose output")
+    p.add_argument("image", nargs="+",
+                   help="image syntax is <path|[repository/]image[:version]>")
+    p.set_defaults(func=c_info)
+    # init command parser
+    p = subparser.add_parser("init", help=c_init.__doc__.lower())
+    p.add_argument("repository", nargs="+",
+                   help="repository to initialize")
+    p.set_defaults(func=c_init)
+    # install command parser
+    p = subparser.add_parser("install", add_help=False,
+                              help=c_install.__doc__.lower())
+    p.add_argument("-b", "--best", action="store_true", default=False,
+                   help="take the most recent image in all searchable repositories")
+    p.add_argument("image",
+                   help="image syntax is <path|[repository/]image[:version]>")
+    p.set_defaults(func=c_install, parser=parser, install_parser=p)
+    # list command parser
+    p = subparser.add_parser("list", help=c_list.__doc__.lower())
+    p.add_argument("-a", "--all-version", action="store_true", default=False,
+                   help="list all versions of the same image")
+    p.add_argument("-A", "--author", action="store_true", default=False,
+                   help="display image author")
+    p.add_argument("-d", "--date", action="store_true", default=False,
+                   help="display image date")
+    p.add_argument("-D", "--description", action="store_true", default=False,
+                   help="display image description")
+    p.add_argument("-j", "--json", action="store_true", default=False,
+                   help="output is formated in json")
+    p.add_argument("-l", "--long", action="store_true", default=False,
+                   help="long display")
+    p.add_argument("-m", "--md5", action="store_true", default=False,
+                   help="display image md5")
+    p.add_argument("-s", "--size", action="store_true", default=False,
+                   help="display image size")
+    p.add_argument("-u", "--url", action="store_true", default=False,
+                   help="display image url")
+    p.add_argument("-S", "--search", action="store_true", default=None,
+                   help="only list image in search path")
+    p.add_argument("--no-sync", action="store_true", default=False,
+                   help="doesn't sync repository before listing")
+    p.add_argument("image", nargs="*", default=['*'],
+                   help="image syntax is [repository/]image[:version]")
+    p.set_defaults(func=c_list)
+    # move command parser
+    p = subparser.add_parser("move", help=c_move.__doc__.lower())
+    p.add_argument("-b", "--best", action="store_true", default=False,
+                   help="take the most recent image in all searchable repositories")
+    p.add_argument("-f", "--force", action="store_true", default=False,
+                   help="move image without confirmation")
+    p.add_argument("image", nargs="+",
+                   help="image syntax is <path|[repository/]image[:version]>")
+    p.add_argument("repository", help="destination repository")
+    p.set_defaults(func=c_move)
+    # new command parser
+    p = subparser.add_parser("new", help=c_new.__doc__.lower())
+    p.add_argument("-f", "--force", action="store_true", default=False,
                    help="overwrite existing source image")
-p_new.add_argument("path", help="new image directory path")
-p_new.set_defaults(func=c_new)
+    p.add_argument("path", help="new image directory path")
+    p.set_defaults(func=c_new)
+    # prepare_chroot command parser
+    p = subparser.add_parser("prepare_chroot",
+                              help=c_prepare_chroot.__doc__.lower())
+    p.add_argument("-m", "--no-mount", action="store_true", default=False,
+                   help="disable mouting of /{proc,dev,sys}")
+    p.add_argument("path")
+    p.set_defaults(func=c_prepare_chroot)
+    # repo command parser
+    p = subparser.add_parser("repo", help=c_repo.__doc__.lower())
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("-l", "--local", action="store_true", default=None,
+                   help="list local repository (filter)")
+    g.add_argument("-r", "--remote", action="store_false", dest="local",
+                   help="list remote repository (filter)")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("-o", "--online", action="store_true", default=None,
+                   help="list online repository (filter)")
+    g.add_argument("-O", "--offline", action="store_false", dest="online",
+                   help="list offline repository (filter)")
+    p.add_argument("-s", "--state", action="store_true", default=False,
+                   help="display repository state (online/offline/local/remote)")
+    p.add_argument("-u", "--url", action="store_true", default=False,
+                   help="display repository url")
+    p.add_argument("--purge", action="store_true", default=False,
+                   help="remove cache databases")
+    p.add_argument("--force-offline", action="store_true", default=False,
+                   help="force repository to be offline")
+    p.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
+    p.set_defaults(func=c_repo)
+    # search command parser
+    p = subparser.add_parser("search", help=c_search.__doc__.lower())
+    p.add_argument("pattern", help="pattern to search in repositories")
+    p.set_defaults(func=c_search)
+    # unprepare_chroot command parser
+    p = subparser.add_parser("unprepare_chroot",
+                              help=c_unprepare_chroot.__doc__.lower())
+    p.add_argument("-m", "--no-umount", action="store_true", default=False,
+                   help="disable unmouting of /{proc,dev,sys}")
+    p.add_argument("path")
+    p.set_defaults(func=c_unprepare_chroot)
+    # version command parser
+    p = subparser.add_parser("version", help=c_version.__doc__.lower())
+    p.set_defaults(func=c_version)
+    # return main parser
+    return parser
 
-# prepare_chroot command parser
-p_prepare_chroot = subparsers.add_parser("prepare_chroot", help=c_prepare_chroot.__doc__.lower())
-p_prepare_chroot.add_argument("-m", "--no-mount", action="store_true", default=False,
-                              help="disable mouting of /{proc,dev,sys}")
-p_prepare_chroot.add_argument("path")
-p_prepare_chroot.set_defaults(func=c_prepare_chroot)
+def main():
+    '''
+    Program main
+    '''
+    try:
+        parser = parser_init()
+        # first (partial) parsing
+        args = parser.parse_known_args()[0]
+        # set debug and quiet mode before merge
+        installsystems.debug = args.debug
+        installsystems.quiet = args.quiet
+        # load isinstall config
+        config = MainConfigFile(args.config, "installsystems")
+        config.merge(args)
+        # set debug and quiet mode after merge
+        installsystems.debug = args.debug
+        installsystems.quiet = args.quiet
+        # no warning if we are not in debug mode
+        if not installsystems.debug:
+            warnings.filterwarnings("ignore")
+        # disable coloring if asked
+        if args.no_color:
+            installsystems.printer.NOCOLOR = True
+        # except for install command we parse all args!
+        # install command is responsible of parsing
+        if args.func is not c_install:
+            args = parser.parse_args(namespace=args)
+        # let's go
+        args.func(args)
+        exit(0)
+    except Exception as e:
+        error(e)
+    except KeyboardInterrupt:
+        warn("Keyboard Interrupted")
+        exit(1)
 
-# repo command parser
-p_repo = subparsers.add_parser("repo", help=c_repo.__doc__.lower())
-p_repo_mgroup = p_repo.add_mutually_exclusive_group()
-p_repo_mgroup.add_argument("-l", "--local", action="store_true", default=None,
-                           help="list local repository (filter)")
-p_repo_mgroup.add_argument("-r", "--remote", action="store_false", dest="local",
-                           help="list remote repository (filter)")
-p_repo_mgroup = p_repo.add_mutually_exclusive_group()
-p_repo_mgroup.add_argument("-o", "--online", action="store_true", default=None,
-                           help="list online repository (filter)")
-p_repo_mgroup.add_argument("-O", "--offline", action="store_false", dest="online",
-                           help="list offline repository (filter)")
-p_repo.add_argument("-s", "--state", action="store_true", default=False,
-                    help="display repository state (online/offline/local/remote)")
-p_repo.add_argument("-u", "--url", action="store_true", default=False,
-                    help="display repository url")
-p_repo.add_argument("--purge", action="store_true", default=False,
-                    help="remove cache databases")
-p_repo.add_argument("--force-offline", action="store_true", default=False,
-                    help="force repository to be offline")
-p_repo.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
-p_repo.set_defaults(func=c_repo)
-
-# search command parser
-p_search = subparsers.add_parser("search", help=c_search.__doc__.lower())
-p_search.add_argument("pattern", help="pattern to search in repositories")
-p_search.set_defaults(func=c_search)
-
-# unprepare_chroot command parser
-p_unprepare_chroot = subparsers.add_parser("unprepare_chroot", help=c_unprepare_chroot.__doc__.lower())
-p_unprepare_chroot.add_argument("-m", "--no-umount", action="store_true", default=False,
-                                help="disable unmouting of /{proc,dev,sys}")
-p_unprepare_chroot.add_argument("path")
-p_unprepare_chroot.set_defaults(func=c_unprepare_chroot)
-
-# version command parser
-p_version = subparsers.add_parser("version", help=c_version.__doc__.lower())
-p_version.set_defaults(func=c_version)
-
-################################################################################
-# Main
-################################################################################
-
-try:
-    # first (partial) parsing
-    args = p_main.parse_known_args()[0]
-    # set debug and quiet mode before merge
-    installsystems.debug = args.debug
-    installsystems.quiet = args.quiet
-    # load isinstall config
-    config = MainConfigFile(args.config, "installsystems")
-    config.merge(args)
-    # set debug and quiet mode after merge
-    installsystems.debug = args.debug
-    installsystems.quiet = args.quiet
-    # no warning if we are not in debug mode
-    if not installsystems.debug:
-        warnings.filterwarnings("ignore")
-    # disable coloring if asked
-    if args.no_color:
-        installsystems.printer.NOCOLOR = True
-    # except for install command we parse all args!
-    # install command is responsible of parsing
-    if args.func is not c_install:
-        args = p_main.parse_args(namespace=args)
-    # let's go
-    args.func(p_main, args)
-except Exception as e:
-    error(e)
-except KeyboardInterrupt:
-    warn("Keyboard Interrupted")
-    exit(1)
+# Entry point
+if __name__ == '__main__':
+    main()

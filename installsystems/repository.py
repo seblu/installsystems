@@ -611,10 +611,16 @@ class RepositoryManager(object):
             for img in self[reponame].images():
                 imgname = u"%s/%s:%s" % (reponame, img["name"], img["version"])
                 images[imgname] = img
-        # filter with pattern
-        for k in images.keys():
-            if not fnmatch.fnmatch(k, pattern):
-                del images[k]
+        if u"/" in pattern:
+            # filter with pattern on path
+            for k in images.keys():
+                if not fnmatch.fnmatch(k, pattern):
+                    del images[k]
+        else:
+            # filter on image name
+            for k, v in images.items():
+                if not fnmatch.fnmatch(v["name"], pattern):
+                    del images[k]
         # filter multiple versions
         if not all_version:
             for repo in set((images[i]["repo"] for i in images)):

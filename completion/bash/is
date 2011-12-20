@@ -35,13 +35,14 @@ _is() {
    _get_first_arg
    cmds=('add' 'build' 'cat' 'changelog' 'check' 'chroot' 'clean' 'copy' 'del'
        'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'move' 'new' 'repo'
-       'search' 'version' 'diff')
+       'search' 'version' 'diff' 'prepare_chroot' 'unprepare_chroot')
    opts=('-h'  '--help'
    '-V'  '--version'
    '-d'  '--debug'
    '-q'  '--quiet'
    '-R'  '--repo-config'
    '-f'  '--repo-filter'
+   '-s'  '--repo-search'
    '-r'  '--repo-config'
    '-c'  '--config'
    '-C'  '--cache'
@@ -139,12 +140,20 @@ _is() {
          [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0
          _filedir -d
       ;;
+      prepare_chroot)
+         [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount' && return 0
+         _filedir -d
+      ;;
       repo)
          [[ "$cur" == -* ]] && _opt '-h --help -l --local -r --remote -o --online -O --offline -s --state --force-offline --purge -u --url' && return 0
          _repo
       ;;
       search)
          [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+      ;;
+      unprepare_chroot)
+         [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount' && return 0
+         _filedir -d
       ;;
       version)
          [[ "$cur" == -* ]] && _opt '-h --help' && return 0

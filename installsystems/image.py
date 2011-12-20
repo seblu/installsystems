@@ -183,25 +183,29 @@ class SourceImage(Image):
         arrowlevel(1)
         arrow("Name %s" % self.image_name)
         try:
-            tarball = Tarball.open(self.image_name, mode="w:gz", dereference=True)
-        except Exception as e:
-            raise Exception("Unable to create tarball %s: %s" % (self.image_name, e))
-        # add description.json
-        arrow("Add description.json")
-        tarball.add_str("description.json", jdescription, tarfile.REGTYPE, 0644)
-        # add changelog
-        if self.changelog is not None:
-            arrow("Add changelog")
-            tarball.add_str("changelog", self.changelog.verbatim, tarfile.REGTYPE, 0644)
-        # add format
-        arrow("Add format")
-        tarball.add_str("format", self.format, tarfile.REGTYPE, 0644)
-        # add parser scripts
-        self._add_scripts(tarball, self.parser_path)
-        # add setup scripts
-        self._add_scripts(tarball, self.setup_path)
-        # closing tarball file
-        tarball.close()
+            try:
+                tarball = Tarball.open(self.image_name, mode="w:gz", dereference=True)
+            except Exception as e:
+                raise Exception("Unable to create tarball %s: %s" % (self.image_name, e))
+            # add description.json
+            arrow("Add description.json")
+            tarball.add_str("description.json", jdescription, tarfile.REGTYPE, 0644)
+            # add changelog
+            if self.changelog is not None:
+                arrow("Add changelog")
+                tarball.add_str("changelog", self.changelog.verbatim, tarfile.REGTYPE, 0644)
+            # add format
+            arrow("Add format")
+            tarball.add_str("format", self.format, tarfile.REGTYPE, 0644)
+            # add parser scripts
+            self._add_scripts(tarball, self.parser_path)
+            # add setup scripts
+            self._add_scripts(tarball, self.setup_path)
+            # closing tarball file
+            tarball.close()
+        except (SystemExit, KeyboardInterrupt):
+            if os.path.exists(self.image_name):
+                os.unlink(self.image_name)
         arrowlevel(-1)
 
     def create_payloads(self, force=False):
@@ -268,6 +272,10 @@ class SourceImage(Image):
                         filter=self._create_payload_tarball_filter)
             tarball.close()
             dfo.close()
+        except (SystemExit, KeyboardInterrupt):
+            if os.path.exists(tar_path):
+                os.unlink(tar_path)
+            raise
         except Exception as e:
             raise Exception("Unable to create payload tarball %s: %s" % (tar_path, e))
 
@@ -285,16 +293,21 @@ class SourceImage(Image):
         Create a payload file
         Only gzipping it
         '''
-        fsource = PipeFile(source, "r", progressbar=True)
-        # open file not done in GzipFile, to escape writing of filename
-        # in gzip file. This change md5.
-        fdest = open(dest, "wb")
-        fdest = gzip.GzipFile(filename=os.path.basename(source),
-                              fileobj=fdest,
-                              mtime=os.stat(source).st_mtime)
-        fsource.consume(fdest)
-        fsource.close()
-        fdest.close()
+        try:
+            fsource = PipeFile(source, "r", progressbar=True)
+            # open file not done in GzipFile, to escape writing of filename
+            # in gzip file. This change md5.
+            fdest = open(dest, "wb")
+            fdest = gzip.GzipFile(filename=os.path.basename(source),
+                                  fileobj=fdest,
+                                  mtime=os.stat(source).st_mtime)
+            fsource.consume(fdest)
+            fsource.close()
+            fdest.close()
+        except (SystemExit, KeyboardInterrupt):
+            if os.path.exists(dest):
+                os.unlink(dest)
+            raise
 
     def _add_scripts(self, tarball, directory):
         '''

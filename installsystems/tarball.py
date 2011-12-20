@@ -36,16 +36,18 @@ class Tarball(tarfile.TarFile):
         fd = self.extractfile(ti)
         return fd.read() if fd is not None else ""
 
-    def getnames(self, re_pattern=None, glob_pattern=None):
-        lorig = super(Tarball, self).getnames()
+    def getnames(self, re_pattern=None, glob_pattern=None, dir=True):
+        names = super(Tarball, self).getnames()
         # regexp matching
         if re_pattern is not None:
-            return [ tpname for tpname in lorig
-                     if re.match(re_pattern, tpname) ]
+            names = filter(lambda x: re.match(re_pattern, x), names)
         # globbing matching
         if glob_pattern is not None:
-            return fnmatch.filter(lorig, glob_pattern)
-        return lorig
+            names = fnmatch.filter(names, glob_pattern)
+        # dir filering
+        if not dir:
+            names = filter(lambda x: not self.getmember(x).isdir(), names)
+        return names
 
     def size(self):
         '''

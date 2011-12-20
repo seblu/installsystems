@@ -617,7 +617,7 @@ class PackageImage(Image):
         '''
         Display filename in the tarball
         '''
-        filelist = self._tarball.getnames(glob_pattern=filename)
+        filelist = self._tarball.getnames(glob_pattern=filename, dir=False)
         if len(filelist) == 0:
             warn("No file matching %s" % filename)
         for filename in filelist:

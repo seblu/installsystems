@@ -1,6 +1,12 @@
 # bash completion for installsytems
 
+
 # list local repositories
+_local_repo() {
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color repo --local --force-offline)"  -- "$cur"))
+}
+
+# list all defined repositories
 _repo() {
    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color repo --no-state --force-offline)"  -- "$cur"))
 }
@@ -56,7 +62,7 @@ _is() {
       add)
          [[ "$cur" == -* ]] && _opt "-h --help -p --preserve" && return 0
          _count_args
-         (( args == 2 )) && _repo
+         (( args == 2 )) && _local_repo
          (( args > 2 )) && _filedir '?(u)isimage'
       ;;
       build)
@@ -75,7 +81,7 @@ _is() {
       ;;
       check)
          [[ "$cur" == -* ]] && _opt '-h --help' && return 0
-         _repo
+         _local_repo
       ;;
       chroot)
          [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount -s --shell' && return 0
@@ -83,13 +89,13 @@ _is() {
       ;;
       clean)
          [[ "$cur" == -* ]] && _opt '-h --help' && return 0
-         _repo
+         _local_repo
       ;;
       copy)
          [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
          _count_args
          (( args == 2 )) && _remote_image
-         (( args > 2 )) && _remote_image && _repo
+         (( args > 2 )) && _remote_image && _local_repo
       ;;
       del)
          [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force -p --preserve' && return 0
@@ -120,7 +126,7 @@ _is() {
       ;;
       init)
          [[ "$cur" == -* ]] && _opt '-h --help' && return 0
-         _filedir -d
+         _local_repo
       ;;
       install)
          [[ "$cur" == -* ]] && _opt '-b --best' && return 0
@@ -134,7 +140,9 @@ _is() {
       ;;
       move)
          [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
-         _remote_image
+         _count_args
+         (( args == 2 )) && _remote_image
+         (( args > 2 )) && _remote_image && _local_repo
       ;;
       new)
          [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0

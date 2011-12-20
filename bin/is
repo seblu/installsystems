@@ -46,12 +46,12 @@ def load_repositories(args):
     if args.repo_path is not None:
         repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
                                           path=args.repo_path), temp=True,
-                         nosync=hasattr(args, "no_sync") and args.no_sync,
+                         nosync=args.no_sync,
                          offline=hasattr(args, "force_offline") and args.force_offline)
     # load repo configs from config
     for repoconf in RepoConfigFile(args.repo_config).repos:
         repoman.register(repoconf,
-                         nosync=hasattr(args, "no_sync") and args.no_sync,
+                         nosync=args.no_sync,
                          offline=hasattr(args, "force_offline") and args.force_offline)
     return repoman
 
@@ -486,7 +486,9 @@ def parser_init():
     parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
                         metavar="SECONDS", help="download timeout (default 3)")
     parser.add_argument("--no-cache", action="store_true", default=None,
-                        help="not use persistent db caching")
+                        help="not use persistent database caching")
+    parser.add_argument("--no-sync", action="store_true", default=False,
+                        help="doesn't sync repository database cache")
     parser.add_argument("--no-color", action="store_true", default=None,
                         help="dot not display colored output")
     # create a subparser for commands
@@ -641,8 +643,6 @@ def parser_init():
                    help="display image size")
     p.add_argument("-u", "--url", action="store_true", default=False,
                    help="display image url")
-    p.add_argument("--no-sync", action="store_true", default=False,
-                   help="doesn't sync repository before listing")
     p.add_argument("image", nargs="*", default=['*'],
                    help="image syntax is [repository/]image[:version]")
     p.set_defaults(func=c_list)

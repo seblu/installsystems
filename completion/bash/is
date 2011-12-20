@@ -13,7 +13,7 @@ _repo() {
 
 # list all images available in any online repositories
 _remote_image() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color --repo-search '' list --no-sync)" -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color --no-sync --repo-search '' list)" -- "$cur"))
 }
 
 # list all local (files) images
@@ -53,7 +53,9 @@ _is() {
    '-c'  '--config'
    '-C'  '--cache'
    '-t'  '--timeout'
-   '--no-cache'  '--no-color')
+   '--no-cache'
+   '--no-color'
+   '--no-sync')
 
    case "$arg" in
       '')
@@ -135,7 +137,7 @@ _is() {
          (( args > 2 )) && _filedir
       ;;
       list)
-         [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -a --all-version -A --author -u --url -D --description --no-sync' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -a --all-version -A --author -u --url -D --description' && return 0
          _remote_image
       ;;
       move)

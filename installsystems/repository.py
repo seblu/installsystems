@@ -66,7 +66,6 @@ class Repository(object):
 
     def __init__(self, config):
         self.config = config
-        self.version = 1
         self.local = istools.isfile(self.config.path)
         if not self.config.offline:
             try:
@@ -75,7 +74,6 @@ class Repository(object):
                 self.config.offline = True
         if self.config.offline:
             debug("Repository %s is offline" % config.name)
-
 
     def __getattribute__(self, name):
         '''
@@ -91,6 +89,13 @@ class Repository(object):
         if config.offline:
             raise Exception("Repository %s is offline" % config.name)
         return object.__getattribute__(self, name)
+
+    @property
+    def version(self):
+        '''
+        Return repository version
+        '''
+        return self.db.version
 
     def init(self):
         '''

@@ -47,10 +47,23 @@ class Database(object):
             raise Exception("Database not exists")
         self.conn = sqlite3.connect(self.path, isolation_level=None)
         self.conn.execute("PRAGMA foreign_keys = ON")
+        # get database version
+        try:
+            r = self.ask("SELECT value FROM misc WHERE key = 'version'").fetchone()
+            if r is None:
+                raise TypeError()
+            self.version = r[0]
+        except:
+            self.version = u"1"
+        # we only support database v1
+        if self.version != u"1":
+            debug("Invalid database format: %s" % self.version)
+            raise Exception("Invalid database format")
         # we make a query to be sure format is valid
         try:
             self.ask("SELECT * FROM image")
         except:
+            debug("Invalid database format: %s" % self.version)
             raise Exception("Invalid database format")
 
     def begin(self):

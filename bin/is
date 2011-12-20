@@ -38,7 +38,7 @@ def load_repositories(args):
         args.cache = None
     # split filter in list
     if args.repo_filter is not None:
-        args.repo_filter = split_repositories(args.repo_filter)
+        args.repo_filter = split_repository_list(args.repo_filter)
     # init repo cache object
     repoman = RepositoryManager(args.cache, timeout=args.timeout, filter=args.repo_filter)
     # register repositories (order matter)
@@ -55,13 +55,13 @@ def load_repositories(args):
                          offline=hasattr(args, "force_offline") and args.force_offline)
     return repoman
 
-def split_repositories(repos, filter=None):
+def split_repository_list(repolist, filter=None):
     '''
-    Return a list of repository from an comma/space separated list of repo
+    Return a list of repository from an comma/spaces separated names of repo
     '''
     if filter is None:
-        filter = lambda x: x != ""
-    return [r for r in  re.split("[ ,\n\t\v]+", repos) if filter(r)]
+        filter = Repository.is_repository_name
+    return [r for r in  re.split("[ ,\n\t\v]+", repolist) if filter(r)]
 
 def show_repositories(repoman, pattern, local=None, online=None,
                       url=False, state=True):
@@ -118,7 +118,7 @@ def select_image(name, repoman, search=None, best=False):
         if repo is None:
             # split search path as a list
             if search is not None:
-                search = split_repositories(search,
+                search = split_repository_list(search,
                                             lambda x: x in repoman.onlines)
             else:
                 search = []
@@ -373,7 +373,7 @@ def c_list(args):
     '''
     repoman = load_repositories(args)
     if args.search is not None:
-        args.search = split_repositories(args.repo_search, lambda x: x in repoman.onlines)
+        args.search = split_repository_list(args.repo_search, lambda x: x in repoman.onlines)
     for pattern in args.image:
         show_images(repoman, pattern,
                     all_version=args.all_version, search=args.search,

@@ -372,11 +372,13 @@ def c_list(args):
     List images in repository or image content
     '''
     repoman = load_repositories(args)
-    if args.search is not None:
-        args.search = split_repository_list(args.repo_search, lambda x: x in repoman.onlines)
+    if args.repo_search is None:
+        search = repoman.onlines
+    else:
+        search = split_repository_list(args.repo_search, lambda x: x in repoman.onlines)
     for pattern in args.image:
         show_images(repoman, pattern,
-                    all_version=args.all_version, search=args.search,
+                    all_version=args.all_version, search=search,
                     o_long=args.long, o_json=args.json,
                     o_md5=args.md5, o_date=args.date, o_author=args.author,
                     o_size=args.size, o_url=args.url, o_description=args.description)
@@ -639,8 +641,6 @@ def parser_init():
                    help="display image size")
     p.add_argument("-u", "--url", action="store_true", default=False,
                    help="display image url")
-    p.add_argument("-S", "--search", action="store_true", default=None,
-                   help="only list image in search path")
     p.add_argument("--no-sync", action="store_true", default=False,
                    help="doesn't sync repository before listing")
     p.add_argument("image", nargs="*", default=['*'],

@@ -28,6 +28,19 @@ class Repository(object):
     Repository class
     '''
 
+    @staticmethod
+    def is_repository_name(name):
+        return re.match("^[-_\w]+$", name) is not None
+
+    @staticmethod
+    def check_repository_name(name):
+        '''
+        Raise exception is repository name is invalid
+        '''
+        if not Repository.is_repository_name(name):
+            raise Exception("Invalid repository name %s" % name)
+        return name
+
     @classmethod
     def diff(cls, repo1, repo2):
         '''
@@ -694,18 +707,9 @@ class RepositoryConfig(object):
     Repository configuration container
     '''
 
-    @staticmethod
-    def check_repository_name(name):
-        '''
-        Raise exception is repository name is invalid
-        '''
-        if re.match("^[-_\w]+$", name) is None:
-            raise Exception("Invalid repository name %s" % name)
-        return name
-
     def __init__(self, name, **kwargs):
         # set default value for arguments
-        self.name = self.check_repository_name(name)
+        self.name = Repository.check_repository_name(name)
         self.path = ""
         self._offline = False
         self._dbpath = None

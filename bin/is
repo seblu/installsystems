@@ -458,8 +458,7 @@ def arg_parser_init():
     # Top level argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument("-V", "--version", action="version",
-                        version=installsystems.version,
-                        help="show installsystems version")
+                        version=installsystems.version)
     # exclusive group on debug/quiet
     g = parser.add_mutually_exclusive_group()
     g.add_argument("-d", "--debug", action="store_true",

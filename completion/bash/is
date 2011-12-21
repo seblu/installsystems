@@ -13,7 +13,7 @@ _repo() {
 
 # list all images available in any online repositories
 _remote_image() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is -q --no-color --no-sync --repo-search '' list)" -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync --repo-search '' list)" -- "$cur"))
 }
 
 # list all local (files) images

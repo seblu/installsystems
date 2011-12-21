@@ -8,6 +8,7 @@ InstallSystems Configuration files class
 
 import os
 import sys
+from argparse import Namespace
 from ConfigParser import RawConfigParser
 from installsystems.printer import *
 from installsystems.repository import RepositoryConfig
@@ -51,8 +52,17 @@ class MainConfigFile(ConfigFile):
     Program configuration file
     '''
 
-    valid_options = ("debug", "quiet", "no_cache", "no_color", "timeout", "cache", "repo_search", "repo_filter", "repo_config")
-
+    valid_options = {
+        "debug": bool,
+        "quiet": bool,
+        "no_cache": bool,
+        "no_color": bool,
+        "timeout": int,
+        "cache": str,
+        "repo_search": str,
+        "repo_filter": str,
+        "repo_config": str,
+        }
     def __init__(self, filename, prefix=os.path.basename(sys.argv[0])):
         self.prefix = prefix
         ConfigFile.__init__(self, filename)
@@ -78,36 +88,31 @@ class MainConfigFile(ConfigFile):
         except Exception as e:
             raise Exception("Unable load main config file %s: %s" % (self.path, e))
 
-    def merge(self, namespace):
+    def parse(self, namespace=None):
         '''
-        Merge current loaded option with a namespace from argparse
+        Parse current loaded option within a namespace
         '''
+        if namespace is None:
+            namespace = Namespace()
         for option, value in self._config.items():
             # check option is valid
-            if option not in self.valid_options:
+            if option not in self.valid_options.keys():
                 warn("Invalid option %s in %s, skipped" % (option, self.path))
                 continue
-            # no option is specified in command line, set it
-            if not hasattr(namespace, option):
-                setattr(namespace, option, value)
-            # handle by default none options
-            elif getattr(namespace, option) == None:
-                # we need to handle boolean differently
-                if option in ("debug", "quiet", "no_cache", "no_color"):
-                    setattr(namespace, option, value.lower() not in ("false", "no", "0"))
-                # we need to handle integer differently
-                elif option in ("timeout"):
-                    try:
-                        n = int(value)
-                    except ValueError:
-                        raise Exception("Invalid %s: Not a number" % option)
-                    setattr(namespace, option, n)
-                # handle strings
-                elif option in ("cache", "repo_search", "repo_filter"):
-                    setattr(namespace, option, value)
-            # repo_config is a special parameter, default value is repository
-            elif option == "repo_config" and option.repo_config == "repository":
-                setattr(namespace, option, value)
+            if not isinstance(option, basestring):
+                raise TypeError("Invalid config parser option %s type" % option)
+            # smartly cast option's value
+            if self.valid_options[option] is bool:
+                value = value.strip().lower() not in ("false", "no", "0", "")
+            else:
+                try:
+                    value = self.valid_options[option](value)
+                except ValueError:
+                    warn("Invalid option %s type. Must be %s" %
+                         (option, self.valid_options[option]))
+                    continue
+            setattr(namespace, option, value)
+        return namespace
 
     def _cache_paths(self):
         '''

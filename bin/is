@@ -46,13 +46,10 @@ def load_repositories(args):
     if args.repo_path is not None:
         repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
                                           path=args.repo_path), temp=True,
-                         nosync=args.no_sync,
-                         offline=hasattr(args, "force_offline") and args.force_offline)
+                         nosync=args.no_sync)
     # load repo configs from config
     for repoconf in RepoConfigFile(args.repo_config).repos:
-        repoman.register(repoconf,
-                         nosync=args.no_sync,
-                         offline=hasattr(args, "force_offline") and args.force_offline)
+        repoman.register(repoconf,  nosync=args.no_sync)
     return repoman
 
 def split_repository_list(repolist, filter=None):
@@ -424,9 +421,9 @@ def c_repo(args):
     '''
     Get information about repositories
     '''
-    # in cleaning mode we doesn't needs to get repositories
+    # in cleaning mode we doesn't needs to sync repositories
     if args.purge:
-        args.force_offline = True
+        args.no_sync = True
     repoman = load_repositories(args)
     for pattern in args.repository:
         if args.purge:
@@ -687,8 +684,6 @@ def parser_init():
                    help="display repository url")
     p.add_argument("--purge", action="store_true", default=False,
                    help="remove cache databases")
-    p.add_argument("--force-offline", action="store_true", default=False,
-                   help="force repository to be offline")
     p.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
     p.set_defaults(func=c_repo)
     # search command parser

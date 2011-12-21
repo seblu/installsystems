@@ -3,12 +3,12 @@
 
 # list local repositories
 _local_repo() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color repo --local --force-offline)"  -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color --no-sync repo --local)"  -- "$cur"))
 }
 
 # list all defined repositories
 _repo() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color repo --no-state --force-offline)"  -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color --no-sync repo)"  -- "$cur"))
 }
 
 # list all images available in any online repositories

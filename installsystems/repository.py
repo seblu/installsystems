@@ -84,6 +84,7 @@ class Repository(object):
             try:
                 self.db = Database(config.dbpath)
             except:
+                debug("Unable to load database %s" % config.dbpath)
                 self.config.offline = True
         if self.config.offline:
             debug("Repository %s is offline" % config.name)
@@ -542,23 +543,23 @@ class RepositoryManager(object):
         :param temp: repository db should be stored in a temporary location
         :param nosync: if a cache exists, don't try to update it
         '''
+        # if cache is disable => temp =True
+        if self.cache_path is None:
+            temp = True
         try:
+            original_dbpath = config.dbpath
             if temp and nosync:
-                raise IOError("Unable to cache, sync is disabled")
-            # Ensure destination file exists
-            if temp is True or self.cache_path is None:
-                # this is a forced temporary repository or without name repo
-                tempfd, filedest = tempfile.mkstemp()
+                raise IOError("sync is disabled")
+            elif temp:
+                # this is a temporary cached repository
+                tempfd, config.dbpath = tempfile.mkstemp()
                 os.close(tempfd)
-                self.tempfiles.append(filedest)
+                self.tempfiles.append(config.dbpath)
             else:
-                filedest = os.path.join(self.cache_path, config.name)
-                # create file if not exists
-                if not os.path.exists(filedest):
-                    open(filedest, "wb")
+                config.dbpath = os.path.join(self.cache_path, config.name)
             if not nosync:
                 # Open remote database
-                rdb = PipeFile(config.dbpath, timeout=self.timeout)
+                rdb = PipeFile(original_dbpath, timeout=self.timeout)
                 # get remote last modification
                 if rdb.mtime is None:
                     # We doesn't have modification time, we use the last file
@@ -570,21 +571,28 @@ class RepositoryManager(object):
                 else:
                     rlast = rdb.mtime
                 # get local last value
-                llast = int(os.stat(filedest).st_mtime)
+                if os.path.exists(config.dbpath):
+                    llast = int(os.stat(config.dbpath).st_mtime)
+                else:
+                    llast = -2
                 # if repo is out of date, download it
                 if rlast != llast:
-                    arrow("Downloading %s" % config.dbpath)
-                    rdb.progressbar = True
-                    ldb = open(filedest, "wb")
-                    rdb.consume(ldb)
-                    ldb.close()
-                    rdb.close()
-                    istools.chrights(filedest,
-                                     uid=config.uid,
-                                     gid=config.gid,
-                                     mode=config.fmod,
-                                     mtime=rlast)
-            config.dbpath = filedest
+                    try:
+                        arrow("Downloading %s" % original_dbpath)
+                        rdb.progressbar = True
+                        ldb = open(config.dbpath, "wb")
+                        rdb.consume(ldb)
+                        ldb.close()
+                        rdb.close()
+                        istools.chrights(config.dbpath,
+                                         uid=config.uid,
+                                         gid=config.gid,
+                                         mode=config.fmod,
+                                         mtime=rlast)
+                    except:
+                        if os.path.exists(config.dbpath):
+                            os.unlink(config.dbpath)
+                        raise
         except IOError as e:
             # if something append bad during caching, we mark repo as offline
             debug("Unable to cache repository %s: %s" % (config.name, e))

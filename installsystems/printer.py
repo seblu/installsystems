@@ -72,14 +72,14 @@ def err(message, fd=sys.stderr, endl=os.linesep):
 
 def fatal(message, quit=True, fd=sys.stderr, endl=os.linesep):
     out("#light##red#Fatal:#reset# #red#%s#reset#" % message, fd, endl)
-    if sys.exc_info()[0] is not None and installsystems.debug:
+    if sys.exc_info()[0] is not None and installsystems.verbosity > 1:
         raise
     if quit:
         os._exit(21)
 
 def error(message, quit=True, fd=sys.stderr, endl=os.linesep):
     out("#light##red#Error:#reset# #red#%s#reset#" % message, fd, endl)
-    if sys.exc_info()[0] is not None and installsystems.debug:
+    if sys.exc_info()[0] is not None and installsystems.verbosity > 1:
         raise
     if quit:
         exit(42)
@@ -88,11 +88,11 @@ def warn(message, fd=sys.stderr, endl=os.linesep):
     out("#light##yellow#Warning:#reset# #yellow#%s#reset#" % message, fd, endl)
 
 def info(message, fd=sys.stderr, endl=os.linesep):
-    if not installsystems.quiet:
+    if installsystems.verbosity > 0:
         out("#light#Info%s:#reset# %s" % message, fd, endl)
 
 def debug(message, fd=sys.stderr, endl=os.linesep):
-    if installsystems.debug:
+    if installsystems.verbosity > 1:
         out("#light##black#%s#reset#" % message, fd, endl)
 
 def arrowlevel(inc=None, level=None):
@@ -105,7 +105,7 @@ def arrowlevel(inc=None, level=None):
     return old_level
 
 def arrow(message, inclevel=None, level=None, fd=sys.stdout, endl=os.linesep):
-    if installsystems.quiet:
+    if installsystems.verbosity == 0:
         return
     # define new level
     old_level = arrowlevel(inc=inclevel, level=level)

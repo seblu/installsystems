@@ -53,8 +53,7 @@ class MainConfigFile(ConfigFile):
     '''
 
     valid_options = {
-        "debug": bool,
-        "quiet": bool,
+        "verbosity": [0,1,2],
         "no_cache": bool,
         "no_color": bool,
         "timeout": int,
@@ -99,16 +98,33 @@ class MainConfigFile(ConfigFile):
             if option not in self.valid_options.keys():
                 warn("Invalid option %s in %s, skipped" % (option, self.path))
                 continue
+            # we expect a string like
             if not isinstance(option, basestring):
                 raise TypeError("Invalid config parser option %s type" % option)
             # smartly cast option's value
             if self.valid_options[option] is bool:
                 value = value.strip().lower() not in ("false", "no", "0", "")
+            # in case of valid option is a list, we take the type of the first
+            # argument of the list to convert value into it
+            # as a consequence, all element of a list must be of the same type!
+            # empty list are forbidden !
+            elif isinstance(self.valid_options[option], list):
+                ctype = type(self.valid_options[option][0])
+                try:
+                    value = ctype(value)
+                except ValueError:
+                    warn("Invalid option %s type (must be %s), skipped" %
+                         (option, ctype))
+                    continue
+                if value not in self.valid_options[option]:
+                    warn("Invalid value %s in option %s (must be in %s), skipped" %
+                         (value, option, self.valid_options[option]))
+                    continue
             else:
                 try:
                     value = self.valid_options[option](value)
                 except ValueError:
-                    warn("Invalid option %s type. Must be %s" %
+                    warn("Invalid option %s type (must be %s), skipped" %
                          (option, self.valid_options[option]))
                     continue
             setattr(namespace, option, value)

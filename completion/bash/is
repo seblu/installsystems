@@ -3,12 +3,12 @@
 
 # list local repositories
 _local_repo() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color --no-sync repo --local)"  -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync repo --local)"  -- "$cur"))
 }
 
 # list all defined repositories
 _repo() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --no-color --no-sync repo)"  -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync repo)"  -- "$cur"))
 }
 
 # list all images available in any online repositories
@@ -44,6 +44,7 @@ _is() {
        'search' 'version' 'diff' 'prepare_chroot' 'unprepare_chroot')
    opts=('-h'  '--help'
    '-V'  '--version'
+   '-v'  '--verbosity'
    '-d'  '--debug'
    '-q'  '--quiet'
    '-R'  '--repo-config'

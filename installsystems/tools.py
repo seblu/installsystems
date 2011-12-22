@@ -219,7 +219,7 @@ class PipeFile(object):
         '''
         Set this property to true enable progress bar
         '''
-        if installsystems.quiet is True:
+        if installsystems.verbosity == 0:
             return
         if val == True and not hasattr(self, "_progressbar_started"):
             self._progressbar_started = True

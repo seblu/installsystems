@@ -459,11 +459,16 @@ def arg_parser_init():
     parser = argparse.ArgumentParser()
     parser.add_argument("-V", "--version", action="version",
                         version=installsystems.version)
-    # exclusive group on debug/quiet
+    # exclusive group on verbosity
     g = parser.add_mutually_exclusive_group()
-    g.add_argument("-d", "--debug", action="store_true",
+    g.add_argument("-v", "--verbosity", default=1,
+                   type=int, choices=[0,1,2],
+                   help="define verbosity level (0: quiet, 1:normal, 2:debug)")
+    g.add_argument("-d", "--debug", dest="verbosity",
+                   action="store_const", const=2,
                    help="active debug mode")
-    g.add_argument("-q", "--quiet", action="store_true",
+    g.add_argument("-q", "--quiet", dest="verbosity",
+                   action="store_const", const=0,
                    help="active quiet mode")
     # common options
     parser.add_argument("-c", "--config", default="installsystems",
@@ -711,21 +716,19 @@ def main():
         arg_parser = arg_parser_init()
         # first partial parsing, to get early debug and config path
         options = arg_parser.parse_known_args()[0]
-        # set early command line debug and quiet mode
-        installsystems.debug = options.debug
-        installsystems.quiet = options.quiet
+        # set early command line verbosity and color
+        installsystems.verbosity = options.verbosity
         installsystems.printer.NOCOLOR = options.no_color
         # load main config file options
         config_parser = MainConfigFile(options.config, "installsystems")
         options = config_parser.parse()
         # second partial parsing, command line option overwrite config file
         options = arg_parser.parse_known_args(namespace=options)[0]
-        # set debug and quiet mode
-        installsystems.debug = options.debug
-        installsystems.quiet = options.quiet
+        # set verbosity and color
+        installsystems.verbosity = options.verbosity
         installsystems.printer.NOCOLOR = options.no_color
         # no warning if we are not in debug mode
-        if not installsystems.debug:
+        if installsystems.verbosity < 2:
             warnings.filterwarnings("ignore")
         # except for install command we parse all args!
         # install command is responsible of parsing

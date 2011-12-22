@@ -15,7 +15,7 @@ setup(
     author='Sebastien Luttringer',
     author_email='sebastien.luttringer@smartjog.com',
     license='GPL2',
-    packages=[ 'installsystems', 'installsystems.progressbar' ],
+    packages=[ 'installsystems' ],
     scripts=[ 'bin/is' ],
     data_files=(
         ('/etc/installsystems/', ('samples/repository.conf',

@@ -17,9 +17,9 @@ import math
 from subprocess import call, check_call, CalledProcessError
 
 import installsystems
-from installsystems.progressbar import ProgressBar, Percentage
-from installsystems.progressbar import FileTransferSpeed, FileTransferSize
-from installsystems.progressbar import Bar, BouncingBar, ETA, UnknownLength
+from progressbar import Widget, ProgressBar, Percentage
+from progressbar import FileTransferSpeed
+from progressbar import Bar, BouncingBar, ETA, UnknownLength
 from installsystems.tarball import Tarball
 from installsystems.printer import *
 
@@ -33,6 +33,31 @@ class PipeFile(object):
     Pipe file object if a file object with extended capabilties
     like printing progress bar or compute file size, md5 on the fly
     '''
+
+    class FileTransferSize(Widget):
+        '''
+        Custom progressbar widget
+        Widget for showing the transfer size (useful for file transfers)
+        '''
+
+        format = '%6.2f %s%s'
+        prefixes = ' kMGTPEZY'
+        __slots__ = ('unit', 'format')
+
+        def __init__(self, unit='B'):
+            self.unit = unit
+
+        def update(self, pbar):
+            '''
+            Updates the widget with the current SI prefixed speed
+            '''
+            if pbar.currval < 2e-6: # =~ 0
+                scaled = power = 0
+            else:
+                power = int(math.log(pbar.currval, 1000))
+                scaled = pbar.currval / 1000.**power
+            return self.format % (scaled, self.prefixes[power], self.unit)
+
 
     def __init__(self, path=None, mode="r", fileobj=None, timeout=3,
                  progressbar=False):
@@ -74,7 +99,8 @@ class PipeFile(object):
         # init progress bar
         # we use 0 because a null file is cannot show a progression during write
         if self.size == 0:
-            widget = [ FileTransferSize(), " ", BouncingBar(), " ", FileTransferSpeed() ]
+            widget = [ self.FileTransferSize(), " ",
+                       BouncingBar(), " ", FileTransferSpeed() ]
             maxval = UnknownLength
         else:
             widget = [ Percentage(), " ", Bar(), " ", FileTransferSpeed(), " ", ETA() ]

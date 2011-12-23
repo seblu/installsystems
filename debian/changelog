@@ -1,3 +1,10 @@
+installsystems (7) unstable; urgency=low
+
+  Sebastien Luttringer (1):
+      remove forgotten print
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Fri, 23 Dec 2011 14:05:33 +0100
+
 installsystems (6) unstable; urgency=low
 
   Sebastien Luttringer (65):

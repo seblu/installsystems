@@ -1,3 +1,74 @@
+installsystems (6) unstable; urgency=low
+
+  Sebastien Luttringer (65):
+      return code is != 0 on error or keyboard interrupt
+      check command fail if cwd is not the repository path
+      replace double by simple quote in bash_completion
+      also mount /dev/shm inside chroot
+      chroot preparation doesn't mount on a mountpoint
+      error already exit with an error code
+      We don't need to ship argparse
+      Fix gzip payload failure on python 2.6
+      check repository name validity
+      add command repo
+      clean command options
+      new is list command
+      introduce list --no-sync option
+      add new command prepare_chroot and unprepare_chroot
+      prepare and unprepare chroot create resolf.conf only if /etc exists
+      prepare and unprepare enhancement
+      introduce ~ and + in installsystems versions
+      list command display md5 in line
+      add version field to repository
+      build now create payload without version
+      reorder option alphabeticall
+      add option -p to build
+      better error message in build comman
+      add a local state to repositories
+      new display and option for command repo
+      create a function to list all images in repoman
+      charachers avec [~-+] in version can be more than ascii
+      fix bug of color substituion
+      list only last version of one image by repo by default
+      install use a subparser for install scripts
+      Image are not searched in search path
+      add maintainers file
+      add -S, --search option to list command
+      add sphinx documentation
+      move display functions in binary
+      We need a recent version of python-argparse
+      fix missing parameter in arrow function
+      add --purge to command repo
+      add istrick file in {,un}prepare_chroot functions
+      reorder options
+      add is_version in tools
+      remove one check of image and payloads when adding to repo
+      fix repoman get return repo name on not repo object
+      fix displaying color with --no-color
+      fix typos
+      reindent bash completion with spaces
+      cat command display a warning if no file is selected by pattern
+      doesn't display directory with cat command
+      only use functions inside IS binary
+      add completion for {,un}prepare_chroot and -s
+      introduce repo and database strict versionning
+      add,check,clean,copy,init,move completion limit to local repositories
+      build command correclty handle ctrl+c and kill -15
+      list search on name if no / is present in pattern
+      repository name checking moved inside reposiory class
+      rename split_repositories into split_repository_list
+      list filter by search path if set
+      move --no-sync as program optio
+      cachify doesn't create empty file when failing to get database
+      remove --force-offline repo option
+      rewrite argument and config options loading
+      let argparse display version message
+      replace quiet and debug by verbosity
+      move python-progressbar from installsystems
+      image and database format use now x.y format
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Fri, 23 Dec 2011 11:36:29 +0100
+
 installsystems (5) unstable; urgency=low
 
   Matthieu Gonnet (2):

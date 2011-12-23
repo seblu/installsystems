@@ -7,7 +7,7 @@ InstallSystems module
 '''
 
 canonical_name="installsystems"
-version = "5"
+version = "6"
 verbosity = 1 # 0: quiet, 1: normal, 2: debug
 
 __all__ = []

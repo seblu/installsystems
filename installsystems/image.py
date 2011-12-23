@@ -10,6 +10,7 @@ import os
 import stat
 import time
 import json
+import math
 import difflib
 import ConfigParser
 import subprocess
@@ -32,6 +33,8 @@ class Image(object):
     Abstract class of images
     '''
 
+    # format should be a float  X.Y but for compatibility reason it's a string
+    # before version 6, it's strict string comparaison
     format = "1"
     extension = ".isimage"
 
@@ -546,8 +549,17 @@ class PackageImage(Image):
         desc = {}
         # check format
         img_format = self._tarball.get_str("format")
-        if img_format != self.format:
-            raise Exception("Invalid tarball image format")
+        try:
+            print img_format
+            print self.format
+            print math.floor(float(self.format)) + 1.0
+            #print(int(self.format) + 1)
+            print 'toto'
+            if float(img_format) >= math.floor(float(self.format)) + 1.0:
+                print 'otot'
+                raise Exception()
+        except:
+            raise Exception("Invalid image format %s" % img_format)
         desc["format"] = img_format
         # check description
         try:

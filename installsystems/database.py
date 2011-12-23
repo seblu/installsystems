@@ -52,11 +52,11 @@ class Database(object):
             r = self.ask("SELECT value FROM misc WHERE key = 'version'").fetchone()
             if r is None:
                 raise TypeError()
-            self.version = r[0]
+            self.version = float(r[0])
         except:
-            self.version = u"1"
+            self.version = 1.0
         # we only support database v1
-        if self.version != u"1":
+        if self.version >= 2.0:
             debug("Invalid database format: %s" % self.version)
             raise Exception("Invalid database format")
         # we make a query to be sure format is valid

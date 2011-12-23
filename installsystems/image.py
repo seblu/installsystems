@@ -550,13 +550,7 @@ class PackageImage(Image):
         # check format
         img_format = self._tarball.get_str("format")
         try:
-            print img_format
-            print self.format
-            print math.floor(float(self.format)) + 1.0
-            #print(int(self.format) + 1)
-            print 'toto'
             if float(img_format) >= math.floor(float(self.format)) + 1.0:
-                print 'otot'
                 raise Exception()
         except:
             raise Exception("Invalid image format %s" % img_format)

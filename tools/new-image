@@ -1,0 +1,40 @@
+#!/bin/bash
+# A seblu script
+
+usage() {
+  echo "usage: ${0##*/} image_name" >&2
+  exit 1
+}
+
+image_path='/root/images'
+image_name="$1"
+
+cd "$image_path"
+
+# check image already exists
+[[ -d "$image_name" ]] && echo "Image $image_name already exists" >&2 && exit 2
+
+# create image
+is new "$image_name"
+
+cd "$image_name"
+
+# customize description
+sed -ri "s/\s*name\s*=.*/name = $image_name/" description
+sed -ri "s/\s*version\s*=.*/version = 0/" description
+
+# create git
+git init
+
+# add gitignore
+cat > .gitignore << EOF
+*.isimage
+*.isdata
+payload
+EOF
+
+git add .gitignore
+git add description changelog
+git ci -m 'Initial commit'
+
+# vim:set ts=2 sw=2 ft=sh et:

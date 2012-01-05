@@ -601,7 +601,7 @@ class PackageImage(Image):
             for payload_name in payloads:
                 payload = payloads[payload_name]
                 out('#light##yellow#Payload:#reset# %s' % payload_name)
-                out('  #yellow#Date:#reset# %s' % istools.rfc2822(payload.mtime))
+                out('  #yellow#Date:#reset# %s' % istools.time_rfc2822(payload.mtime))
                 out('  #yellow#Size:#reset# %s' % (istools.human_size(payload.size)))
                 out('  #yellow#MD5:#reset# %s' % payload.md5)
         # display image content

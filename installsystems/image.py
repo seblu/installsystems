@@ -579,37 +579,40 @@ class PackageImage(Image):
             warn("Invalid changelog: %s" % e)
         return desc
 
-    def show(self, verbose=False, changelog=False):
+    def show(self, o_verbose=False, o_changelog=False, o_json=False):
         '''
         Display image content
         '''
-        out('#light##yellow#Name:#reset# %s' % self.name)
-        out('#light##yellow#Version:#reset# %s' % self.version)
-        out('#yellow#Date:#reset# %s' % istools.time_rfc2822(self.date))
-        out('#yellow#Description:#reset# %s' % self.description)
-        out('#yellow#Author:#reset# %s' % self.author)
-        if verbose:
-            # field is_build_version is new in version 5. I can be absent.
-            try: out('#yellow#IS build version:#reset# %s' % self.is_build_version)
-            except AttributeError: pass
-            # field is_min_version is new in version 5. I can be absent.
-            try: out('#yellow#IS minimum version:#reset# %s' % self.is_min_version)
-            except AttributeError: pass
-        out('#yellow#MD5:#reset# %s' % self.md5)
-        if verbose:
-            payloads = self.payload
-            for payload_name in payloads:
-                payload = payloads[payload_name]
-                out('#light##yellow#Payload:#reset# %s' % payload_name)
-                out('  #yellow#Date:#reset# %s' % istools.time_rfc2822(payload.mtime))
-                out('  #yellow#Size:#reset# %s' % (istools.human_size(payload.size)))
-                out('  #yellow#MD5:#reset# %s' % payload.md5)
-        # display image content
-        out('#light##yellow#Content:#reset#')
-        self._tarball.list(verbose)
-        # display changelog
-        if changelog:
-            self.changelog.show(int(self.version), verbose)
+        if o_json:
+            out(json.dumps(self._metadata))
+        else:
+            out('#light##yellow#Name:#reset# %s' % self.name)
+            out('#light##yellow#Version:#reset# %s' % self.version)
+            out('#yellow#Date:#reset# %s' % istools.time_rfc2822(self.date))
+            out('#yellow#Description:#reset# %s' % self.description)
+            out('#yellow#Author:#reset# %s' % self.author)
+            if o_verbose:
+                # field is_build_version is new in version 5. I can be absent.
+                try: out('#yellow#IS build version:#reset# %s' % self.is_build_version)
+                except AttributeError: pass
+                # field is_min_version is new in version 5. I can be absent.
+                try: out('#yellow#IS minimum version:#reset# %s' % self.is_min_version)
+                except AttributeError: pass
+            out('#yellow#MD5:#reset# %s' % self.md5)
+            if o_verbose:
+                payloads = self.payload
+                for payload_name in payloads:
+                    payload = payloads[payload_name]
+                    out('#light##yellow#Payload:#reset# %s' % payload_name)
+                    out('  #yellow#Date:#reset# %s' % istools.time_rfc2822(payload.mtime))
+                    out('  #yellow#Size:#reset# %s' % (istools.human_size(payload.size)))
+                    out('  #yellow#MD5:#reset# %s' % payload.md5)
+            # display image content
+            out('#light##yellow#Content:#reset#')
+            self._tarball.list(o_verbose)
+            # display changelog
+            if o_changelog:
+                self.changelog.show(int(self.version), o_verbose)
 
     def check(self, message="Check MD5"):
         '''

@@ -324,7 +324,7 @@ def c_info(args):
     for image in args.image:
         img, repo = select_image(image, repoman,
                                  search=args.repo_search, best=args.best)
-        img.show(verbose=args.verbose, changelog=args.changelog)
+        img.show(o_verbose=args.verbose, o_changelog=args.changelog, o_json=args.json)
 
 def c_init(args):
     '''
@@ -607,6 +607,8 @@ def arg_parser_init():
                    help="take the most recent image in all searchable repositories")
     p.add_argument("-c", "--changelog", action="store_true",
                    help="display image changelog")
+    p.add_argument("-j", "--json", action="store_true",
+                   help="output is formated in json")
     p.add_argument("-v", "--verbose", action="store_true",
                    help="verbose output")
     p.add_argument("image", nargs="+",

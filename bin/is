@@ -39,7 +39,8 @@ def load_repositories(args):
     # split filter in list
     args.repo_filter = Repository.split_repository_list(args.repo_filter)
     # init repo cache object
-    repoman = RepositoryManager(args.cache, timeout=args.timeout, filter=args.repo_filter)
+    repoman = RepositoryManager(args.cache, timeout=args.timeout,
+                                filter=args.repo_filter, search=args.repo_search)
     # register repositories (order matter)
     # load repo configs from command line
     if args.repo_path != "":
@@ -84,7 +85,7 @@ def show_repositories(repoman, pattern, local=None, online=None,
             s += "  (%s)" % repo.config.path
         out(s)
 
-def select_image(name, repoman, search=None, best=False):
+def get_images(patterns, repoman, local=True, min=None, max=None):
     '''
     Select and load a package image from a standard naming type
 
@@ -93,34 +94,16 @@ def select_image(name, repoman, search=None, best=False):
 
     Return the repository as second argument
     '''
-    # image is a local file
-    if istools.isfile(name) and os.path.isfile(name):
-        return PackageImage(name), None
-    # we need to find image in a repository
-    else:
-        if len(repoman.onlines) == 0:
-            raise Exception('No online repository')
-        (repo, image, version) = Repository.split_image_path(name)
-        debug("Requested image: %s v%s in %s" % (image, version, repo))
-        # repo is not specified, we need to crawl in path
-        if repo is None:
-            # split search path as a list
-            if search is not None:
-                search = split_repository_list(search,
-                                            lambda x: x in repoman.onlines)
-            else:
-                search = []
-            # if we have only one repo, search in it
-            if len(search) == 0 and len(repoman.onlines) == 1:
-                search = repoman.onlines
-            elif len(search) == 0 and len(repoman.onlines) > 1:
-                raise Exception('You must use a full image path or set a valid search path')
-            return repoman.get(image, version, search=search, best=best)
-        # we can ask directly repository about image
+    for pattern in patterns:
+        # check if image is a local file
+        if local and istools.isfile(pattern) and os.path.isfile(pattern):
+            yield PackageImage(pattern), None
+        # we need to find image in a repository
         else:
-            return repoman[repo].get(image, version), repoman[repo]
+            for i in repoman.get_images(pattern, min=min, max=max):
+                yield i
 
-def show_images(repoman, pattern, all_version=True, search=None,
+def show_images(repoman, patterns, search=None,
                 o_json=False, o_long=False,
                 o_md5=False, o_date=False, o_author=False, o_size=False,
                 o_url=False, o_description=False):
@@ -130,8 +113,10 @@ def show_images(repoman, pattern, all_version=True, search=None,
     long: display output in long format
     all images parameter can be given in arguments to displayed
     '''
-    # get image list
-    images = repoman.images(pattern, all_version, search)
+    # get images list
+    images = {}
+    for pattern in patterns:
+        images.update(repoman.select_images(pattern))
     # display result
     if o_json:
         s = json.dumps(images)
@@ -190,22 +175,18 @@ def c_cat(args):
     '''
     Display files inside a packaged image
     '''
-    # looks if arguments is a file or image name
     repoman = load_repositories(args)
-    img, repo = select_image(args.image, repoman,
-                             search=args.repo_search, best=args.best)
+    image, repo = next(get_images([args.pattern], repoman, min=1, max=1))
     for filename in args.file:
-        img.cat(filename)
+        image.cat(filename)
 
 def c_changelog(args):
     '''
-    Display changelog of a packaged image
+    Display changelog of packaged images
     '''
-    # looks if arguments is a file or image name
     repoman = load_repositories(args)
-    img, repo = select_image(args.image, repoman,
-                             search=args.repo_search, best=args.best)
-    img.changelog.show(int(img.version), args.all_version)
+    for image, repo in get_images(args.pattern, repoman, min=1):
+        image.changelog.show(int(image.version), args.all_version)
 
 def c_check(args):
     '''
@@ -235,9 +216,7 @@ def c_copy(args):
     '''
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
-    for image in args.image:
-        srcimg, srcrepo = select_image(image, repoman,
-                                       search=args.repo_search, best=args.best)
+    for srcimg, srcrepo in get_images(args.pattern, repoman, local=False, min=1):
         arrow("Copying %s v%s from repository %s to %s" % (srcimg.name,
                                                            srcimg.version,
                                                            srcrepo.config.name,
@@ -251,32 +230,27 @@ def c_del(args):
     Remove an image package from a repository
     '''
     repoman = load_repositories(args)
-    for image in args.image:
-        img, repo = select_image(image, repoman,
-                                 search=args.repo_search, best=args.best)
-        if repo is None:
-            raise Exception("You cannot delete an image outside a repository")
+    for image, repo in get_images(args.pattern, repoman, local=False, min=1):
         if not args.force:
             warn("The following operation cannot be reversed!")
-            out("You will delete %s v%s in repository %s" % (img.name,
-                                                             img.version,
+            out("You will delete %s v%s in repository %s" % (image.name,
+                                                             image.version,
                                                              repo.config.name))
             if not confirm():
                 raise Exception("Aborted!")
-        repo.delete(img.name, img.version, payloads=not args.preserve)
+        repo.delete(image.name, image.version, payloads=not args.preserve)
 
 def c_diff(args):
     '''
-    Show a diff between two repositories or packaged images
+    Show difference between two repositories or packaged images
     '''
     repoman = load_repositories(args)
     if args.object[0] in repoman.onlines and args.object[1] in repoman.onlines:
         Repository.diff(repoman[args.object[0]], repoman[args.object[1]])
     else:
-        img1, repo1 = select_image(args.object[0], repoman,
-                                   search=args.repo_search, best=args.best)
-        img2, repo2 = select_image(args.object[1], repoman,
-                                   search=args.repo_search, best=args.best)
+        img = get_images(args.object, repoman, min=2, max=2)
+        img1, repo1 = next(img)
+        img2, repo2 = next(img)
         PackageImage.diff(img1, img2)
 
 def c_extract(args):
@@ -284,20 +258,17 @@ def c_extract(args):
     Extract a packaged image inside a directory
     '''
     repoman = load_repositories(args)
-    img, repo = select_image(args.image, repoman,
-                             search=args.repo_search, best=args.best)
-    img.extract(args.path, payload=args.payload, force=args.force,
-                gendescription=args.gen_description)
+    for image, repo in get_images(args.pattern, repoman, min=1, max=1):
+        image.extract(args.path, payload=args.payload, force=args.force,
+                      gendescription=args.gen_description)
 
 def c_get(args):
     '''
     Get packaged images from repository to current directory
     '''
     repoman = load_repositories(args)
-    for image in args.image:
-        img, repo = select_image(image, repoman,
-                                 search=args.repo_search, best=args.best)
-        img.download(".", image=not args.no_image, payload=args.payload, force=args.force)
+    for image, repo in get_images(args.pattern, repoman, local=False, min=1):
+        image.download(".", image=not args.no_image, payload=args.payload, force=args.force)
 
 def c_help(args):
     '''
@@ -313,10 +284,9 @@ def c_info(args):
     Display info about packaged images
     '''
     repoman = load_repositories(args)
-    for image in args.image:
-        img, repo = select_image(image, repoman,
-                                 search=args.repo_search, best=args.best)
-        img.show(o_verbose=args.verbose, o_changelog=args.changelog, o_json=args.json)
+    for image, repo in get_images(args.pattern, repoman, min=1):
+        image.show(o_verbose=args.verbose, o_changelog=args.changelog,
+                   o_json=args.json)
 
 def c_init(args):
     '''
@@ -332,24 +302,23 @@ def c_install(args):
     '''
     # remove old image args
     args.install_parser._remove_action(
-        [d for d in args.install_parser._actions if d.dest == "image"][0])
+        [d for d in args.install_parser._actions if d.dest == "pattern"][0])
     # create a subparser for current image to have a sexy display of args
-    subparser = args.install_parser.add_subparsers().add_parser(args.image)
+    subparser = args.install_parser.add_subparsers().add_parser(args.pattern)
     # select image to install
     repoman = load_repositories(args)
-    img = select_image(args.image, repoman,
-                       search=args.repo_search, best=args.best)[0]
+    image, repo = next(get_images([args.pattern], repoman, min=1, max=1))
     # Print setup information
-    arrow("Installing %s v%s" % (img.name, img.version))
+    arrow("Installing %s v%s" % (image.name, image.version))
     # install start time
     t0 = time.time()
     # run parser scripts with parser parser argument
-    img.run_parser(parser=subparser)
+    image.run_parser(parser=subparser)
     # call parser again, with extended attributes
     arrow("Parsing arguments")
     args = args.parser.parse_args()
     # run setup scripts
-    img.run_setup(namespace=args)
+    image.run_setup(namespace=args)
     # compute building time
     t1 = time.time()
     dt = int(t1 - t0)
@@ -360,16 +329,15 @@ def c_list(args):
     List packaged images in repositories
     '''
     repoman = load_repositories(args)
-    if args.repo_search == "":
-        search = repoman.onlines
-    else:
-        search = Repository.split_repository_list(args.repo_search, lambda x: x in repoman.onlines)
-    for pattern in args.image:
-        show_images(repoman, pattern,
-                    all_version=args.all_version, search=search,
-                    o_long=args.long, o_json=args.json,
-                    o_md5=args.md5, o_date=args.date, o_author=args.author,
-                    o_size=args.size, o_url=args.url, o_description=args.description)
+    search = Repository.split_repository_list(args.repo_search, lambda x: x in repoman.onlines)
+    if len(args.pattern) == 0 and len(search) == 0:
+        args.pattern = ["*/*"]
+    elif len(args.pattern) == 0:
+        args.pattern = ["*"]
+    show_images(repoman, args.pattern, search=search,
+                o_long=args.long, o_json=args.json,
+                o_md5=args.md5, o_date=args.date, o_author=args.author,
+                o_size=args.size, o_url=args.url, o_description=args.description)
 
 def c_move(args):
     '''
@@ -377,9 +345,7 @@ def c_move(args):
     '''
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
-    for image in args.image:
-        srcimg, srcrepo = select_image(image, repoman,
-                                       search=args.repo_search, best=args.best)
+    for srcimg, srcrepo in get_images(args.pattern, repoman, local=False):
         if not args.force:
             out("You will move %s v%s from %s to %s" % (srcimg.name,
                                                         srcimg.version,
@@ -429,7 +395,7 @@ def c_search(args):
     Search for packaged images in repositories
     '''
     repoman = load_repositories(args)
-    repoman.search(args.pattern)
+    repoman.search_images(args.pattern)
 
 def c_unprepare_chroot(args):
     '''
@@ -506,19 +472,15 @@ def arg_parser_init():
     p.set_defaults(func=c_build)
     # cat command parser
     p = subparser.add_parser("cat", help=c_cat.__doc__.lower())
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
-    p.add_argument("image", help="<path|[repository/]image[:version]>")
+    p.add_argument("pattern", help="path|[repository/]image[:version]")
     p.add_argument("file", nargs="+",
                    help="file inside image to cat (globbing allowed)")
     p.set_defaults(func=c_cat)
     # changelog command parser
     p = subparser.add_parser("changelog", help=c_changelog.__doc__.lower())
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
     p.add_argument("-v", "--all-version",  action="store_true",
                    help="display changelog for all versions")
-    p.add_argument("image", help="<path|[repository/]image[:version]>")
+    p.add_argument("pattern", nargs="+", help="path|[repository/]image[:version]")
     p.set_defaults(func=c_changelog)
     # check command parser
     p = subparser.add_parser("check", help=c_check.__doc__.lower())
@@ -540,18 +502,14 @@ def arg_parser_init():
     p.set_defaults(func=c_clean)
     # copy command parser
     p = subparser.add_parser("copy", help=c_copy.__doc__.lower())
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
-    p.add_argument("image", nargs="+",
-                   help="image syntax is <path|[repository/]image[:version]>")
+    p.add_argument("pattern", nargs="+",
+                   help="[repository/]image[:version]")
     p.add_argument("repository", help="destination repository")
     p.set_defaults(func=c_copy)
     # del command parser
     p =  subparser.add_parser("del", help=c_del.__doc__.lower())
-    p.add_argument("image", nargs="+",
-                   help="image syntax is <path|[repository/]image[:version]>")
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
+    p.add_argument("pattern", nargs="+",
+                   help="[repository/]image[:version]")
     p.add_argument("-f", "--force", action="store_true",
                    help="delete image without confirmation")
     p.add_argument("-p", "--preserve", action="store_true",
@@ -559,37 +517,31 @@ def arg_parser_init():
     p.set_defaults(func=c_del)
     # diff command parser
     p = subparser.add_parser("diff", help=c_diff.__doc__.lower())
-    p.add_argument("object", nargs=2,
-                   help="object syntax is <path|repository|[repository/]image[:version]>")
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
+    p.add_argument("object", nargs="+",
+                   help="path|repository|[repository/]image[:version]")
     p.set_defaults(func=c_diff)
     # extract command parser
     p = subparser.add_parser("extract", help=c_extract.__doc__.lower())
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
     p.add_argument("-f", "--force", action="store_true",
                    help="overwrite existing destinations")
     p.add_argument("-g", "--gen-description", action="store_true",
                    help="generate a description file from metadata")
     p.add_argument("-p", "--payload", action="store_true",
                    help="extract payloads")
-    p.add_argument("image",
-                   help="image syntax is <path|[repository/]image[:version]>")
+    p.add_argument("pattern",
+                   help="path|[repository/]image[:version]")
     p.add_argument("path", help="image will be extracted in path")
     p.set_defaults(func=c_extract)
     # get command parser
     p = subparser.add_parser("get", help=c_get.__doc__.lower())
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
     p.add_argument("-f", "--force", action="store_true",
                    help="overwrite existing destinations")
     p.add_argument("-I", "--no-image", action="store_true",
                    help="do not get image")
     p.add_argument("-p", "--payload", action="store_true",
                    help="get payloads")
-    p.add_argument("image", nargs="+",
-                   help="image syntax is <path|[repository/]image[:version]>")
+    p.add_argument("pattern", nargs="+",
+                   help="[repository/]image[:version]")
     p.set_defaults(func=c_get)
     # help command parser
     p = subparser.add_parser("help", help=c_help.__doc__.lower())
@@ -597,16 +549,14 @@ def arg_parser_init():
     p.set_defaults(func=c_help, parser=parser, subparser=subparser)
     # info command parser
     p = subparser.add_parser("info", help=c_info.__doc__.lower())
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
     p.add_argument("-c", "--changelog", action="store_true",
                    help="display image changelog")
     p.add_argument("-j", "--json", action="store_true",
                    help="output is formated in json")
     p.add_argument("-v", "--verbose", action="store_true",
                    help="verbose output")
-    p.add_argument("image", nargs="+",
-                   help="image syntax is <path|[repository/]image[:version]>")
+    p.add_argument("pattern", nargs="+",
+                   help="path|[repository/]image[:version]")
     p.set_defaults(func=c_info)
     # init command parser
     p = subparser.add_parser("init", help=c_init.__doc__.lower())
@@ -616,15 +566,10 @@ def arg_parser_init():
     # install command parser
     p = subparser.add_parser("install", add_help=False,
                               help=c_install.__doc__.lower())
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
-    p.add_argument("image",
-                   help="image syntax is <path|[repository/]image[:version]>")
+    p.add_argument("pattern", help="path|[repository/]image[:version]")
     p.set_defaults(func=c_install, parser=parser, install_parser=p)
     # list command parser
     p = subparser.add_parser("list", help=c_list.__doc__.lower())
-    p.add_argument("-a", "--all-version", action="store_true",
-                   help="list all versions of the same image")
     p.add_argument("-A", "--author", action="store_true",
                    help="display image author")
     p.add_argument("-d", "--date", action="store_true",
@@ -641,17 +586,15 @@ def arg_parser_init():
                    help="display image size")
     p.add_argument("-u", "--url", action="store_true",
                    help="display image url")
-    p.add_argument("image", nargs="*", default=['*'],
-                   help="image syntax is [repository/]image[:version]")
+    p.add_argument("pattern", nargs="*", default=[],
+                   help="[repository/]image[:version]")
     p.set_defaults(func=c_list)
     # move command parser
     p = subparser.add_parser("move", help=c_move.__doc__.lower())
-    p.add_argument("-b", "--best", action="store_true",
-                   help="take the most recent image in all searchable repositories")
     p.add_argument("-f", "--force", action="store_true",
                    help="move image without confirmation")
-    p.add_argument("image", nargs="+",
-                   help="image syntax is <path|[repository/]image[:version]>")
+    p.add_argument("pattern", nargs="+",
+                   help="[repository/]image[:version]")
     p.add_argument("repository", help="destination repository")
     p.set_defaults(func=c_move)
     # new command parser

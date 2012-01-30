@@ -1,6 +1,5 @@
 # bash completion for installsytems
 
-
 # list local repositories
 _local_repo() {
    COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync repo --local)"  -- "$cur"))
@@ -13,7 +12,7 @@ _repo() {
 
 # list all images available in any online repositories
 _remote_image() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync --repo-search '' list)" -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync list '*/*:*')" -- "$cur"))
 }
 
 # list all local (files) images
@@ -74,12 +73,12 @@ _is() {
          (( args == 2 )) && _filedir -d
       ;;
       cat)
-         [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
          _count_args
          (( args == 2 )) && _image
       ;;
       changelog)
-         [[ "$cur" == -* ]] && _opt '-h --help -b --best -v --all-version' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -v --all-version' && return 0
          _image
       ;;
       check)
@@ -95,28 +94,28 @@ _is() {
          _local_repo
       ;;
       copy)
-         [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
          _count_args
          (( args == 2 )) && _remote_image
          (( args > 2 )) && _remote_image && _local_repo
       ;;
       del)
-         [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force -p --preserve' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force -p --preserve' && return 0
          _remote_image
       ;;
       diff)
-         [[ "$cur" == -* ]] && _opt '-h --help -b --best' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
          _count_args
          (( args < 4 )) && _image
       ;;
       extract)
-         [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best -p --payload -g --gen-description' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force -p --payload -g --gen-description' && return 0
          _count_args
          (( args == 2 )) && _image
          (( args == 3 )) && _filedir -d
       ;;
       get)
-         [[ "$cur" == -* ]] && _opt '-h --help -f --force -b --best --payload -I --no-image' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force --payload -I --no-image' && return 0
          _remote_image
       ;;
       help)
@@ -124,7 +123,7 @@ _is() {
          (( args == 2 )) && _opt "${cmds[@]}"
       ;;
       info)
-         [[ "$cur" == -* ]] && _opt '-v --verbose -c --changelog -b --best' && return 0
+         [[ "$cur" == -* ]] && _opt '-v --verbose -c --changelog' && return 0
          _image
       ;;
       init)
@@ -132,17 +131,17 @@ _is() {
          _local_repo
       ;;
       install)
-         [[ "$cur" == -* ]] && _opt '-b --best' && return 0
+         #[[ "$cur" == -* ]] && _opt '-b --best' && return 0
          _count_args
          (( args == 2 )) && _image
          (( args > 2 )) && _filedir
       ;;
       list)
-         [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -a --all-version -A --author -u --url -D --description' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -A --author -u --url -D --description' && return 0
          _remote_image
       ;;
       move)
-         [[ "$cur" == -* ]] && _opt '-h --help -b --best -f --force' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0
          _count_args
          (( args == 2 )) && _remote_image
          (( args > 2 )) && _remote_image && _local_repo

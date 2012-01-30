@@ -91,7 +91,7 @@ _is() {
          _filedir -d
       ;;
       clean)
-         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0
          _local_repo
       ;;
       copy)

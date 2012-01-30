@@ -275,7 +275,7 @@ class Repository(object):
             if fo.md5 != f:
                 out(f)
 
-    def clean(self):
+    def clean(self, force=False):
         '''
         Clean the repository's content
         '''
@@ -291,7 +291,7 @@ class Repository(object):
             for f in dirtyfiles:
                 arrow(f, 1)
             # ask confirmation
-            if not confirm("Remove dirty files? (yes) "):
+            if not force and not confirm("Remove dirty files? (yes) "):
                 raise Exception("Aborted!")
             # start cleaning
             arrow("Cleaning")

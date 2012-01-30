@@ -235,7 +235,7 @@ def c_clean(args):
     '''
     repoman = load_repositories(args)
     for reponame in args.repository:
-        repoman[reponame].clean()
+        repoman[reponame].clean(args.force)
 
 def c_copy(args):
     '''
@@ -542,6 +542,8 @@ def arg_parser_init():
     p.set_defaults(func=c_chroot)
     # clean command parser
     p = subparser.add_parser("clean", help=c_clean.__doc__.lower())
+    p.add_argument("-f", "--force", action="store_true",
+                   help="clean repository without confirmation")
     p.add_argument("repository", nargs="+", help="repositories to clean")
     p.set_defaults(func=c_clean)
     # copy command parser

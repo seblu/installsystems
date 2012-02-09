@@ -41,6 +41,26 @@ class Repository(object):
             raise Exception("Invalid repository name %s" % name)
         return name
 
+    @staticmethod
+    def split_image_path(path):
+        '''
+        Split an image path (repo/image:version)
+        in a tuple (repo, image, version)
+        '''
+        x = re.match(u"^(?:([^/]+)/)?([^:]+)?(?::v?(.+))?$", path)
+        if x is None:
+            raise Exception("invalid image path: %s" % path)
+        return x.group(1, 2, 3)
+
+    @staticmethod
+    def split_repository_list(repolist, filter=None):
+        '''
+        Return a list of repository from an comma/spaces separated names of repo
+        '''
+        if filter is None:
+            filter = Repository.is_repository_name
+        return [r for r in  re.split("[ ,\n\t\v]+", repolist) if filter(r)]
+
     @classmethod
     def diff(cls, repo1, repo2):
         '''

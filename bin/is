@@ -37,7 +37,7 @@ def load_repositories(args):
     if hasattr(args, "no_cache") and args.no_cache:
         args.cache = None
     # split filter in list
-    args.repo_filter = split_repository_list(args.repo_filter)
+    args.repo_filter = Repository.split_repository_list(args.repo_filter)
     # init repo cache object
     repoman = RepositoryManager(args.cache, timeout=args.timeout, filter=args.repo_filter)
     # register repositories (order matter)
@@ -50,14 +50,6 @@ def load_repositories(args):
     for repoconf in RepoConfigFile(args.repo_config).repos:
         repoman.register(repoconf,  nosync=args.no_sync)
     return repoman
-
-def split_repository_list(repolist, filter=None):
-    '''
-    Return a list of repository from an comma/spaces separated names of repo
-    '''
-    if filter is None:
-        filter = Repository.is_repository_name
-    return [r for r in  re.split("[ ,\n\t\v]+", repolist) if filter(r)]
 
 def show_repositories(repoman, pattern, local=None, online=None,
                       url=False, state=True):
@@ -108,7 +100,7 @@ def select_image(name, repoman, search=None, best=False):
     else:
         if len(repoman.onlines) == 0:
             raise Exception('No online repository')
-        (repo, image, version) = istools.split_image_path(name)
+        (repo, image, version) = Repository.split_image_path(name)
         debug("Requested image: %s v%s in %s" % (image, version, repo))
         # repo is not specified, we need to crawl in path
         if repo is None:
@@ -371,7 +363,7 @@ def c_list(args):
     if args.repo_search == "":
         search = repoman.onlines
     else:
-        search = split_repository_list(args.repo_search, lambda x: x in repoman.onlines)
+        search = Repository.split_repository_list(args.repo_search, lambda x: x in repoman.onlines)
     for pattern in args.image:
         show_images(repoman, pattern,
                     all_version=args.all_version, search=search,

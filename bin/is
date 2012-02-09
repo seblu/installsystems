@@ -171,7 +171,7 @@ def show_images(repoman, pattern, all_version=True, search=None,
 
 def c_add(args):
     '''
-    Add an image package into a repository
+    Add packaged images into a repository
     '''
     repoman = load_repositories(args)
     repo = repoman[args.repository]
@@ -181,7 +181,7 @@ def c_add(args):
 
 def c_build(args):
     '''
-    Build an image source in current directory
+    Build a source image in the current directory
     '''
     # build start time
     t0 = time.time()
@@ -196,7 +196,7 @@ def c_build(args):
 
 def c_cat(args):
     '''
-    Display image's file
+    Display files inside a packaged image
     '''
     # looks if arguments is a file or image name
     repoman = load_repositories(args)
@@ -207,7 +207,7 @@ def c_cat(args):
 
 def c_changelog(args):
     '''
-    Display image's changelog
+    Display changelog of a packaged image
     '''
     # looks if arguments is a file or image name
     repoman = load_repositories(args)
@@ -275,7 +275,7 @@ def c_del(args):
 
 def c_diff(args):
     '''
-    Show diff between two repositories or images
+    Show a diff between two repositories or packaged images
     '''
     repoman = load_repositories(args)
     if args.object[0] in repoman.onlines and args.object[1] in repoman.onlines:
@@ -289,7 +289,7 @@ def c_diff(args):
 
 def c_extract(args):
     '''
-    Extract an image package inside a directory
+    Extract a packaged image inside a directory
     '''
     repoman = load_repositories(args)
     img, repo = select_image(args.image, repoman,
@@ -299,7 +299,7 @@ def c_extract(args):
 
 def c_get(args):
     '''
-    Download a remote image in current directory
+    Get packaged images from repository to current directory
     '''
     repoman = load_repositories(args)
     for image in args.image:
@@ -318,7 +318,7 @@ def c_help(args):
 
 def c_info(args):
     '''
-    Get info about an image
+    Display info about packaged images
     '''
     repoman = load_repositories(args)
     for image in args.image:
@@ -328,7 +328,7 @@ def c_info(args):
 
 def c_init(args):
     '''
-    Create an empty repository
+    Initialize an empty repository
     '''
     repoman = load_repositories(args)
     for reponame in args.repository:
@@ -336,7 +336,7 @@ def c_init(args):
 
 def c_install(args):
     '''
-    Install an image
+    Install a packaged image
     '''
     # remove old image args
     args.install_parser._remove_action(
@@ -365,7 +365,7 @@ def c_install(args):
 
 def c_list(args):
     '''
-    List images in repository or image content
+    List packaged images in repositories
     '''
     repoman = load_repositories(args)
     if args.repo_search == "":
@@ -381,7 +381,7 @@ def c_list(args):
 
 def c_move(args):
     '''
-    Move an image from a repository to another one
+    Move packaged image from a repository to another one
     '''
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
@@ -412,13 +412,13 @@ def c_new(args):
 
 def c_prepare_chroot(args):
     '''
-    Prepare a chroot
+    Helper to prepare a path to be chrooted
     '''
     istools.prepare_chroot(args.path, mount=not args.no_mount)
 
 def c_repo(args):
     '''
-    Get information about repositories
+    List repositories
     '''
     # in cleaning mode we doesn't needs to sync repositories
     if args.purge:
@@ -434,20 +434,20 @@ def c_repo(args):
 
 def c_search(args):
     '''
-    Search in repository
+    Search for packaged images in repositories
     '''
     repoman = load_repositories(args)
     repoman.search(args.pattern)
 
 def c_unprepare_chroot(args):
     '''
-    Remove preparation of a chroot
+    Helper to remove chroot preparation of a path
     '''
     istools.unprepare_chroot(args.path, mount=not args.no_umount)
 
 def c_version(args):
     '''
-    Print installsystems version
+    Display installsystems version
     '''
     out(installsystems.version)
 
@@ -500,7 +500,7 @@ def arg_parser_init():
     p.add_argument("-p", "--preserve", action="store_true",
                    help="don't remove image after adding to database")
     p.add_argument("repository", help="repository where images will be added")
-    p.add_argument("path", nargs="+", help="image path")
+    p.add_argument("path", nargs="+", help="local packaged image path")
     p.set_defaults(func=c_add)
     # build command parser
     p = subparser.add_parser("build", help=c_build.__doc__.lower())

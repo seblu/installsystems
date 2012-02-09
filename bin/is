@@ -742,7 +742,7 @@ def main():
         options.func(options)
         exit(0)
     except Exception as e:
-        error(e)
+        error(u"%s." % e)
     except KeyboardInterrupt:
         warn("Keyboard Interrupted")
         exit(1)

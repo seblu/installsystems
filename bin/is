@@ -239,15 +239,26 @@ def c_del(args):
     Remove an image package from a repository
     '''
     repoman = load_repositories(args)
-    for image, repo in get_images(args.pattern, repoman, local=False, min=1):
-        if not args.force:
-            warn("The following operation cannot be reversed!")
-            out("You will delete %s v%s in repository %s" % (image.name,
-                                                             image.version,
-                                                             repo.config.name))
-            if not confirm():
-                raise Exception("Aborted!")
-        repo.delete(image.name, image.version, payloads=not args.preserve)
+    todo = list(get_images(args.pattern, repoman, local=False, min=1))
+    # check all source repository are local (need by deletion)
+    for img, repo in todo:
+        if not repo.local:
+            raise Exception("Repository %s is not local. Unable to delete" %
+                            repo.config.name)
+    # check user really want to this
+    if not args.force:
+        out("You will remove the following images:")
+        for img, repo in todo:
+            out("  %s/%s:%s" % (repo.config.name, img.name, img.version))
+        if not confirm():
+            raise Exception("Aborted!")
+    # delete it for real
+    for img, repo in todo:
+        arrow("Deleting %s v%s from repository %s" %
+              (img.name, img.version, repo.config.name))
+        arrowlevel(1)
+        repo.delete(img.name, img.version, payloads=not args.preserve)
+        arrowlevel(-1)
 
 def c_diff(args):
     '''

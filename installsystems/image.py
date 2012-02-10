@@ -76,13 +76,14 @@ class SourceImage(Image):
         if not istools.isfile(path):
             raise NotImplementedError("SourceImage must be local")
         # main path
+        build_path = os.path.join(path, "build")
         parser_path = os.path.join(path, "parser")
         setup_path = os.path.join(path, "setup")
         payload_path = os.path.join(path, "payload")
         # create base directories
         arrow("Creating base directories")
         try:
-            for d in (path, parser_path, setup_path, payload_path):
+            for d in (path, build_path, parser_path, setup_path, payload_path):
                 if not os.path.exists(d) or not os.path.isdir(d):
                     os.mkdir(d)
         except Exception as e:
@@ -102,6 +103,8 @@ class SourceImage(Image):
                 "is_min_version": installsystems.version}}
         # create changelog example from template
         examples["changelog"] = {"path": "changelog", "content": istemplate.changelog}
+        # create build example from template
+        examples["build"] = {"path": "build/01-build.py", "content": istemplate.build}
         # create parser example from template
         examples["parser"] = {"path": "parser/01-parser.py", "content": istemplate.parser}
         # create setup example from template
@@ -121,7 +124,7 @@ class SourceImage(Image):
             arrow("Setting executable rights on scripts")
             umask = os.umask(0)
             os.umask(umask)
-            for dpath in (parser_path, setup_path):
+            for dpath in (build_path, parser_path, setup_path):
                 for f in os.listdir(dpath):
                     istools.chrights(os.path.join(dpath, f), mode=0777 & ~umask)
         except Exception as e:
@@ -133,11 +136,10 @@ class SourceImage(Image):
         if not istools.isfile(path):
             raise NotImplementedError("SourceImage must be local")
         Image.__init__(self)
-        self.base_path = path
-        self.parser_path = os.path.join(path, "parser")
-        self.setup_path = os.path.join(path, "setup")
-        self.payload_path = os.path.join(path, "payload")
-        self.validate_source_files()
+        self.base_path = os.path.abspath(path)
+        for pathtype in ("build", "parser", "setup", "payload"):
+            setattr(self, "%s_path" % pathtype, os.path.join(self.base_path, pathtype))
+        self.check_source_image()
         self.description = self.parse_description()
         self.changelog = self.parse_changelog()
         # script tarball path
@@ -145,13 +147,14 @@ class SourceImage(Image):
                                        self.description["version"],
                                        self.extension)
 
-    def validate_source_files(self):
+    def check_source_image(self):
         '''
         Check if we are a valid SourceImage directories
         '''
-        for d in (self.base_path, self.parser_path, self.setup_path, self.payload_path):
+        for d in (self.base_path, self.build_path, self.parser_path,
+                  self.setup_path, self.payload_path):
             if not os.path.exists(d):
-                raise Exception("Invalid source image: %s is missing" % d)
+                raise Exception("Invalid source image: directory %s is missing" % d)
             if not os.path.isdir(d):
                 raise Exception("Invalid source image: %s is not a directory" % d)
             if not os.access(d, os.R_OK|os.X_OK):
@@ -159,21 +162,31 @@ class SourceImage(Image):
         if not os.path.exists(os.path.join(self.base_path, "description")):
             raise Exception("Invalid source image: no description file")
 
-    def build(self, force=False, force_payload=False, check=True):
+    def build(self, force=False, force_payload=False, check=True, script=True):
         '''
         Create packaged image
         '''
         # check if free to create script tarball
         if os.path.exists(self.image_name) and force == False:
             raise Exception("Tarball already exists. Remove it before")
-        # Check python file
+        # check python scripts
         if check:
+            self.check_scripts(self.build_path)
             self.check_scripts(self.parser_path)
             self.check_scripts(self.setup_path)
-        # Create payload files
-        payloads = self.create_payloads(force=force_payload)
-        # generate a JSON description
-        jdesc = self.generate_json_description(payloads)
+        # remove list
+        rl = set()
+        # run build script
+        if script:
+            rl |= set(self.run_scripts(self.build_path, self.payload_path))
+        if force_payload:
+            rl |= set(self.select_payloads())
+        # remove payloads
+        self.remove_payloads(rl)
+        # create payload files
+        self.create_payloads()
+        # generate a json description
+        jdesc = self.generate_json_description()
         # creating scripts tarball
         self.create_image(jdesc)
 
@@ -201,9 +214,9 @@ class SourceImage(Image):
             arrow("Add format")
             tarball.add_str("format", self.format, tarfile.REGTYPE, 0644)
             # add parser scripts
-            self._add_scripts(tarball, self.parser_path)
+            self.add_scripts(tarball, self.parser_path)
             # add setup scripts
-            self._add_scripts(tarball, self.setup_path)
+            self.add_scripts(tarball, self.setup_path)
             # closing tarball file
             tarball.close()
         except (SystemExit, KeyboardInterrupt):
@@ -211,54 +224,66 @@ class SourceImage(Image):
                 os.unlink(self.image_name)
         arrowlevel(-1)
 
-    def create_payloads(self, force=False):
+    def describe_payload(self, name):
+        '''
+        Return information about a payload
+        '''
+        ans = {}
+        ans["source_path"] = os.path.join(self.payload_path, name)
+        ans["dest_path"] = "%s-%s%s" % (self.description["name"],
+                                        name,
+                                        Payload.extension)
+        ans["link_path"] = "%s-%s-%s%s" % (self.description["name"],
+                                           self.description["version"],
+                                           name,
+                                           Payload.extension)
+        source_stat = os.stat(ans["source_path"])
+        ans["isdir"] = stat.S_ISDIR(source_stat.st_mode)
+        ans["uid"] = source_stat.st_uid
+        ans["gid"] = source_stat.st_gid
+        ans["mode"] = stat.S_IMODE(source_stat.st_mode)
+        ans["mtime"] = source_stat.st_mtime
+        return ans
+
+    def select_payloads(self):
+        '''
+        Return a generator on image payloads
+        if tobuild is True, return only needed to build
+        '''
+        for payname in os.listdir(self.payload_path):
+            yield payname
+
+    def remove_payloads(self, paylist):
+        '''
+        Remove payload list if exists
+        '''
+        arrow("Removing payloads")
+        for pay in paylist:
+            arrow(pay, 1)
+            desc = self.describe_payload(pay)
+            for f in (desc["dest_path"], desc["link_path"]):
+                if os.path.lexists(f):
+                    os.unlink(f)
+
+    def create_payloads(self):
         '''
         Create all data payloads in current directory
         Doesn't compute md5 during creation because tarball can
         be created manually
         '''
         arrow("Creating payloads")
-        arrowlevel(1)
-        # build list of payload files
-        candidates = os.listdir(self.payload_path)
-        if len(candidates) == 0:
-            arrow("No payload")
-            arrowlevel(-1)
-            return []
-        # create payload files
-        l_l = []
-        for pay in candidates:
-            source_path = os.path.join(self.payload_path, pay)
-            dest_path = "%s-%s%s" % (self.description["name"],
-                                     pay,
-                                     Payload.extension)
-            link_path = "%s-%s-%s%s" % (self.description["name"],
-                                        self.description["version"],
-                                        pay,
-                                        Payload.extension)
-            source_stat = os.stat(source_path)
-            isdir = stat.S_ISDIR(source_stat.st_mode)
-            if os.path.exists(dest_path) and not force:
-                arrow("Payload %s already exists" % dest_path)
+        for payload_name in self.select_payloads():
+            paydesc = self.describe_payload(payload_name)
+            arrow(payload_name, 1)
+            if paydesc["isdir"]:
+                self._create_payload_tarball(paydesc["dest_path"],
+                                             paydesc["source_path"])
             else:
-                arrow("Creating payload %s" % dest_path)
-                if isdir:
-                    self._create_payload_tarball(dest_path, source_path)
-                else:
-                    self._create_payload_file(dest_path, source_path)
-            if os.path.exists(link_path):
-                os.unlink(link_path)
-            os.symlink(dest_path, link_path)
-            # create payload object
-            payobj = Payload(pay, "%s-%s" % (self.description["name"], self.description["version"]),
-                             dest_path, isdir=isdir)
-            payobj.uid = source_stat.st_uid
-            payobj.gid = source_stat.st_gid
-            payobj.mode = stat.S_IMODE(source_stat.st_mode)
-            payobj.mtime = source_stat.st_mtime
-            l_l.append(payobj)
-        arrowlevel(-1)
-        return l_l
+                self._create_payload_file(paydesc["dest_path"],
+                                          paydesc["source_path"])
+            if os.path.lexists(paydesc["link_path"]):
+                os.unlink(paydesc["link_path"])
+            os.symlink(paydesc["dest_path"], paydesc["link_path"])
 
     def _create_payload_tarball(self, tar_path, data_path):
         '''
@@ -312,7 +337,7 @@ class SourceImage(Image):
                 os.unlink(dest)
             raise
 
-    def _add_scripts(self, tarball, directory):
+    def add_scripts(self, tarball, directory):
         '''
         Add scripts inside a directory into a tarball
         '''
@@ -350,6 +375,38 @@ class SourceImage(Image):
             arrow(fn)
         arrowlevel(-1)
 
+    def run_scripts(self, script_directory, exec_directory):
+        '''
+        Execute script inside a directory
+        Return a list of payload to force rebuild
+        '''
+        arrow("Run %s scripts" % os.path.basename(script_directory))
+        rebuild_list = []
+        cwd = os.getcwd()
+        arrowlevel(1)
+        for fp, fn in self.select_scripts(script_directory):
+            arrow(fn)
+            os.chdir(exec_directory)
+            old_level = arrowlevel(1)
+            # compile source code
+            try:
+                o_scripts = compile(open(fp, "r").read(), fn, "exec")
+            except Exception as e:
+                raise Exception("Unable to compile %s fail: %s" %
+                                (fn, e))
+            # define execution context
+            gl = {"rebuild": rebuild_list}
+            # execute source code
+            try:
+                exec o_scripts in gl
+            except Exception as e:
+                raise Exception("Execution script %s fail: %s" %
+                                (fn, e))
+            arrowlevel(level=old_level)
+        os.chdir(cwd)
+        arrowlevel(-1)
+        return rebuild_list
+
     def select_scripts(self, directory):
         '''
         Select script with are allocatable in a directory
@@ -365,7 +422,7 @@ class SourceImage(Image):
             # yield complet filepath and only script name
             yield fp, fn
 
-    def generate_json_description(self, payloads):
+    def generate_json_description(self):
         '''
         Generate a JSON description file
         '''
@@ -379,11 +436,30 @@ class SourceImage(Image):
         # watermark
         desc["is_build_version"] = installsystems.version
         # append payload infos
-        arrow("Checksumming")
+        arrow("Checksumming payloads")
         desc["payload"] = {}
-        for payload in payloads:
-            desc["payload"][payload.name] = payload.info
-        arrowlevel(-1)
+        for payload_name in self.select_payloads():
+            arrow(payload_name, 1)
+            # getting payload info
+            payload_desc = self.describe_payload(payload_name)
+            # compute md5 and size
+            fileobj = PipeFile(payload_desc["link_path"], "r")
+            fileobj.consume()
+            fileobj.close()
+            # create payload entry
+            desc["payload"][payload_name] = {
+                "md5": fileobj.md5,
+                "size": fileobj.size,
+                "isdir": payload_desc["isdir"],
+                "uid": payload_desc["uid"],
+                "gid": payload_desc["gid"],
+                "mode": payload_desc["mode"],
+                "mtime": payload_desc["mtime"]
+                }
+        # check md5 are uniq
+        md5s = [v["md5"] for v in desc["payload"].values()]
+        if len(md5s) != len(set(md5s)):
+            raise Exception("Two payloads cannot have the same md5")
         # serialize
         return json.dumps(desc)
 

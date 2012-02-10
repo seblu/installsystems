@@ -14,11 +14,23 @@ changelog = u"""[1]
 - Initial version
 """
 
+build = u"""# -*- python -*-
+# -*- coding: utf-8 -*-
+
+# global rebuild object allow you to force rebuild of payloads
+# to force rebuild of payload nammed rootfs add it to the rebuild list
+# rebuild list is empty by default
+#rebuild += ["rootfs"]
+
+# vim:set ts=2 sw=2 noet:
+"""
+
+
 parser = """# -*- python -*-
 # -*- coding: utf-8 -*-
 
-# image object is a reference to current image
-# parser object is installsystems argument parser
+# global image object is a reference to current image
+# global parser object is your installsystems subparser (argparse)
 
 import os
 import argparse
@@ -40,7 +52,7 @@ parser.add_argument("target", type=str, action=TargetAction,
 setup = u"""# -*- python -*-
 # -*- coding: utf-8 -*-
 
-# image object is a reference to current image
+# global image object is a reference to current image
 # namespace object is the persistant, it can be used to store data accross scripts
 
 from installsystems.printer import arrow

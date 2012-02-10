@@ -165,7 +165,8 @@ def c_build(args):
     # load source image
     simg = SourceImage(args.path)
     # do the job
-    simg.build(force=args.force, force_payload=args.payload, check=not args.no_check)
+    simg.build(force=args.force, force_payload=args.payload,
+               check=not args.no_check, script=not args.no_script)
     # compute building time
     t1 = time.time()
     dt = int(t1 - t0)
@@ -495,6 +496,8 @@ def arg_parser_init():
                    help="rebuild image if already exists")
     p.add_argument("-p", "--payload", action="store_true",
                    help="rebuild payloads if already exists")
+    p.add_argument("-s", "--no-script", action="store_true",
+                   help="doesn't execute build script")
     p.add_argument("path", nargs="?", default=".")
     p.set_defaults(func=c_build)
     # cat command parser

@@ -345,18 +345,25 @@ def c_move(args):
     '''
     repoman = load_repositories(args)
     dstrepo = repoman[args.repository]
-    for srcimg, srcrepo in get_images(args.pattern, repoman, local=False):
-        if not args.force:
-            out("You will move %s v%s from %s to %s" % (srcimg.name,
-                                                        srcimg.version,
-                                                        srcrepo.config.name,
-                                                        dstrepo.config.name))
-            if not confirm():
-                raise Exception("Aborted!")
-        arrow("Moving %s v%s from repository %s to %s" % (srcimg.name,
-                                                          srcimg.version,
-                                                          srcrepo.config.name,
-                                                          dstrepo.config.name))
+    todo = list(get_images(args.pattern, repoman, local=False, min=1))
+    # check all source repository are local (need by deletion)
+    for img, repo in todo:
+        if not repo.local:
+            raise Exception("Repository %s is not local. Unable to move" %
+                            repo.config.name)
+    # check user really want to this
+    if not args.force:
+        out("You will copy and remove the following images:")
+        for img, repo in todo:
+            out("  %s/%s:%s" % (repo.config.name, img.name, img.version))
+        out("Inside repository: #l##b#%s#R#" % dstrepo.config.name)
+        if not confirm():
+            raise Exception("Aborted!")
+    # move it for real
+    for srcimg, srcrepo in todo:
+        arrow("Moving %s v%s from repository %s to %s" %
+              (srcimg.name, srcimg.version,
+               srcrepo.config.name, dstrepo.config.name))
         arrowlevel(1)
         dstrepo.add(srcimg)
         srcrepo.delete(srcimg.name, srcimg.version)

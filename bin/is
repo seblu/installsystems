@@ -15,6 +15,7 @@ import fnmatch
 import warnings
 import argparse
 import json
+import psutil
 import installsystems
 import installsystems.printer
 import installsystems.tools as istools
@@ -479,6 +480,10 @@ def arg_parser_init():
                         help="doesn't sync repository database cache")
     parser.add_argument("--no-color", action="store_true",
                         help="dot not display colored output")
+    parser.add_argument("--nice", type=int, default=0,
+                        help="nice of the process")
+    parser.add_argument("--ionice", choices=["none","rt", "be","idle"],
+                        help="ionice class of the process (default: none)")
     # create a subparser for commands
     subparser = parser.add_subparsers()
     # add command parser
@@ -701,6 +706,23 @@ def main():
         # no warning if we are not in debug mode
         if installsystems.verbosity < 2:
             warnings.filterwarnings("ignore")
+        # nice and ionice process
+        if options.nice is not None or options.ionice is not None:
+            proc = psutil.Process(os.getpid())
+            if options.nice is not None:
+                try: proc.nice = options.nice
+                except Exception:
+                    warn("Unable to nice process to %s" % options.nice)
+            if options.ionice is not None:
+                try:
+                    ioclassmap = {
+                        "none": psutil.IOPRIO_CLASS_NONE,
+                        "rt": psutil.IOPRIO_CLASS_RT,
+                        "be": psutil.IOPRIO_CLASS_BE,
+                        "idle": psutil.IOPRIO_CLASS_IDLE}
+                    proc.set_ionice(ioclassmap[options.ionice])
+                except Exception:
+                    warn("Unable to ionice process to %s" % options.ionice)
         # except for install command we parse all args!
         # install command is responsible of parsing
         if options.func is not c_install:

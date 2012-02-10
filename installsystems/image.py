@@ -326,23 +326,13 @@ class SourceImage(Image):
         ti.uname = ti.gname = "root"
         tarball.addfile(ti)
         # adding each file
-        for fi in sorted(os.listdir(directory)):
-            fp = os.path.join(directory, fi)
-            # check name
-            if not re.match("\d+-.*\.py$", fi):
-                debug("%s skipped: invalid name" % fi)
-                continue
-            # check execution bit
-            if not os.access(fp, os.X_OK):
-                debug("%s skipped: not executable" % fi)
-                continue
-            # adding file
-            ti = tarball.gettarinfo(fp, arcname=os.path.join(basedirectory, fi))
+        for fp, fn in self.select_scripts(directory):
+            ti = tarball.gettarinfo(fp, arcname=os.path.join(basedirectory, fn))
             ti.mode = 0755
             ti.uid = ti.gid = 0
             ti.uname = ti.gname = "root"
             tarball.addfile(ti, open(fp, "rb"))
-            arrow("%s added" % fi)
+            arrow("%s added" % fn)
         arrowlevel(-1)
 
     def check_scripts(self, directory):
@@ -353,21 +343,27 @@ class SourceImage(Image):
         arrow("Checking %s scripts" % basedirectory)
         arrowlevel(1)
         # checking each file
-        for fi in sorted(os.listdir(directory)):
-            fp = os.path.join(directory, fi)
-            # check name
-            if not re.match("\d+-.*\.py$", fi):
-                debug("%s skipped: invalid name" % fp)
-                continue
-            # check execution bit
-            if not os.access(fp, os.X_OK):
-                debug("%s skipped: not executable" % fp)
-                continue
+        for fp, fn in self.select_scripts(directory):
             # compiling file
             fs = open(fp, "r").read()
             compile(fs, fp, mode="exec")
-            arrow(fi)
+            arrow(fn)
         arrowlevel(-1)
+
+    def select_scripts(self, directory):
+        '''
+        Select script with are allocatable in a directory
+        '''
+        for fn in sorted(os.listdir(directory)):
+            fp = os.path.join(directory, fn)
+            # check name
+            if not re.match("\d+-.*\.py$", fn):
+                continue
+            # check execution bit
+            if not os.access(fp, os.X_OK):
+                continue
+            # yield complet filepath and only script name
+            yield fp, fn
 
     def generate_json_description(self, payloads):
         '''

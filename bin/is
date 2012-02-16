@@ -340,11 +340,12 @@ def c_install(args):
     arrow("Parsing arguments")
     args = args.parser.parse_args()
     # run setup scripts
-    image.run_setup(namespace=args)
-    # compute building time
-    t1 = time.time()
-    dt = int(t1 - t0)
-    arrow("Install time: %s" % datetime.timedelta(seconds=dt))
+    if not args.dry_run:
+        image.run_setup(namespace=args)
+        # compute building time
+        t1 = time.time()
+        dt = int(t1 - t0)
+        arrow("Install time: %s" % datetime.timedelta(seconds=dt))
 
 def c_list(args):
     '''
@@ -603,6 +604,8 @@ def arg_parser_init():
     # install command parser
     p = subparser.add_parser("install", add_help=False,
                               help=c_install.__doc__.lower())
+    p.add_argument("--dry-run", action="store_true",
+                   help="doesn't execute setup scripts")
     p.add_argument("pattern", help="path|[repository/]image[:version]")
     p.set_defaults(func=c_install, parser=parser, install_parser=p)
     # list command parser

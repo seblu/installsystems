@@ -15,6 +15,7 @@ import grp
 import tempfile
 import fnmatch
 import cStringIO
+import json
 import installsystems
 import installsystems.tools as istools
 from installsystems.printer import *
@@ -705,6 +706,41 @@ class RepositoryManager(object):
         for repo in self.onlines:
             arrow(repo.config.name)
             repo.search(pattern)
+
+    def show_images(self, patterns, o_json=False, o_long=False, o_md5=False,
+                    o_date=False, o_author=False, o_size=False,
+                    o_url=False, o_description=False):
+        '''
+        Show images inside manager
+        '''
+        # get images list
+        images = {}
+        for pattern in patterns:
+            images.update(self.select_images(pattern))
+        # display result
+        if o_json:
+            s = json.dumps(images)
+        else:
+            l = []
+            for imgp in sorted(images.keys()):
+                img = images[imgp]
+                l.append(u"%s#R#/#l##b#%s#R#:#p#%s#R#" % (
+                        img["repo"], img["name"], img["version"]))
+                if o_md5 or o_long:
+                    l[-1] = l[-1] + u" (#y#%s#R#)" % img["md5"]
+                if o_date or o_long:
+                    l.append(u"  #l#date:#R# %s" % istools.time_rfc2822(img["date"]))
+                if o_author or o_long:
+                    l.append(u"  #l#author:#R# %s" % img["author"])
+                if o_size or o_long:
+                    l.append(u"  #l#size:#R# %s" % istools.human_size(img["size"]))
+                if o_url or o_long:
+                    l.append(u"  #l#url:#R# %s" % img["url"])
+                if o_description or o_long:
+                    l.append(u"  #l#description:#R# %s" % img["description"])
+            s = os.linesep.join(l)
+        if len(s) > 0:
+            out(s)
 
     def purge_cache(self, pattern):
         '''

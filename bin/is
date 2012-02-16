@@ -14,7 +14,6 @@ import re
 import fnmatch
 import warnings
 import argparse
-import json
 import psutil
 import installsystems
 import installsystems.printer
@@ -104,44 +103,6 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
             for i in repoman.get_images(pattern, min=min, max=max):
                 yield i
 
-def show_images(repoman, patterns,
-                o_json=False, o_long=False,
-                o_md5=False, o_date=False, o_author=False, o_size=False,
-                o_url=False, o_description=False):
-    '''
-    Show repository inside manager
-    json: display output in json
-    long: display output in long format
-    all images parameter can be given in arguments to displayed
-    '''
-    # get images list
-    images = {}
-    for pattern in patterns:
-        images.update(repoman.select_images(pattern))
-    # display result
-    if o_json:
-        s = json.dumps(images)
-    else:
-        l = []
-        for imgp in sorted(images.keys()):
-            img = images[imgp]
-            l.append(u"%s#R#/#l##b#%s#R#:#p#%s#R#" % (
-                    img["repo"], img["name"], img["version"]))
-            if o_md5 or o_long:
-                l[-1] = l[-1] + u" (#y#%s#R#)" % img["md5"]
-            if o_date or o_long:
-                l.append(u"  #l#date:#R# %s" % istools.time_rfc2822(img["date"]))
-            if o_author or o_long:
-                l.append(u"  #l#author:#R# %s" % img["author"])
-            if o_size or o_long:
-                l.append(u"  #l#size:#R# %s" % istools.human_size(img["size"]))
-            if o_url or o_long:
-                l.append(u"  #l#url:#R# %s" % img["url"])
-            if o_description or o_long:
-                l.append(u"  #l#description:#R# %s" % img["description"])
-        s = os.linesep.join(l)
-    if len(s) > 0:
-        out(s)
 
 ################################################################################
 # Commands functions
@@ -356,10 +317,10 @@ def c_list(args):
         args.pattern = ["*/*"]
     elif len(args.pattern) == 0:
         args.pattern = ["*"]
-    show_images(repoman, args.pattern,
-                o_long=args.long, o_json=args.json,
-                o_md5=args.md5, o_date=args.date, o_author=args.author,
-                o_size=args.size, o_url=args.url, o_description=args.description)
+    repoman.show_images(args.pattern, o_long=args.long, o_json=args.json,
+                        o_md5=args.md5, o_date=args.date, o_author=args.author,
+                        o_size=args.size, o_url=args.url,
+                        o_description=args.description)
 
 def c_move(args):
     '''

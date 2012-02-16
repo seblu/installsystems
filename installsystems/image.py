@@ -326,9 +326,7 @@ class SourceImage(Image):
             # open file not done in GzipFile, to escape writing of filename
             # in gzip file. This change md5.
             fdest = open(dest, "wb")
-            fdest = gzip.GzipFile(filename=os.path.basename(source),
-                                  fileobj=fdest,
-                                  mtime=os.stat(source).st_mtime)
+            fdest = gzip.GzipFile(fileobj=fdest, filename="", mtime=0)
             fsource.consume(fdest)
             fsource.close()
             fdest.close()

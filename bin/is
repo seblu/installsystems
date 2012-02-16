@@ -104,7 +104,7 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
             for i in repoman.get_images(pattern, min=min, max=max):
                 yield i
 
-def show_images(repoman, patterns, search=None,
+def show_images(repoman, patterns,
                 o_json=False, o_long=False,
                 o_md5=False, o_date=False, o_author=False, o_size=False,
                 o_url=False, o_description=False):
@@ -352,12 +352,11 @@ def c_list(args):
     List packaged images in repositories
     '''
     repoman = load_repositories(args)
-    search = Repository.split_repository_list(args.repo_search, lambda x: x in repoman.onlines)
-    if len(args.pattern) == 0 and len(search) == 0:
+    if len(args.pattern) == 0 and len(repoman.search) == 0:
         args.pattern = ["*/*"]
     elif len(args.pattern) == 0:
         args.pattern = ["*"]
-    show_images(repoman, args.pattern, search=search,
+    show_images(repoman, args.pattern,
                 o_long=args.long, o_json=args.json,
                 o_md5=args.md5, o_date=args.date, o_author=args.author,
                 o_size=args.size, o_url=args.url, o_description=args.description)

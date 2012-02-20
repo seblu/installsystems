@@ -52,39 +52,6 @@ def load_repositories(args):
         repoman.register(repoconf,  nosync=args.no_sync)
     return repoman
 
-def show_repositories(repoman, pattern, local=None, online=None,
-                      url=False, state=True):
-    '''
-    Show repository inside manager
-    if :param online: is true, list only online repositories
-    if :param online: is false, list only offline repostiories
-    if :param online: is None, list both online and offline repostiories.
-    if :param local: is true, list only local repositories
-    if :param local: is false, list only remote repostiories
-    if :param local: is None, list both local and remote repostiories.
-    '''
-    for reponame in fnmatch.filter(repoman.names, pattern):
-        repo = repoman[reponame]
-        if repo.config.offline and online is True:
-            continue
-        if not repo.config.offline and online is False:
-            continue
-        if repo.local and local is False:
-            continue
-        if not repo.local and local is True:
-            continue
-        so = "#l##r#Off#R# " if repo.config.offline else "#l##g#On#R#  "
-        sl = "#l##y#Local#R#  " if repo.local else "#l##c#Remote#R# "
-        rc = "#l##r#" if repo.config.offline else "#l##g#"
-        s = ""
-        if state:
-            s +=  "%s%s " % (so, sl)
-            rc = "#l##b#"
-        s += "%s%s#R#"% (rc, repo.config.name)
-        if url:
-            s += "  (%s)" % repo.config.path
-        out(s)
-
 def get_images(patterns, repoman, local=True, min=None, max=None):
     '''
     Select and load a package image from a standard naming type
@@ -379,13 +346,13 @@ def c_repo(args):
     if args.purge:
         args.no_sync = True
     repoman = load_repositories(args)
-    for pattern in args.repository:
-        if args.purge:
-            repoman.purge_cache(pattern)
-        else:
-            show_repositories(repoman, pattern,
-                              online=args.online, local=args.local,
-                              url=args.url, state=args.state)
+    if args.purge:
+        repoman.purge_repositories(args.repository)
+    else:
+        repoman.show_repositories(args.repository,
+                                  online=args.online, local=args.local,
+                                  o_url=args.url, o_state=args.state,
+                                  o_json=args.json)
 
 def c_search(args):
     '''
@@ -629,6 +596,8 @@ def arg_parser_init():
     # repo command parser
     p = subparser.add_parser("repo", help=c_repo.__doc__.lower())
     g = p.add_mutually_exclusive_group()
+    p.add_argument("-j", "--json", action="store_true",
+                   help="output is formated in json")
     g.add_argument("-l", "--local", action="store_true", default=None,
                    help="list local repository (filter)")
     g.add_argument("-r", "--remote", action="store_false", dest="local",

@@ -526,7 +526,6 @@ class RepositoryManager(object):
         '''
         return len(self.repos)
 
-
     def __getitem__(self, key):
         '''
         Return a repostiory by its position in list
@@ -537,7 +536,7 @@ class RepositoryManager(object):
             for repo in self.repos:
                 if repo.config.name == key:
                     return repo
-            raise Exception("No repository named: %s" % key)
+            raise IndexError("No repository named: %s" % key)
         else:
             raise TypeError
 
@@ -811,14 +810,23 @@ class RepositoryManager(object):
         if len(s) > 0:
             out(s)
 
-    def purge_cache(self, pattern):
+    def select_repositories(self, patterns):
+        '''
+        Return a list of repository
+        '''
+        ans = set()
+        for pattern in patterns:
+            ans |= set(fnmatch.filter(self.names, pattern))
+        return sorted(ans)
+
+    def purge_repositories(self, patterns):
         '''
         Remove local cached repository files
         '''
-        for reponame in fnmatch.filter(self.names, pattern):
+        for reponame in self.select_repositories(patterns):
             arrow("Purging cache of repository %s" % reponame)
             db = os.path.join(self.cache_path, reponame)
-            if os.path.exists(db):
+            if os.path.lexists(db):
                 try:
                     os.unlink(db)
                     arrow("done", 1)
@@ -826,6 +834,51 @@ class RepositoryManager(object):
                     arrow("failed", 1)
             else:
                 arrow("nothing to do", 1)
+
+    def show_repositories(self, patterns, local=None, online=None,
+                          o_url=False, o_state=False, o_json=False):
+        '''
+        Show repository inside manager
+        if :param online: is true, list only online repositories
+        if :param online: is false, list only offline repostiories
+        if :param online: is None, list both online and offline repostiories.
+        if :param local: is true, list only local repositories
+        if :param local: is false, list only remote repostiories
+        if :param local: is None, list both local and remote repostiories.
+        '''
+        # build repositories dict
+        repos = {}
+        for reponame in self.select_repositories(patterns):
+            repo = self[reponame]
+            if repo.config.offline and online is True:
+                continue
+            if not repo.config.offline and online is False:
+                continue
+            if repo.local and local is False:
+                continue
+            if not repo.local and local is True:
+                continue
+            repos[reponame] = dict(repo.config.items())
+            repos[reponame]["local"] = repo.local
+        # display result
+        if o_json:
+            s = json.dumps(repos)
+        else:
+            l = []
+            for name, repo in repos.items():
+                ln = ""
+                so = "#l##r#Off#R# " if repo["offline"] else "#l##g#On#R#  "
+                sl = "#l##y#Local#R#  " if repo["local"] else "#l##c#Remote#R# "
+                rc = "#l##r#" if repo["offline"] else "#l##g#"
+                if o_state:
+                    ln +=  "%s%s " % (so, sl)
+                    rc = "#l##b#"
+                ln += "%s%s#R#"% (rc, name)
+                if o_url:
+                    ln += "  (%s)" % repo["path"]
+                l.append(ln)
+            s = os.linesep.join(l)
+        out(s)
 
 
 class RepositoryConfig(object):
@@ -835,6 +888,8 @@ class RepositoryConfig(object):
 
     def __init__(self, name, **kwargs):
         # set default value for arguments
+        self._valid_param = ("name", "path", "dbpath", "lastpath",
+                             "uid", "gid", "fmod", "dmod", "offline")
         self.name = Repository.check_repository_name(name)
         self.path = ""
         self._offline = False
@@ -852,8 +907,8 @@ class RepositoryConfig(object):
 
     def __str__(self):
         l = []
-        for a in ("name", "path", "dbpath", "lastpath", "uid", "gid", "fmod", "dmod", "offline"):
-            l.append("%s: %s" % (a, getattr(self, a)))
+        for k, v in self.items():
+            l.append("%s: %s" % (k, v))
         return os.linesep.join(l)
 
     def __eq__(self, other):
@@ -864,6 +919,19 @@ class RepositoryConfig(object):
 
     def __contains__(self, key):
         return key in self.__dict__
+
+    def __getitem__(self, key):
+        if key not in self._valid_param:
+            raise IndexError(key)
+        return getattr(self, key)
+
+    def __iter__(self):
+        for p in self._valid_param:
+            yield p
+
+    def items(self):
+        for p in self:
+            yield p, self[p]
 
     @property
     def lastpath(self):

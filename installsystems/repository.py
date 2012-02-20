@@ -660,62 +660,50 @@ class RepositoryManager(object):
         '''
         return [ r.config.name for r in self.repos if r.config.offline ]
 
-    def select_images(self, pattern, min=None, max=None):
+    def select_images(self, patterns):
         '''
         Return a list of available images
         '''
         if len(self.onlines) == 0:
             raise Exception("No online repository")
-        path, image, version = Repository.split_image_path(pattern)
-        # no image name => get away
-        if image is None:
-            raise Exception("No given image name")
-        # building image list
-        images = {}
-        for reponame in self.onlines:
-            for img in self[reponame].images():
-                imgname = u"%s/%s:%s" % (reponame, img["name"], img["version"])
-                images[imgname] = img
-        # No path means only in searchable repositories
-        if path is None:
-            for k, v in images.items():
-                if v["repo"] not in self.search:
+        ans = {}
+        for pattern in patterns:
+            path, image, version = Repository.split_image_path(pattern)
+            # no image name, skip it
+            if image is None:
+                warn("No image name in pattern %s, skipped" % pattern)
+                continue
+            # building image list
+            images = {}
+            for reponame in self.onlines:
+                for img in self[reponame].images():
+                    imgname = u"%s/%s:%s" % (reponame, img["name"], img["version"])
+                    images[imgname] = img
+            # No path means only in searchable repositories
+            if path is None:
+                for k, v in images.items():
+                    if v["repo"] not in self.search:
+                        del images[k]
+                path = "*"
+            # No version means last version
+            if version is None:
+                version = "*"
+                for repo in set((images[i]["repo"] for i in images)):
+                    for img in set((images[i]["name"] for i in images if images[i]["repo"] == repo)):
+                        versions = [ images[i]['version']
+                                     for i in images if images[i]["repo"] == repo and images[i]["name"] == img ]
+                        f = lambda x,y: x if istools.compare_versions(x, y) > 0 else y
+                        last = reduce(f, versions)
+                        versions.remove(last)
+                        for rmv in versions:
+                            del images["%s/%s:%s" % (repo, img, rmv)]
+            # filter with pattern on path
+            filter_pattern = "%s/%s:%s" % (path, image, version)
+            for k in images.keys():
+                if not fnmatch.fnmatch(k, filter_pattern):
                     del images[k]
-            path = "*"
-        # No version means last version
-        if version is None:
-            version = "*"
-            for repo in set((images[i]["repo"] for i in images)):
-                for img in set((images[i]["name"] for i in images if images[i]["repo"] == repo)):
-                    versions = [ images[i]['version']
-                                 for i in images if images[i]["repo"] == repo and images[i]["name"] == img ]
-                    f = lambda x,y: x if istools.compare_versions(x, y) > 0 else y
-                    last = reduce(f, versions)
-                    versions.remove(last)
-                    for rmv in versions:
-                        del images["%s/%s:%s" % (repo, img, rmv)]
-        # filter with pattern on path
-        filter_pattern = "%s/%s:%s" % (path, image, version)
-        debug("select_image filter is %s with search %s" % (filter_pattern, self.search))
-        for k in images.keys():
-            if not fnmatch.fnmatch(k, filter_pattern):
-                del images[k]
-        # check selected images cound
-        if min is not None and len(images) < min:
-            raise Exception("%s images found by pattern %s. Should be at least %s" % (
-                    len(images), pattern, min))
-        # check max selected images
-        if max is not None and  len(images) > max:
-            raise Exception("Too many selected images: %s. Max is %s" % (
-                    ", ".join(images.keys()), max))
-        return images
-
-    def get_images(self, pattern, min=None, max=None):
-        '''
-        Get image object
-        '''
-        for path, image in self.select_images(pattern, min=min, max=max).items():
-            yield self[image["repo"]].get(image["name"], image["version"]), self[image["repo"]]
+            ans.update(images)
+	return ans
 
     def search_image(self, pattern):
         '''
@@ -732,9 +720,7 @@ class RepositoryManager(object):
         Show images inside manager
         '''
         # get images list
-        images = {}
-        for pattern in patterns:
-            images.update(self.select_images(pattern))
+        images = self.select_images(patterns)
         # display result
         if o_json:
             s = json.dumps(images)

@@ -61,15 +61,27 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
 
     Return the repository as second argument
     '''
+    ans = []
     for pattern in patterns:
         # check if image is a local file
         if local and istools.isfile(pattern) and os.path.isfile(pattern):
-            yield PackageImage(pattern), None
-        # we need to find image in a repository
+            ans.append((pattern, None))
+        else: # we need to find image in a repository
+            ans += sorted(repoman.select_images([pattern]).items())
+    # check selected images cound
+    if min is not None and len(ans) < min:
+        raise Exception("%s images found. Should be at least %s" % (
+                len(ans), min))
+    # check max selected images
+    if max is not None and  len(ans) > max:
+        raise Exception("Too many selected images: %s. Max is %s" % (
+                ", ".join([n[0] for n in ans]), max))
+    for item in ans:
+        if item[1] is None:
+            yield PackageImage(item[0]), None
         else:
-            for i in repoman.get_images(pattern, min=min, max=max):
-                yield i
-
+            r = item[1]
+            yield repoman[r["repo"]].get(r["name"], r["version"]), r["repo"]
 
 ################################################################################
 # Commands functions

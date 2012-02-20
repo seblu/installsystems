@@ -760,7 +760,7 @@ class RepositoryManager(object):
         if len(s) > 0:
             out(s)
 
-    def select_payloads(self, pattern):
+    def select_payloads(self, patterns):
         '''
         Return a list of available payloads
         '''
@@ -775,20 +775,19 @@ class RepositoryManager(object):
                 else:
                     paylist[md5]["images"].update(info["images"])
         # check if pattern is md5 startpath
-        if pattern is not None:
+        ans = {}
+        for pattern in patterns:
             for md5 in paylist.keys():
-                if not md5.startswith(pattern):
-                    del paylist[md5]
-        return paylist
+                if md5.startswith(pattern):
+                    ans[md5] = paylist[md5]
+        return ans
 
     def show_payloads(self, patterns, o_images=False, o_json=False):
         '''
         Show payloads inside manager
         '''
         # get payload list
-        payloads = {}
-        for pattern in patterns:
-            payloads.update(self.select_payloads(pattern))
+        payloads = self.select_payloads(patterns)
         # display result
         if o_json:
             s = json.dumps(payloads)

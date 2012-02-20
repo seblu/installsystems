@@ -40,7 +40,7 @@ _is() {
    _get_first_arg
    cmds=('add' 'build' 'cat' 'changelog' 'check' 'chroot' 'clean' 'copy' 'del'
        'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'move' 'new' 'repo'
-       'search' 'version' 'diff' 'prepare_chroot' 'unprepare_chroot')
+       'search' 'version' 'diff' 'payload' 'prepare_chroot' 'unprepare_chroot')
    opts=('-h'  '--help'
    '-V'  '--version'
    '-v'  '--verbosity'
@@ -151,6 +151,9 @@ _is() {
       new)
          [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0
          _filedir -d
+      ;;
+      payload)
+         [[ "$cur" == -* ]] && _opt '-h --help -j --json -i --images' && return 0
       ;;
       prepare_chroot)
          [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount' && return 0

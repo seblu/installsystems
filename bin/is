@@ -358,6 +358,13 @@ def c_new(args):
     '''
     SourceImage.create(args.path, args.force)
 
+def c_payload(args):
+    '''
+    List payloads
+    '''
+    repoman = load_repositories(args)
+    repoman.show_payloads(args.payload, o_images=args.images, o_json=args.json)
+
 def c_prepare_chroot(args):
     '''
     Helper to prepare a path to be chrooted
@@ -603,6 +610,15 @@ def arg_parser_init():
                    help="overwrite existing source image")
     p.add_argument("path", help="new image directory path")
     p.set_defaults(func=c_new)
+    # payload command parser
+    p = subparser.add_parser("payload", help=c_payload.__doc__.lower())
+    p.add_argument("-j", "--json", action="store_true",
+                   help="output is formated in json")
+    p.add_argument("-i", "--images", action="store_true",
+                   help="list images using payload")
+    p.add_argument("payload", nargs='*', default=[""],
+                   help="payload md5 pattern")
+    p.set_defaults(func=c_payload)
     # prepare_chroot command parser
     p = subparser.add_parser("prepare_chroot",
                               help=c_prepare_chroot.__doc__.lower())

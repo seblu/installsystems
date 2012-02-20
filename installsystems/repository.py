@@ -376,6 +376,25 @@ class Repository(object):
             images.append(d)
         return images
 
+    def payloads(self):
+        '''
+        Return a dict of informations on payloads
+        '''
+        db_payloads = self.db.ask("SELECT payload.md5,payload.size,payload.isdir,image.name,image.version,payload.name FROM payload inner join image on payload.image_md5 = image.md5").fetchall()
+        res = {}
+        for payload in db_payloads:
+            md5 = payload[0]
+            # create entry if not exists
+            if md5 not in res:
+                res[md5] = {"size": payload[1], "isdir": payload[2], "images": {}}
+            # add image to list
+            imgpath = "%s/%s:%s" % (self.config.name, payload[3], payload[4])
+            res[md5]["images"][imgpath] = {"repo": self.config.name,
+                                           "imgname": payload[3],
+                                           "imgver": payload[4],
+                                           "payname": payload[5]}
+        return res
+
     def search(self, pattern):
         '''
         Search pattern in a repository
@@ -738,6 +757,56 @@ class RepositoryManager(object):
                     l.append(u"  #l#url:#R# %s" % img["url"])
                 if o_description or o_long:
                     l.append(u"  #l#description:#R# %s" % img["description"])
+            s = os.linesep.join(l)
+        if len(s) > 0:
+            out(s)
+
+    def select_payloads(self, pattern):
+        '''
+        Return a list of available payloads
+        '''
+        if len(self.onlines) == 0:
+            raise Exception("No online repository")
+        # building payload list
+        paylist = {}
+        for reponame in self.onlines:
+            for md5, info in self[reponame].payloads().items():
+                if md5 not in paylist:
+                    paylist[md5] = info
+                else:
+                    paylist[md5]["images"].update(info["images"])
+        # check if pattern is md5 startpath
+        if pattern is not None:
+            for md5 in paylist.keys():
+                if not md5.startswith(pattern):
+                    del paylist[md5]
+        return paylist
+
+    def show_payloads(self, patterns, o_images=False, o_json=False):
+        '''
+        Show payloads inside manager
+        '''
+        # get payload list
+        payloads = {}
+        for pattern in patterns:
+            payloads.update(self.select_payloads(pattern))
+        # display result
+        if o_json:
+            s = json.dumps(payloads)
+        else:
+            l = []
+            for payname in sorted(payloads.keys()):
+                pay = payloads[payname]
+                l.append(u"#l##y#%s#R#" % payname)
+                l.append(u" size: %s" % istools.human_size(pay["size"]))
+                l.append(u" directory: %s" % bool(pay["isdir"]))
+                l.append(u" image count: %d" % len(pay["images"]))
+                l.append(u" names: %s" % ", ".join(set((v["payname"] for v in pay["images"].values()))))
+                if o_images:
+                    l.append(u" images:")
+                    for path, obj in pay["images"].items():
+                        l.append(u"   %s#R#/#l##b#%s#R#:#p#%s#R# (%s)" % (
+                                obj["repo"], obj["imgname"], obj["imgver"], obj["payname"]))
             s = os.linesep.join(l)
         if len(s) > 0:
             out(s)

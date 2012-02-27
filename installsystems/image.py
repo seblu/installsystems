@@ -6,23 +6,21 @@
 Image stuff
 '''
 
-import os
-import stat
-import time
+import ConfigParser
+import cStringIO
+import difflib
 import json
 import math
-import difflib
-import ConfigParser
-import subprocess
+import os
 import re
 import shutil
-import gzip
-import gzipstream #until python support gzip not seekable
-import cStringIO
+import stat
+import subprocess
+import tarfile
+import time
 import installsystems
 import installsystems.template as istemplate
 import installsystems.tools as istools
-import installsystems.tarfile as tarfile #until python2.7 is default
 from installsystems.printer import *
 from installsystems.tools import PipeFile
 from installsystems.tarball import Tarball
@@ -275,61 +273,78 @@ class SourceImage(Image):
         for payload_name in self.select_payloads():
             paydesc = self.describe_payload(payload_name)
             arrow(payload_name, 1)
-            if paydesc["isdir"]:
-                self._create_payload_tarball(paydesc["dest_path"],
+            try:
+                if paydesc["isdir"]:
+                    self.create_payload_tarball(paydesc["dest_path"],
+                                                paydesc["source_path"])
+                else:
+                    self.create_payload_file(paydesc["dest_path"],
                                              paydesc["source_path"])
-            else:
-                self._create_payload_file(paydesc["dest_path"],
-                                          paydesc["source_path"])
-            if os.path.lexists(paydesc["link_path"]):
-                os.unlink(paydesc["link_path"])
-            os.symlink(paydesc["dest_path"], paydesc["link_path"])
+                if os.path.lexists(paydesc["link_path"]):
+                    os.unlink(paydesc["link_path"])
+                os.symlink(paydesc["dest_path"], paydesc["link_path"])
+            except Exception as e:
+                raise Exception("Unable to create payload %s: %s" % (payload_name, e))
 
-    def _create_payload_tarball(self, tar_path, data_path):
+
+    def create_payload_tarball(self, tar_path, data_path):
         '''
         Create a payload tarball
-        This is needed by payload directory
         '''
-        # compute dname to set as a base directory
-        dname = os.path.basename(data_path)
         try:
-            dfo = PipeFile(tar_path, "w", progressbar=True)
-            # Tarballing
-            tarball = Tarball.open(fileobj=dfo, mode="w|gz", dereference=False)
-            tarball.add(data_path, arcname="/", recursive=True,
-                        filter=self._create_payload_tarball_filter)
-            tarball.close()
-            dfo.close()
+            # get compressor argv (first to escape file creation if not found)
+            a_comp = istools.get_compressor_path(self.compressor, compress=True)
+            a_tar = ["tar", "--create", "--numeric-owner", "--directory",
+                     data_path, "."]
+            # create destination file
+            f_dst = PipeFile(tar_path, "w", progressbar=True)
+            # run tar process
+            p_tar = subprocess.Popen(a_tar, shell=False, close_fds=True,
+                                     stdout=subprocess.PIPE)
+            # run compressor process
+            p_comp = subprocess.Popen(a_comp, shell=False, close_fds=True,
+                                      stdin=p_tar.stdout, stdout=subprocess.PIPE)
+            # write data from compressor to tar_path
+            f_dst.consume(p_comp.stdout)
+            # close all fd
+            p_tar.stdout.close()
+            p_comp.stdout.close()
+            f_dst.close()
+            # check tar return 0
+            if p_tar.wait() != 0:
+                raise Exception("Tar return is not zero")
+            # check compressor return 0
+            if p_comp.wait() != 0:
+                raise Exception("Compressor %s return is not zero" % a_comp[0])
         except (SystemExit, KeyboardInterrupt):
             if os.path.exists(tar_path):
                 os.unlink(tar_path)
             raise
-        except Exception as e:
-            raise Exception("Unable to create payload tarball %s: %s" % (tar_path, e))
 
-    def _create_payload_tarball_filter(self, tarinfo):
-        '''
-        Have the same behaviour as --numeric-owner on gnu tar
-        Remove string name and group to escape weird translation
-        '''
-        tarinfo.uname = ""
-        tarinfo.gname = ""
-        return tarinfo
-
-    def _create_payload_file(self, dest, source):
+    def create_payload_file(self, dest, source):
         '''
         Create a payload file
-        Only gzipping it
         '''
         try:
-            fsource = PipeFile(source, "r", progressbar=True)
-            # open file not done in GzipFile, to escape writing of filename
-            # in gzip file. This change md5.
-            fdest = open(dest, "wb")
-            fdest = gzip.GzipFile(fileobj=fdest, filename="", mtime=0)
-            fsource.consume(fdest)
-            fsource.close()
-            fdest.close()
+            # get compressor argv (first to escape file creation if not found)
+            a_comp = istools.get_compressor_path(self.compressor, compress=True)
+            # open source file
+            f_src = open(source, "r")
+            # create destination file
+            f_dst = PipeFile(dest, "w", progressbar=True)
+            # run compressor
+            p_comp = subprocess.Popen(a_comp, shell=False, close_fds=True,
+                                      stdin=f_src, stdout=subprocess.PIPE)
+            # close source file fd
+            f_src.close()
+            # write data from compressor to dest file
+            f_dst.consume(p_comp.stdout)
+            # close compressor stdin and destination file
+            p_comp.stdout.close()
+            f_dst.close()
+            # check compressor return 0
+            if p_comp.wait() != 0:
+                raise Exception("Compressor %s return is not zero" % a_comp[0])
         except (SystemExit, KeyboardInterrupt):
             if os.path.exists(dest):
                 os.unlink(dest)
@@ -506,6 +521,14 @@ class SourceImage(Image):
         except Exception as e:
             raise Exception("Bad changelog: %s" % e)
         return cl
+
+    @property
+    def compressor(self):
+        '''
+        Return image compressor
+        '''
+        # currently only support gzip
+        return "gzip"
 
 
 class PackageImage(Image):
@@ -755,11 +778,14 @@ class PackageImage(Image):
         '''
         Extract content of the image inside a repository
         '''
-        # check destination
-        if not os.path.isdir(directory):
+        # check validity of dest
+        if os.path.exists(directory):
+            if not os.path.isdir(directory):
+                raise Exception("Destination %s is not a directory" % directory)
+            if not force and len(os.listdir(dest)) > 0:
+                raise Exception("Directory %s is not empty (need force)" % directory)
+        else:
             istools.mkdir(directory)
-        if not force and len(os.listdir(directory)) != 0:
-            raise Exception("%s is not empty" % directory)
         # extract content
         arrow("Extracting image in %s" % directory)
         self._tarball.extractall(directory)
@@ -768,7 +794,7 @@ class PackageImage(Image):
             arrow("Generating description file in %s" % directory)
             with open(os.path.join(directory, "description"), "w") as f:
                 f.write(istemplate.description % self._metadata)
-        # launch payload extract
+        # launch payload extraction
         if payload:
             for payname in self.payload:
                 # here we need to decode payname which is in unicode to escape
@@ -835,7 +861,7 @@ class Payload(object):
     Payload class represents a payload object
     '''
     extension = ".isdata"
-    legit_attr = ('isdir', 'md5', 'size', 'uid', 'gid', 'mode', 'mtime')
+    legit_attr = ("isdir", "md5", "size", "uid", "gid", "mode", "mtime", "compressor")
 
     def __init__(self, name, filename, path, **kwargs):
         object.__setattr__(self, "name", name)
@@ -927,10 +953,16 @@ class Payload(object):
         return self._mtime if self._mtime is not None else time.time()
 
     @property
+    def compressor(self):
+        '''
+        Return payload compress format
+        '''
+        return self._compressor if self._compressor is not None else "gzip"
+
+    @property
     def info(self):
         '''
         Return a dict of info about current payload
-        This info will be inserted in descript.json
         Auto calculated info like name and filename must not be here
         '''
         return {"md5": self.md5,
@@ -996,10 +1028,13 @@ class Payload(object):
         filelist is a filter of file in tarball
         force will overwrite existing file if exists
         '''
-        if self.isdir:
-            self.extract_tar(dest, force=force, filelist=filelist)
-        else:
-            self.extract_file(dest, force=force)
+        try:
+            if self.isdir:
+                self.extract_tar(dest, force=force, filelist=filelist)
+            else:
+                self.extract_file(dest, force=force)
+        except Exception as e:
+            raise Exception("Extracting payload %s failed: %s" % (self.name, e))
 
     def extract_tar(self, dest, force=False, filelist=None):
         '''
@@ -1018,30 +1053,40 @@ class Payload(object):
         try:
             fo = PipeFile(self.path, progressbar=True)
         except Exception as e:
-            raise Exception("Unable to open payload file %s" % self.path)
+            raise Exception("Unable to open %s" % self.path)
         # check if announced file size is good
         if fo.size is not None and self.size != fo.size:
-            raise Exception("Invalid announced size on payload %s" % self.path)
-        # try to open tarball on payload
-        try:
-            t = Tarball.open(fileobj=fo, mode="r|gz", ignore_zeros=True)
-        except Exception as e:
-            raise Exception("Invalid payload tarball: %s" % e)
-        # filter on file to extact
-        members = (None if filelist is None
-                   else [ t.gettarinfo(name) for name in filelist ])
-        try:
-            t.extractall(dest, members)
-        except Exception as e:
-            raise Exception("Extracting failed: %s" % e)
-        # closing fo
-        t.close()
+            raise Exception("Invalid announced size on %s" % self.path)
+        # get compressor argv (first to escape file creation if not found)
+        a_comp = istools.get_compressor_path(self.compressor, compress=False)
+        a_tar = ["tar", "--extract", "--numeric-owner", "--ignore-zeros",
+                 "--preserve-permissions", "--directory", dest]
+        # add optionnal selected filename for decompression
+        if filelist is not None:
+            a_tar += filelist
+        p_tar = subprocess.Popen(a_tar, shell=False, close_fds=True,
+                                 stdin=subprocess.PIPE)
+        p_comp = subprocess.Popen(a_comp, shell=False, close_fds=True,
+                                  stdin=subprocess.PIPE, stdout=p_tar.stdin)
+        # close tar fd
+        p_tar.stdin.close()
+        # push data into compressor
+        fo.consume(p_comp.stdin)
+        # close compressor and source fd
+        p_comp.stdin.close()
         fo.close()
-        # checking download size
+        # check compressor return 0
+        if p_comp.wait() != 0:
+            raise Exception("Compressor %s return is not zero" % a_comp[0])
+        # check tar return 0
+        if p_tar.wait() != 0:
+            raise Exception("Tar return is not zero")
+        # checking downloaded size
         if self.size != fo.read_size:
-            raise Exception("Downloading payload %s failed: Invalid size" % self.name)
+            raise Exception("Invalid size")
+        # checking downloaded md5
         if self.md5 != fo.md5:
-            raise Exception("Downloading payload %s failed: Invalid MD5" % self.name)
+            raise Exception("Invalid MD5")
 
     def extract_file(self, dest, force=False):
         '''
@@ -1060,31 +1105,40 @@ class Payload(object):
                 raise Exception("Destination %s is a directory" % dest)
             if not force:
                 raise Exception("File %s already exists" % dest)
-        # opening destination (must be local)
+        # get compressor argv (first to escape file creation if not found)
+        a_comp = istools.get_compressor_path(self.compressor, compress=False)
+        # try to open payload file (source)
+        try:
+            f_src = PipeFile(self.path, "r", progressbar=True)
+        except Exception as e:
+            raise Exception("Unable to open payload file %s: %s" % (self.path, e))
+        # check if announced file size is good
+        if f_src.size is not None and self.size != f_src.size:
+            raise Exception("Invalid announced size on %s" % self.path)
+        # opening destination
         try:
             f_dst = open(dest, "wb")
         except Exception as e:
-            raise Exception("Unable to open destination file %s" % dest)
-        # try to open payload file
-        try:
-            f_gsrc = PipeFile(self.path, "r", progressbar=True)
-            f_src = gzipstream.GzipStream(stream=f_gsrc)
-        except Exception as e:
-            raise Exception("Unable to open payload file %s" % self.path)
-        # check if announced file size is good
-        if f_gsrc.size is not None and self.size != f_gsrc.size:
-            raise Exception("Invalid announced size on payload %s" % self.path)
-        # launch copy
-        shutil.copyfileobj(f_src, f_dst)
-        # closing fo
+            raise Exception("Unable to open destination file %s: %s" % (dest, e))
+        # run compressor process
+        p_comp = subprocess.Popen(a_comp, shell=False, close_fds=True,
+                                  stdin=subprocess.PIPE, stdout=f_dst)
+        # close destination file
         f_dst.close()
-        f_gsrc.close()
+        # push data into compressor
+        f_src.consume(p_comp.stdin)
+        # closing source fo and compressor input
         f_src.close()
+        p_comp.stdin.close()
+        # check compressor return 0
+        if p_comp.wait() != 0:
+            raise Exception("Compressor %s return is not zero" % a_comp[0])
         # checking download size
-        if self.size != f_gsrc.read_size:
-            raise Exception("Downloading payload %s failed: Invalid size" % self.name)
-        if self.md5 != f_gsrc.md5:
-            raise Exception("Downloading payload %s failed: Invalid MD5" % self.name)
+        if self.size != f_src.read_size:
+            raise Exception("Invalid size")
+        # checking downloaded md5
+        if self.md5 != f_src.md5:
+            raise Exception("Invalid MD5")
         # settings file orginal rights
         istools.chrights(dest, self.uid, self.gid, self.mode, self.mtime)
 

@@ -61,11 +61,9 @@ class PipeFile(object):
 
     def __init__(self, path=None, mode="r", fileobj=None, timeout=3,
                  progressbar=False):
-        self.open(path, mode, fileobj, timeout)
-        # start progressbar display if asked
-        self.progressbar = progressbar
+        self.open(path, mode, fileobj, timeout, progressbar=progressbar)
 
-    def open(self, path=None, mode="r", fileobj=None, timeout=3):
+    def open(self, path=None, mode="r", fileobj=None, timeout=3, progressbar=False):
         if path is None and fileobj is None:
             raise AttributeError("You must have a path or a fileobj to open")
         if mode not in ("r", "w"):
@@ -106,6 +104,8 @@ class PipeFile(object):
             widget = [ Percentage(), " ", Bar(), " ", FileTransferSpeed(), " ", ETA() ]
             maxval = self.size
         self._progressbar = ProgressBar(widgets=widget, maxval=maxval)
+        # enable displaying of progressbar
+        self.progressbar = progressbar
 
     def _open_local(self, path):
         '''
@@ -220,18 +220,27 @@ class PipeFile(object):
 
     def consume(self, fo=None):
         '''
-        Consume (read) all data and write it in fo
-        if fo is None, data are discarded. This is useful to obtain md5 and size
-        Useful to obtain md5 and size
+        if PipeFile is in read mode:
+          Read all data from PipeFile and write it to fo
+          if fo is None, data are discarded. This is useful to obtain md5 and size
+        if PipeFile is in write mode:
+          Read all data from fo and write it to PipeFile
         '''
         if self.mode == "w":
-            raise IOError("Unable to read in w mode")
-        while True:
-            buf = self.read(1048576) # 1MiB
-            if len(buf) == 0:
-                break
-            if fo is not None:
-                fo.write(buf)
+            if fo is None:
+                raise TypeError("Unable to consume NoneType")
+            while True:
+                buf = fo.read(1048576) # 1MiB
+                if len(buf) == 0:
+                    break
+                self.write(buf)
+        else:
+            while True:
+                buf = self.read(1048576) # 1MiB
+                if len(buf) == 0:
+                    break
+                if fo is not None:
+                    fo.write(buf)
 
     @property
     def progressbar(self):
@@ -316,6 +325,16 @@ def pathtype(path):
         return "ssh"
     else:
         return "file"
+
+def pathsearch(name, path=None):
+    '''
+    Search PATH for a binary
+    '''
+    path = path or os.environ["PATH"]
+    for d in path.split(os.pathsep):
+        if os.path.exists(os.path.join(d, name)):
+            return os.path.join(os.path.abspath(d), name)
+    return None
 
 def isfile(path):
     '''
@@ -567,3 +586,33 @@ def compare_versions(v1, v2):
     fv1 = get_ver(v1)
     fv2 = get_ver(v2)
     return fv1 - fv2
+
+def get_compressor_path(name, compress=True, level=None):
+    '''
+    Return better compressor argv from its generic compressor name
+    e.g: bzip2 can return pbzip2 if available or bzip2 if not
+    '''
+    compressors = {"gzip": [["gzip", "--no-name", "--stdout"]],
+                   "bzip2": [["pbzip2", "--stdout"],
+                             ["bzip2", "--compress", "--stdout"]],
+                   "xz": [["xz", "--compress", "--stdout"]]}
+    decompressors = {"gzip": [["gzip", "--decompress", "--stdout"]],
+                     "bzip2": [["pbzip2","--decompress", "--stdout"],
+                               ["bzip2", "--decompress", "--stdout"]],
+                     "xz": [["xz", "--decompress", "--stdout"]]}
+    # no compress level for decompression
+    if not compress:
+        level = None
+    allcompressors = compressors if compress else decompressors
+    # check compressor exists
+    if name not in allcompressors.keys():
+        raise Exception("Invalid compressor name: %s" % name)
+    # get valid compressors
+    for compressor in allcompressors[name]:
+        path = pathsearch(compressor[0])
+        if path is None:
+            continue
+        if level is not None:
+            compressor.append("-%d" % level)
+        return compressor
+    raise Exception("No external decompressor for %s" % name)

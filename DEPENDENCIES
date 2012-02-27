@@ -1,0 +1,10 @@
+Mandatory
+=========
+- python (>= 2.6)
+- python-psutil (>= 0.2.1)
+- python-progressbar (>= 2.3)
+- python-argparse (>= 1.2.1) [< python 2.7]
+
+Optional
+========
+- python-paramiko

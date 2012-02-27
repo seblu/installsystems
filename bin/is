@@ -81,7 +81,7 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
             yield PackageImage(item[0]), None
         else:
             r = item[1]
-            yield repoman[r["repo"]].get(r["name"], r["version"]), r["repo"]
+            yield repoman[r["repo"]].get(r["name"], r["version"]), repoman[r["repo"]]
 
 ################################################################################
 # Commands functions

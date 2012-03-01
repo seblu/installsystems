@@ -62,7 +62,8 @@ class MainConfigFile(ConfigFile):
         "repo_filter": str,
         "repo_config": str,
         "nice": int,
-        "ionice": ["none", "rt", "be", "idle"]
+        "ionice_class": ["none", "rt", "be", "idle"],
+        "ionice_level": int
         }
     def __init__(self, filename, prefix=os.path.basename(sys.argv[0])):
         self.prefix = prefix

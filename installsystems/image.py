@@ -1072,21 +1072,22 @@ class Payload(object):
         p_tar.stdin.close()
         # push data into compressor
         fo.consume(p_comp.stdin)
-        # close compressor and source fd
-        p_comp.stdin.close()
+        # close source fd
         fo.close()
-        # check compressor return 0
-        if p_comp.wait() != 0:
-            raise Exception("Compressor %s return is not zero" % a_comp[0])
-        # check tar return 0
-        if p_tar.wait() != 0:
-            raise Exception("Tar return is not zero")
         # checking downloaded size
         if self.size != fo.read_size:
             raise Exception("Invalid size")
         # checking downloaded md5
         if self.md5 != fo.md5:
             raise Exception("Invalid MD5")
+        # close compressor pipe
+        p_comp.stdin.close()
+        # check compressor return 0
+        if p_comp.wait() != 0:
+            raise Exception("Compressor %s return is not zero" % a_comp[0])
+        # check tar return 0
+        if p_tar.wait() != 0:
+            raise Exception("Tar return is not zero")
 
     def extract_file(self, dest, force=False):
         '''
@@ -1127,18 +1128,19 @@ class Payload(object):
         f_dst.close()
         # push data into compressor
         f_src.consume(p_comp.stdin)
-        # closing source fo and compressor input
+        # closing source fo
         f_src.close()
-        p_comp.stdin.close()
-        # check compressor return 0
-        if p_comp.wait() != 0:
-            raise Exception("Compressor %s return is not zero" % a_comp[0])
         # checking download size
         if self.size != f_src.read_size:
             raise Exception("Invalid size")
         # checking downloaded md5
         if self.md5 != f_src.md5:
             raise Exception("Invalid MD5")
+        # close compressor pipe
+        p_comp.stdin.close()
+        # check compressor return 0
+        if p_comp.wait() != 0:
+            raise Exception("Compressor %s return is not zero" % a_comp[0])
         # settings file orginal rights
         istools.chrights(dest, self.uid, self.gid, self.mode, self.mtime)
 

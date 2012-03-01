@@ -246,7 +246,6 @@ class SourceImage(Image):
     def select_payloads(self):
         '''
         Return a generator on image payloads
-        if tobuild is True, return only needed to build
         '''
         for payname in os.listdir(self.payload_path):
             yield payname
@@ -265,27 +264,32 @@ class SourceImage(Image):
 
     def create_payloads(self):
         '''
-        Create all data payloads in current directory
+        Create all missing data payloads in current directory
         Doesn't compute md5 during creation because tarball can
         be created manually
+        Also create symlink to versionned payload
         '''
         arrow("Creating payloads")
         for payload_name in self.select_payloads():
             paydesc = self.describe_payload(payload_name)
+            if os.path.exists(paydesc["link_path"]):
+                continue
             arrow(payload_name, 1)
             try:
-                if paydesc["isdir"]:
-                    self.create_payload_tarball(paydesc["dest_path"],
-                                                paydesc["source_path"])
-                else:
-                    self.create_payload_file(paydesc["dest_path"],
-                                             paydesc["source_path"])
+                # create non versionned payload file
+                if not os.path.exists(paydesc["dest_path"]):
+                    if paydesc["isdir"]:
+                        self.create_payload_tarball(paydesc["dest_path"],
+                                                    paydesc["source_path"])
+                    else:
+                        self.create_payload_file(paydesc["dest_path"],
+                                                 paydesc["source_path"])
+                # create versionned payload file
                 if os.path.lexists(paydesc["link_path"]):
                     os.unlink(paydesc["link_path"])
                 os.symlink(paydesc["dest_path"], paydesc["link_path"])
             except Exception as e:
                 raise Exception("Unable to create payload %s: %s" % (payload_name, e))
-
 
     def create_payload_tarball(self, tar_path, data_path):
         '''

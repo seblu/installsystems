@@ -6,13 +6,14 @@
 InstallSystems Generic Tools Library
 '''
 
+import hashlib
+import math
 import os
 import re
-import hashlib
 import shutil
-import urllib2
+import socket
 import time
-import math
+import urllib2
 
 from subprocess import call, check_call, CalledProcessError
 
@@ -59,17 +60,17 @@ class PipeFile(object):
             return self.format % (scaled, self.prefixes[power], self.unit)
 
 
-    def __init__(self, path=None, mode="r", fileobj=None, timeout=3,
+    def __init__(self, path=None, mode="r", fileobj=None, timeout=None,
                  progressbar=False):
-        self.open(path, mode, fileobj, timeout, progressbar=progressbar)
+        self.open(path, mode, fileobj, timeout, progressbar)
 
-    def open(self, path=None, mode="r", fileobj=None, timeout=3, progressbar=False):
+    def open(self, path=None, mode="r", fileobj=None, timeout=None, progressbar=False):
         if path is None and fileobj is None:
             raise AttributeError("You must have a path or a fileobj to open")
         if mode not in ("r", "w"):
             raise AttributeError("Invalid open mode. Must be r or w")
+        self.timeout = timeout or socket.getdefaulttimeout()
         self.mode = mode
-        self.timeout = timeout
         self._md5 = hashlib.md5()
         self.size = 0
         self.mtime = None
@@ -172,8 +173,7 @@ class PipeFile(object):
         self._ssh.load_system_host_keys()
         self._ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         self._ssh.connect(host, port=port, username=login, password=passwd,
-                          look_for_keys=True,
-                          timeout=int(self.timeout))
+                          look_for_keys=True, timeout=self.timeout)
         # swith in sftp mode
         sftp = self._ssh.open_sftp()
         # get the file infos

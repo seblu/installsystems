@@ -15,6 +15,7 @@ import fnmatch
 import warnings
 import argparse
 import psutil
+import socket
 import installsystems
 import installsystems.printer
 import installsystems.tools as istools
@@ -39,7 +40,7 @@ def load_repositories(args):
     # split filter in list
     args.repo_filter = Repository.split_repository_list(args.repo_filter)
     # init repo cache object
-    repoman = RepositoryManager(args.cache, timeout=args.timeout,
+    repoman = RepositoryManager(args.cache, timeout=args.repo_timeout or args.timeout,
                                 filter=args.repo_filter, search=args.repo_search)
     # register repositories (order matter)
     # load repo configs from command line
@@ -417,17 +418,19 @@ def arg_parser_init():
                         help="filter repositories by name")
     parser.add_argument("-r", "--repo-path", default="", metavar="PATH",
                         help="define a temporary repository")
+    parser.add_argument("-T", "--repo-timeout", type=int, default=None,
+                        metavar="SECONDS", help="repository access timeout")
     parser.add_argument("-C", "--cache", default="", metavar="PATH",
                         help="path of repositories cache")
-    parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=3,
-                        metavar="SECONDS", help="download timeout (default 3)")
+    parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
+                        metavar="SECONDS", help="socket timeout")
     parser.add_argument("--no-cache", action="store_true",
                         help="not use persistent database caching")
     parser.add_argument("--no-sync", action="store_true",
                         help="doesn't sync repository database cache")
     parser.add_argument("--no-color", action="store_true",
                         help="dot not display colored output")
-    parser.add_argument("--nice", type=int, default=0,
+    parser.add_argument("--nice", type=int, default=None,
                         help="nice of the process")
     parser.add_argument("--ionice-class", choices=["none","rt", "be","idle"],
                         help="ionice class of the process (default: none)")
@@ -672,7 +675,9 @@ def main():
         if options.nice is not None or options.ionice_class is not None:
             proc = psutil.Process(os.getpid())
             if options.nice is not None:
-                try: proc.nice = options.nice
+                try:
+                    proc.nice = options.nice
+                    debug("Setting nice to %d" % options.nice)
                 except Exception:
                     warn("Unable to nice process to %s" % options.nice)
             if options.ionice_class is not None:
@@ -683,8 +688,14 @@ def main():
                         "be": psutil.IOPRIO_CLASS_BE,
                         "idle": psutil.IOPRIO_CLASS_IDLE}
                     proc.set_ionice(ioclassmap[options.ionice_class], options.ionice_level)
+                    debug("Setting ionice to class %s, level %s" %
+                          (options.ionice_class, options.ionice_level))
                 except Exception:
                     warn("Unable to ionice process to %s" % options.ionice_class)
+        # set timeout option
+        if options.timeout is not None:
+            socket.setdefaulttimeout(options.timeout)
+            debug("Global timeout setted to %ds" % options.timeout)
         # except for install command we parse all args!
         # install command is responsible of parsing
         if options.func is not c_install:

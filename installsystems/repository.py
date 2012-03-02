@@ -487,14 +487,16 @@ class RepositoryManager(object):
     Manage multiple repostories
 
     This call implement a cache and a manager for multiple repositories
+    Default repository timeout is 3
     '''
 
     def __init__(self, cache_path=None, timeout=None, filter=None, search=None):
-        self.timeout = 3 if timeout is None else timeout
         self.repos = []
         self.tempfiles = []
         self.filter = [] if filter is None else filter
         self.search = [] if search is None else search
+        self.timeout = timeout or 3
+        debug("Repostiory timeout setted to %ds" % self.timeout)
         if cache_path is None:
             self.cache_path = None
             debug("No repository cache")

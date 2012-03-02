@@ -61,6 +61,7 @@ class MainConfigFile(ConfigFile):
         "repo_search": str,
         "repo_filter": str,
         "repo_config": str,
+        "repo_timeout": int,
         "nice": int,
         "ionice_class": ["none", "rt", "be", "idle"],
         "ionice_level": int

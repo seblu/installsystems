@@ -34,7 +34,7 @@ def load_repositories(args):
     Load repositories on a repository manager
     '''
     # remove cache is asked
-    if hasattr(args, "no_cache") and args.no_cache:
+    if args.no_cache:
         args.cache = None
     # split filter in list
     args.repo_filter = Repository.split_repository_list(args.repo_filter)

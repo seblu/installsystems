@@ -1,3 +1,46 @@
+installsystems (8) stable; urgency=low
+
+  Matthieu Gonnet (1):
+      add --force option to clean command
+
+  Sebastien Luttringer (34):
+      add tools used on Smartjog builder and repository
+      fix typo in call of istools.time_rfc2822
+      add json output to info command
+      error printing end by a dot
+      change help string of command
+      move split_image_path and split_repository_list in Repository
+      image selection rewrite
+      better check before move image
+      add -f to copy and better copying plan confirmation
+      del command ask globally before remove
+      merge script listing in function select_scripts
+      Add build scripts
+      add global --nice and --ionice options
+      add --dry-run option to install command
+      fix remaining use of search outside repoman
+      move show_images into RepositoryManager
+      add payload command
+      move smartjog tools in anothers repository
+      gzip file doesn't store old mtime and old filename
+      add json output to repo command
+      select_payloads take a list of pattern
+      select_images take a list of pattern
+      fix extract command traceback
+      get_images must return repository as 2nd value
+      add dependency tracking file
+      Use external compressor and archiver
+      add python as debinan build deps
+      remove tar and gzip dependencies
+      fix accent on my first name
+      check download result before compressor/archiver
+      fix build command always rebuild payloads files
+      allow ionice level to be setted
+      no_cache is not optional
+      rewrite timeout code
+
+ -- Sebastien Luttringer <sebastien.luttringer@smartjog.com>  Fri, 16 Mar 2012 15:58:32 +0100
+
 installsystems (7) unstable; urgency=low
 
   Sebastien Luttringer (1):

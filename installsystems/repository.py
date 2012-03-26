@@ -712,8 +712,8 @@ class RepositoryManager(object):
         Search pattern accross all registered repositories
         '''
         for repo in self.onlines:
-            arrow(repo.config.name)
-            repo.search(pattern)
+            arrow(self[repo].config.name)
+            self[repo].search(pattern)
 
     def show_images(self, patterns, o_json=False, o_long=False, o_md5=False,
                     o_date=False, o_author=False, o_size=False,

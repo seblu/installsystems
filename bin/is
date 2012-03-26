@@ -372,7 +372,7 @@ def c_search(args):
     Search for packaged images in repositories
     '''
     repoman = load_repositories(args)
-    repoman.search_images(args.pattern)
+    repoman.search_image(args.pattern)
 
 def c_unprepare_chroot(args):
     '''

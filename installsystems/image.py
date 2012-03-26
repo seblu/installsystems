@@ -786,7 +786,7 @@ class PackageImage(Image):
         if os.path.exists(directory):
             if not os.path.isdir(directory):
                 raise Exception("Destination %s is not a directory" % directory)
-            if not force and len(os.listdir(dest)) > 0:
+            if not force and len(os.listdir(directory)) > 0:
                 raise Exception("Directory %s is not empty (need force)" % directory)
         else:
             istools.mkdir(directory)

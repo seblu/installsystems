@@ -797,7 +797,7 @@ class PackageImage(Image):
         if gendescription:
             arrow("Generating description file in %s" % directory)
             with open(os.path.join(directory, "description"), "w") as f:
-                f.write(istemplate.description % self._metadata)
+                f.write((istemplate.description % self._metadata).encode('utf-8'))
         # launch payload extraction
         if payload:
             for payname in self.payload:

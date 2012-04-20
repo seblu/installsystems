@@ -211,6 +211,8 @@ class SourceImage(Image):
             # add format
             arrow("Add format")
             tarball.add_str("format", self.format, tarfile.REGTYPE, 0644)
+            # add build scripts
+            self.add_scripts(tarball, self.build_path)
             # add parser scripts
             self.add_scripts(tarball, self.parser_path)
             # add setup scripts

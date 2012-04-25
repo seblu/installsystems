@@ -414,7 +414,8 @@ class SourceImage(Image):
                 raise Exception("Unable to compile %s fail: %s" %
                                 (fn, e))
             # define execution context
-            gl = {"rebuild": rebuild_list}
+            gl = {"rebuild": rebuild_list,
+                  "image": self}
             # execute source code
             try:
                 exec o_scripts in gl

@@ -476,6 +476,7 @@ class SourceImage(Image):
                 "mode": payload_desc["mode"],
                 "mtime": payload_desc["mtime"]
                 }
+        arrowlevel(-1)
         # check md5 are uniq
         md5s = [v["md5"] for v in desc["payload"].values()]
         if len(md5s) != len(set(md5s)):

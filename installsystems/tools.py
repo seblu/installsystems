@@ -7,6 +7,7 @@ InstallSystems Generic Tools Library
 '''
 
 import hashlib
+import jinja2
 import math
 import os
 import re
@@ -616,3 +617,32 @@ def get_compressor_path(name, compress=True, level=None):
             compressor.append("-%d" % level)
         return compressor
     raise Exception("No external decompressor for %s" % name)
+
+def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False):
+    '''
+    Render templates according to tpl_ext
+    Apply template mode/uid/gid to the generated file
+    '''
+    for path in os.walk(target):
+        for filename in path[2]:
+            name, ext = os.path.splitext(filename)
+            if ext == tpl_ext:
+                tpl_path = os.path.join(path[0], filename)
+                file_path = os.path.join(path[0], name)
+                arrow(tpl_path)
+                if os.path.exists(file_path) and not force:
+                    raise Exception("%s will be overwritten, cancel template "
+                                    "generation (set force=True if you know "
+                                    "what you do)" % file_path)
+                try:
+                    with open(tpl_path) as tpl_file:
+                        template = jinja2.Template(tpl_file.read())
+                        with open(file_path, "w") as rendered_file:
+                            rendered_file.write(template.render(context))
+                except Exception as e:
+                    raise Exception("Render template fail: %s" % e)
+                st = os.stat(tpl_path)
+                os.chown(file_path, st.st_uid, st.st_gid)
+                os.chmod(file_path, st.st_mode)
+                if not keep:
+                    os.unlink(tpl_path)

@@ -1,0 +1,307 @@
+#compdef is
+
+# list local repositories
+(( $+functions[_installsystems_local_repo] )) ||
+_installsystems_local_repo() {
+    local repos expl
+    repos=($(_call_program options is --quiet --no-color --no-sync repo --local))
+    _wanted list expl 'local repo' compadd ${expl} - ${repos}
+}
+
+# list all defined repositories
+(( $+functions[_installsystems_repo] )) ||
+_installsystems_repo() {
+    local repos expl
+    repos=($(_call_program options is --quiet --no-color --no-sync repo))
+    _wanted list expl 'repo' compadd ${expl} - ${repos}
+}
+
+# list all images available in any online repositories
+(( $+functions[_installsystems_remote_images] )) ||
+_installsystems_remote_images() {
+    local images expl
+    images=($(_call_program options is --quiet --no-color --no-sync list "'*/*:*'"))
+    _wanted list expl 'remote image' compadd ${expl} - ${images}
+}
+
+# list all images available in any local online repositories
+(( $+functions[_installsystems_local_images] )) ||
+_installsystems_local_images() {
+    local localrepos expl images
+    localrepos=${(j:,:)${$(_call_program options is --quiet --no-color --no-sync repo --local)}}
+    images=($(_call_program options is --quiet --no-color --no-sync -s ${localrepos} -f ${localrepos} list "'*/*:*'"))
+    _wanted list expl 'local image' compadd ${expl} - ${images}
+}
+
+# list all local package images
+(( $+functions[_installsystems_package_images] )) ||
+_installsystems_package_images() {
+    local expl images
+    _wanted file expl 'package image' _files -g '*.isimage'
+}
+
+# list package and remote images
+(( $+functions[_installsystems_images] )) ||
+_installsystems_images() {
+    _installsystems_remote_images
+    _installsystems_package_images
+}
+
+
+# list installsystems commands
+(( $+functions[_is_commands] )) ||
+_is_commands() {
+    local expl
+    _wanted list expl 'is command' compadd ${expl} - ${_is_cmds%:*}
+}
+
+_is() {
+    typeset -A opt_args
+    local curcontext="$curcontext" state line expl ret=1
+
+
+    local update_policy
+    zstyle -s ":completion:*:*:$service:*" cache-policy update_policy
+    if [[ -z "$update_policy" ]]; then
+        zstyle ":completion:*:*:$service:*" cache-policy _is_caching_policy
+    fi
+
+    local loglevel='-d --debug -q --quiet -v --verbosity'
+
+    _arguments -C \
+        '(- 1 *)'{-h,--help}'[show this help message and exit]' \
+        '(- 1 *)'{-V,--version}"[show program's version number and exit]" \
+        "($loglevel)"{-v+,--verbosity}'[define verbosity level]:verbosity level:((0\:quiet 1\:normal 2\:debug))' \
+        "($loglevel)"{-d,--debug}'[active debug mode]' \
+        "($loglevel)"{-q,--quiet}'[active quiet mode]' \
+        '(-c --config)'{-c,--config}'[config file path]:installsystems config:_files' \
+        '(-R --repo-config)'{-R,--repo-config}'[repository config file path]:repository config:_files' \
+        '(-s --repo-search)'{-s,--repo-search}'[search for images inside those repositories]:repository:->repolist' \
+        '(-f --repo-filter)'{-f,--repo-filter}'[filter repositories by name]:repository:->repolist' \
+        '(-r --repo-path)'{-r,--repo-path}'[define a temporary repository]:repository directory:_files -/' \
+        '(-T --repo-timeout)'{-T+,--repo-timeout}'[repository access timeout]:timeout (in second):' \
+        '(-C --cache)'{-C,--cache}'[path of the repository cache]:cache directory:_files -/' \
+        '(-t --timeout)'{-t+,--timeout}'[socket timeout]:timeout (in second):' \
+        '--no-cache[not use persistent database caching]' \
+        "--no-sync[doesn't sync repository database cache]" \
+        '--no-color[dot not display colored output]' \
+        '--nice[nice of the process]:priority:' \
+        '--ionice-class[ionice class of the process (default: none)]:ionice class:(none rt be idle)' \
+        '--ionice-level[ionice class level of the process]:ionice level:' \
+        '(-): :->cmds' \
+        '(-)*:: :->args' && return
+
+    if [[ -n $state ]] && (( ! $+_is_cmds )); then
+        typeset -gHa _is_cmds
+        if _cache_invalid is-cmds || ! _retrieve_cache is-cmds; then
+            _is_cmds=(
+            ${${${(f)${${"$(_call_program commands is --help)"#l#*positional arguments:*{*}}%%optional arguments:*}}/(#s)[[:space:]]#(#b)([-a-z_]##)[[:space:]]##([a-z]##)/$match[1]:$match[2]:l}/     */}
+            )
+            _store_cache is-cmds _is_cmds
+        fi
+    fi
+
+    case $state in
+        cmds)
+            _describe -t commands 'installsystems command' _is_cmds
+            ;;
+        repolist)
+            local repos
+            repos=($(_call_program options is --quiet --no-color --no-sync repo))
+            _values -s , 'repository' $repos && ret=0
+            ;;
+        args)
+            local cmd args usage idx
+
+            cmd=$words[1]
+            if (( $#cmd )); then
+                curcontext="${curcontext%:*:*}:is-${cmd}:"
+
+                args=('(- 1 *)'{-h,--help}'[show this help message and exit]')
+                case $cmd in;
+                    (add)
+                        args+=(
+                        '(-p --preserve)'{-p,--preserve}"[don't remove image after adding to database]"
+                        '1:repository:_installsystems_local_repo'
+                        '*:image path:_installsystems_package_images'
+                        )
+                        ;;
+                    (build)
+                        args+=(
+                        '(-c --no-check)'{-c,--no-check}'[do not check compilation before adding scripts]'
+                        '(-f --force)'{-f,--force}'[rebuild image if already exists]'
+                        '(-p --payload)'{-p,--payload}'[rebuild payloads if already exists]'
+                        '(-s --no-script)'{-s,--no-script}"[doesn't execute build script]"
+                        '*:image path:_files -/'
+                        )
+                        ;;
+                    (cat)
+                        args+=(
+                        '1:image:_installsystems_images'
+                        '*:file (globbing allowed)'
+                        )
+                        ;;
+                    (changelog)
+                        args+=(
+                        '(-v --all-version)'{-v,--all-version}'[display changelog for all versions]'
+                        '*:image:_installsystems_images'
+                        )
+                        ;;
+                    (check)
+                        args+=(
+                        '*:repository:_installsystems_local_repo'
+                        )
+                        ;;
+                    (chroot)
+                        args+=(
+                        '(-m --no-mount)'{-m,--no-mount}'[disable mouting of /{proc,dev,sys} inside chroot]'
+                        '(-s --shell)'{-s,--shell}'[shell to call inside chroot]:shell'
+                        '1:path:_files -/'
+                        )
+                        ;;
+                    (clean)
+                        args+=(
+                        '(-f --force)'{-f,--force}'[clean repository without confirmation]'
+                        '*:repository:_installsystems_local_repo'
+                        )
+                        ;;
+                    (copy)
+                        args+=(
+                        '(-f --force)'{-f,--force}'[copy image without confirmation]'
+                        '1:image:_installsystems_images'
+                        '*: : _alternative "pattern:image:_installsystems_remote_images" "repo:repository:_installsystems_local_repo"'
+                        )
+                        ;;
+                    (del)
+                        args+=(
+                        '(-f --force)'{-f,--force}'[delete image without confirmation]'
+                        '(-p --preserve)'{-p,--preserve}"[preserve payloads. doesn't remove it from repository]"
+                        '*:image:_installsystems_local_images'
+                        )
+                        ;;
+                    (diff)
+                        args+=(
+                        '1: : _alternative "pattern:image:_installsystems_images" "repo:repository:_installsystems_repo"'
+                        '2: : _alternative "pattern:image:_installsystems_images" "repo:repository:_installsystems_repo"'
+                        )
+                        ;;
+                    (extract)
+                        args+=(
+                        '(-f --force)'{-f,--force}'[overwrite existing destinations]'
+                        '(-g --gen-description)'{-g,--gen-description}'[generate a description file from metadata]'
+                        '(-p --payload)'{-p,--payload}'[extract payloads]'
+                        '1:image: _installsystems_images'
+                        '2:path:_files -/'
+                        )
+                        ;;
+                    (get)
+                        args+=(
+                        '(-f --force)'{-f,--force}'[overwrite existing destinations]'
+                        '(-I --no-image)'{-I,--no-image}'[do not get image]'
+                        '(-p --payload)'{-p,--payload}'[get payloads]'
+                        '*:image:_installsystems_remote_images'
+                        )
+                        ;;
+                    (help)
+                        args+=(
+                        '1:command:_is_commands'
+                        )
+                        ;;
+                    (info)
+                        args+=(
+                        '(-c --changelog)'{-c,--changelog}'[display image changelog]'
+                        '(-j, --json)'{-j,--json}'[output is formated in json]'
+                        '(-v --verbose)'{-v,--verbose}'[verbose output]'
+                        '*:image:_installsystems_images'
+                        )
+                        ;;
+                    (init)
+                        args+=(
+                        '*:repository:_installsystems_local_repo'
+                        )
+                        ;;
+                    (install)
+                        args+=(
+                        "--dry-run:[doesn't execute setup scripts]"
+                        '1:image:_installsystems_images'
+                        '2:target:_files -/'
+                        )
+                        ;;
+                    (list)
+                        args+=(
+                        '(-A --author)'{-A,--author}'[display image author]'
+                        '(-d --date)'{-d,--date}'[display image date]'
+                        '(-D --description)'{-D,--description}'[display image description]'
+                        '(-j --json)'{-j,--json}'[output is formated in json]'
+                        '(-l --long)'{-l,--long}'[long display]'
+                        '(-m --md5)'{-m,--md5}'[display image md5]'
+                        '(-s --size)'{-s,--size}'[display image size]'
+                        '(-u --url)'{-u,--url}'[display image url]'
+                        '*:image:_installsystems_remote_images'
+                        )
+                        ;;
+                    (move)
+                        args+=(
+                        '(-f --force)'{-f,--force}'[move image without confirmation]'
+                        '1:image:_installsystems_local_images'
+                        '*: : _alternative "pattern:image:_installsystems_local_images" "repo:repository:_installsystems_local_repo"'
+                        )
+                        ;;
+                    (new)
+                        args+=(
+                        '(-f --force)'{-f,--force}'[overwrite existing source image]'
+                        '1:path:_files -/'
+                        )
+                        ;;
+                    (payload)
+                        args+=(
+                        '(-j --json)'{-j,--json}'[output is formated in json]'
+                        '(-i --images)'{-i,--images}'[list images using payload]'
+                        '*:payload (checksum)'
+                        )
+                        ;;
+                    (prepare_chroot)
+                        args+=(
+                        '(-m --no-mount)'{-m,--no-mount}'[disable mouting of /{proc,dev,sys}]'
+                        '1:path:_files -/'
+                        )
+                        ;;
+                    (repo)
+                        args+=(
+                        '(-j --json)'{-j,--json}'[output is formated in json]'
+                        '(-l --local)'{-l,--local}'[list local repository (filter)]'
+                        '(-r --remote)'{-r,--remote}'[list remote repository (filter)]'
+                        '(-o --online)'{-o,--online}'[list online repository (filter)]'
+                        '(-O --offline)'{-O,--offline}'[list offline repository (filter)]'
+                        '(-s --state)'{-s,--state}'[display repository state (online/offline/local/remote)]'
+                        '(-u --url)'{-u,--url}'[display repository url]'
+                        '--purge[remove cache databases]'
+                        '*:repo:_installsystems_repo'
+                        )
+                        ;;
+                    (search)
+                        args+=(
+                        '1:search pattern'
+                        )
+                        ;;
+                    (unprepare_chroot)
+                        args+=(
+                        '(-m --no-umount)'{-m,--no-umount}'[disable unmouting of /{proc,dev,sys}]'
+                        '1:path:_files -/'
+                        )
+                        ;;
+                esac
+                _arguments -s -w "$args[@]" && ret=0
+            else
+                _message "unknown is command: $words[1]"
+            fi
+            ;;
+    esac
+    return ret
+}
+
+_is_caching_policy() {
+  [[ =$service -nt $1 ]]
+}
+
+_is "$@"

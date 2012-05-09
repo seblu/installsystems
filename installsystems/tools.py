@@ -31,7 +31,7 @@ from installsystems.printer import *
 
 class PipeFile(object):
     '''
-    Pipe file object if a file object with extended capabilties
+    Pipe file object if a file object with extended capabilities
     like printing progress bar or compute file size, md5 on the fly
     '''
 
@@ -75,7 +75,7 @@ class PipeFile(object):
         self.size = 0
         self.mtime = None
         self.consumed_size = 0
-        # we already have and fo, nothing to open
+        # we already have a fo, nothing to open
         if fileobj is not None:
             self.fo = fileobj
             # seek to 0 and compute filesize if we have and fd
@@ -315,7 +315,7 @@ def chrights(path, uid=None, gid=None, mode=None, mtime=None):
 
 def pathtype(path):
     '''
-    Return path type. This is usefull to know what kind of path is given
+    Return path type. This is useful to know what kind of path is given
     '''
     if path.startswith("http://") or path.startswith("https://"):
         return "http"
@@ -400,8 +400,8 @@ def guess_distro(path):
 
 def prepare_chroot(path, mount=True):
     '''
-    Preate a chroot environment by mouting /{proc,sys,dev,dev/pts}
-    and try to guess dest os to avoid daemon lauching
+    Prepare a chroot environment by mouting /{proc,sys,dev,dev/pts}
+    and try to guess dest os to avoid daemon launching
     '''
     # try to mount /proc /sys /dev /dev/pts /dev/shm
     if mount:

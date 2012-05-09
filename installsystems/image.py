@@ -549,7 +549,7 @@ class PackageImage(Image):
         '''
         Diff two packaged images
         '''
-        arrow("Differnce from images #y#%s v%s#R# to #r#%s v%s#R#:" % (pkg1.name,
+        arrow("Difference from images #y#%s v%s#R# to #r#%s v%s#R#:" % (pkg1.name,
                                                                        pkg1.version,
                                                                        pkg2.name,
                                                                        pkg2.version))
@@ -880,7 +880,7 @@ class Payload(object):
             setattr(self, attr, None)
         # set all named param
         for kwarg in kwargs:
-            # do not use hasattr which user getattr and so call md5 checksum...
+            # do not use hasattr which use getattr and so call md5 checksum...
             if kwarg in self.legit_attr:
                 setattr(self, kwarg, kwargs[kwarg])
 
@@ -891,7 +891,7 @@ class Payload(object):
         raise AttributeError
 
     def __setattr__(self, name, value):
-        # set all value which exists have no underscore, but where undesrcore exists
+        # set all value which exists have no underscore, but where underscore exists
         if name in self.legit_attr:
             object.__setattr__(self, "_%s" % name, value)
         else:

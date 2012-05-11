@@ -41,8 +41,8 @@ class ConfigFile(object):
         '''
         Return path of the best config file
         '''
-        for cf in [ os.path.join(os.path.expanduser("~/.config/installsystems/%s.conf" % name)),
-                    "/etc/installsystems/%s.conf" % name ]:
+        for cf in [ os.path.join(os.path.expanduser(u"~/.config/installsystems/%s.conf" % name)),
+                    u"/etc/installsystems/%s.conf" % name ]:
             if (os.path.isfile(cf) and os.access(cf, os.R_OK)):
                 return cf
         return None
@@ -82,7 +82,7 @@ class MainConfigFile(ConfigFile):
         if self.path is None:
             debug("No main config file to load")
             return
-        debug("Loading main config file: %s" % self.path)
+        debug(u"Loading main config file: %s" % self.path)
         try:
             cp = RawConfigParser()
             cp.read(self.path)
@@ -90,7 +90,7 @@ class MainConfigFile(ConfigFile):
             if cp.has_section(self.prefix):
                 self._config.update(cp.items(self.prefix))
         except Exception as e:
-            raise Exception("Unable load main config file %s: %s" % (self.path, e))
+            raise Exception(u"Unable load main config file %s: %s" % (self.path, e))
 
     def parse(self, namespace=None):
         '''
@@ -101,11 +101,11 @@ class MainConfigFile(ConfigFile):
         for option, value in self._config.items():
             # check option is valid
             if option not in self.valid_options.keys():
-                warn("Invalid option %s in %s, skipped" % (option, self.path))
+                warn(u"Invalid option %s in %s, skipped" % (option, self.path))
                 continue
             # we expect a string like
             if not isinstance(option, basestring):
-                raise TypeError("Invalid config parser option %s type" % option)
+                raise TypeError(u"Invalid config parser option %s type" % option)
             # smartly cast option's value
             if self.valid_options[option] is bool:
                 value = value.strip().lower() not in ("false", "no", "0", "")
@@ -170,7 +170,7 @@ class MainConfigFile(ConfigFile):
                     os.mkdir(di)
                     break
                 except Exception as e:
-                    debug("Unable to create %s: %s" % (di, e))
+                    debug(u"Unable to create %s: %s" % (di, e))
         return self._cache_path()
 
 
@@ -190,7 +190,7 @@ class RepoConfigFile(ConfigFile):
         if self.path is None:
             return
         # loading config file if exists
-        debug("Loading repository config file: %s" % self.path)
+        debug(u"Loading repository config file: %s" % self.path)
         try:
             cp = RawConfigParser()
             cp.readfp(codecs.open(self.path, "r", "utf8"))
@@ -202,7 +202,7 @@ class RepoConfigFile(ConfigFile):
                 # get all options in repo
                 self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))
         except Exception as e:
-            raise Exception("Unable to load repository file %s: %s" % (self.path, e))
+            raise Exception(u"Unable to load repository file %s: %s" % (self.path, e))
 
     @property
     def repos(self):

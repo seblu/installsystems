@@ -35,7 +35,7 @@ class Database(object):
             conn.commit()
             conn.close()
         except Exception as e:
-            raise Exception("Create database failed: %s" % e)
+            raise Exception(u"Create database failed: %s" % e)
         return cls(path)
 
     def __init__(self, path):
@@ -57,13 +57,13 @@ class Database(object):
             self.version = 1.0
         # we only support database v1
         if self.version >= 2.0:
-            debug("Invalid database format: %s" % self.version)
+            debug(u"Invalid database format: %s" % self.version)
             raise Exception("Invalid database format")
         # we make a query to be sure format is valid
         try:
             self.ask("SELECT * FROM image")
         except:
-            debug("Invalid database format: %s" % self.version)
+            debug(u"Invalid database format: %s" % self.version)
             raise Exception("Invalid database format")
 
     def begin(self):

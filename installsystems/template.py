@@ -39,7 +39,7 @@ from installsystems.printer import arrow
 class TargetAction(argparse.Action):
   def __call__(self, parser, namespace, values, option_string=None):
     if not os.path.isdir(values):
-      raise Exception("Invalid target directory %s" % values)
+      raise Exception(u"Invalid target directory %s" % values)
     namespace.target = values
 
 parser.add_argument("-n", "--hostname", dest="hostname", type=str, required=True)
@@ -57,7 +57,7 @@ setup = u"""# -*- python -*-
 
 from installsystems.printer import arrow
 
-arrow("hostname: %s" % namespace.hostname)
+arrow(u"hostname: %s" % namespace.hostname)
 
 # uncomment to extract payload named root in namespace.target directory
 #image.payload["rootfs"].extract(namespace.target)

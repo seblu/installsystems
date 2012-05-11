@@ -189,8 +189,8 @@ class PipeFile(object):
     def close(self):
         if self.progressbar:
             self._progressbar.finish()
-        debug("MD5: %s" % self.md5)
-        debug("Size: %s" % self.consumed_size)
+        debug(u"MD5: %s" % self.md5)
+        debug(u"Size: %s" % self.consumed_size)
         self.fo.close()
 
     def read(self, size=None):
@@ -381,7 +381,7 @@ def human_size(num, unit='B'):
     if power >= len(prefixes):
         power = len(prefixes) - 1
     scaled = num / float(1024 ** power)
-    return "%3.1f%s%s" % (scaled, prefixes[power], unit)
+    return u"%3.1f%s%s" % (scaled, prefixes[power], unit)
 
 def time_rfc2822(timestamp):
     '''
@@ -409,16 +409,16 @@ def prepare_chroot(path, mount=True):
         mps = ("proc", "sys", "dev", "dev/pts", "dev/shm")
         arrow("Mouting filesystems")
         for mp in mps:
-            origin =  "/%s" % mp
+            origin =  u"/%s" % mp
             target = os.path.join(path, mp)
             if os.path.ismount(target):
-                warn("%s is already a mountpoint, skipped" % target)
+                warn(u"%s is already a mountpoint, skipped" % target)
             elif os.path.ismount(origin) and os.path.isdir(target):
-                arrow("%s -> %s" % (origin, target), 1)
+                arrow(u"%s -> %s" % (origin, target), 1)
                 try:
                     check_call(["mount",  "--bind", origin, target], close_fds=True)
                 except CalledProcessError as e:
-                    warn("Mount failed: %s.\n" % e)
+                    warn(u"Mount failed: %s.\n" % e)
     arrow("Tricks")
     exists = os.path.exists
     join = os.path.join
@@ -440,7 +440,7 @@ def prepare_chroot(path, mount=True):
                 open(resolv_trick_path, "wb")
             shutil.copy("/etc/resolv.conf", resolv_path)
     except Exception as e:
-        warn("resolv.conf tricks fail: %s" % e)
+        warn(u"resolv.conf tricks fail: %s" % e)
     # trick mtab
     try:
         mtab_path = join(path, "etc", "mtab")
@@ -452,7 +452,7 @@ def prepare_chroot(path, mount=True):
                 os.rename(mtab_path, mtab_backup_path)
             os.symlink("/proc/self/mounts", mtab_path)
     except Exception as e:
-        warn("mtab tricks fail: %s" % e)
+        warn(u"mtab tricks fail: %s" % e)
     # try to guest distro
     distro = guess_distro(path)
     # in case of debian disable policy
@@ -490,14 +490,14 @@ def unprepare_chroot(path, mount=True):
                 try:
                     os.unlink(mtab_trick_path)
                 except OSError:
-                    warn("Unable to remove %s" % mtab_trick_path)
+                    warn(u"Unable to remove %s" % mtab_trick_path)
             if exists(mtab_backup_path):
                 try: os.unlink(mtab_path)
                 except OSError: pass
                 try:
                     os.rename(mtab_backup_path, mtab_path)
                 except OSError:
-                    warn("Unable to restore %s" % mtab_backup_path)
+                    warn(u"Unable to restore %s" % mtab_backup_path)
 
         # untrick resolv.conf
         resolv_path = join(path, "etc", "resolv.conf")
@@ -512,14 +512,14 @@ def unprepare_chroot(path, mount=True):
                 try:
                     os.unlink(resolv_trick_path)
                 except OSError:
-                    warn("Unable to remove %s" % resolv_trick_path)
+                    warn(u"Unable to remove %s" % resolv_trick_path)
             if exists(resolv_backup_path):
                 try: os.unlink(resolv_path)
                 except OSError: pass
                 try:
                     os.rename(resolv_backup_path, resolv_path)
                 except OSError:
-                    warn("Unable to restore %s" % resolv_backup_path)
+                    warn(u"Unable to restore %s" % resolv_backup_path)
         # try to guest distro
         distro = guess_distro(path)
         # cleaning debian stuff
@@ -546,7 +546,7 @@ def chroot(path, shell="/bin/bash", mount=True):
     # prepare to chroot
     prepare_chroot(path, mount)
     # chrooting
-    arrow("Chrooting inside %s and running %s" % (path, shell))
+    arrow(u"Chrooting inside %s and running %s" % (path, shell))
     call(["chroot", path, shell], close_fds=True)
     # revert preparation of chroot
     unprepare_chroot(path, mount)
@@ -556,7 +556,7 @@ def is_version(version):
     Check if version is valid
     '''
     if re.match("^(\d+)(?:([-~+]).*)?$", version) is None:
-        raise TypeError("Invalid version format %s" % buf)
+        raise TypeError(u"Invalid version format %s" % buf)
 
 def compare_versions(v1, v2):
     '''
@@ -574,7 +574,7 @@ def compare_versions(v1, v2):
         elif isinstance(version, basestring):
             iv = re.match("^(\d+)(?:([-~+]).*)?$", version)
             if iv is None:
-                raise TypeError('Invalid version format: %s' % version)
+                raise TypeError(u"Invalid version format: %s" % version)
             rv = float(iv.group(1))
             if iv.group(2) == "~":
                 rv -= 0.1
@@ -582,7 +582,7 @@ def compare_versions(v1, v2):
                 rv += 0.1
             return rv
         else:
-            raise TypeError('Invalid version format: %s' % version)
+            raise TypeError(u"Invalid version format: %s" % version)
 
     fv1 = get_ver(v1)
     fv2 = get_ver(v2)
@@ -607,7 +607,7 @@ def get_compressor_path(name, compress=True, level=None):
     allcompressors = compressors if compress else decompressors
     # check compressor exists
     if name not in allcompressors.keys():
-        raise Exception("Invalid compressor name: %s" % name)
+        raise Exception(u"Invalid compressor name: %s" % name)
     # get valid compressors
     for compressor in allcompressors[name]:
         path = pathsearch(compressor[0])
@@ -616,7 +616,7 @@ def get_compressor_path(name, compress=True, level=None):
         if level is not None:
             compressor.append("-%d" % level)
         return compressor
-    raise Exception("No external decompressor for %s" % name)
+    raise Exception(u"No external decompressor for %s" % name)
 
 def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False):
     '''
@@ -631,7 +631,7 @@ def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False)
                 file_path = os.path.join(path[0], name)
                 arrow(tpl_path)
                 if os.path.exists(file_path) and not force:
-                    raise Exception("%s will be overwritten, cancel template "
+                    raise Exception(u"%s will be overwritten, cancel template "
                                     "generation (set force=True if you know "
                                     "what you do)" % file_path)
                 try:
@@ -640,7 +640,7 @@ def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False)
                         with open(file_path, "w") as rendered_file:
                             rendered_file.write(template.render(context))
                 except Exception as e:
-                    raise Exception("Render template fail: %s" % e)
+                    raise Exception(u"Render template fail: %s" % e)
                 st = os.stat(tpl_path)
                 os.chown(file_path, st.st_uid, st.st_gid)
                 os.chmod(file_path, st.st_mode)

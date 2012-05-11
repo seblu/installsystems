@@ -71,11 +71,11 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
             ans += sorted(repoman.select_images([pattern]).items())
     # check selected images cound
     if min is not None and len(ans) < min:
-        raise Exception("%s images found. Should be at least %s" % (
+        raise Exception(u"%s images found. Should be at least %s" % (
                 len(ans), min))
     # check max selected images
     if max is not None and  len(ans) > max:
-        raise Exception("Too many selected images: %s. Max is %s" % (
+        raise Exception(u"Too many selected images: %s. Max is %s" % (
                 ", ".join([n[0] for n in ans]), max))
     for item in ans:
         if item[1] is None:
@@ -112,7 +112,7 @@ def c_build(args):
     # compute building time
     t1 = time.time()
     dt = int(t1 - t0)
-    arrow("Build time: %s" % datetime.timedelta(seconds=dt))
+    arrow(u"Build time: %s" % datetime.timedelta(seconds=dt))
 
 def c_cat(args):
     '''
@@ -164,8 +164,8 @@ def c_copy(args):
     if not args.force:
         out("You will copy the following images:")
         for img, repo in todo:
-            out("  %s/%s:%s" % (repo.config.name, img.name, img.version))
-        out("Inside repository: #l##b#%s#R#" % dstrepo.config.name)
+            out(u"  %s/%s:%s" % (repo.config.name, img.name, img.version))
+        out(u"Inside repository: #l##b#%s#R#" % dstrepo.config.name)
         if not confirm():
             raise Exception("Aborted!")
     # copy it for real
@@ -192,7 +192,7 @@ def c_del(args):
     if not args.force:
         out("You will remove the following images:")
         for img, repo in todo:
-            out("  %s/%s:%s" % (repo.config.name, img.name, img.version))
+            out(u"  %s/%s:%s" % (repo.config.name, img.name, img.version))
         if not confirm():
             raise Exception("Aborted!")
     # delete it for real
@@ -272,7 +272,7 @@ def c_install(args):
     repoman = load_repositories(args)
     image, repo = next(get_images([args.pattern], repoman, min=1, max=1))
     # Print setup information
-    arrow("Installing %s v%s" % (image.name, image.version))
+    arrow(u"Installing %s v%s" % (image.name, image.version))
     # install start time
     t0 = time.time()
     # run parser scripts with parser parser argument
@@ -286,7 +286,7 @@ def c_install(args):
         # compute building time
         t1 = time.time()
         dt = int(t1 - t0)
-        arrow("Install time: %s" % datetime.timedelta(seconds=dt))
+        arrow(u"Install time: %s" % datetime.timedelta(seconds=dt))
 
 def c_list(args):
     '''
@@ -318,8 +318,8 @@ def c_move(args):
     if not args.force:
         out("You will copy and remove the following images:")
         for img, repo in todo:
-            out("  %s/%s:%s" % (repo.config.name, img.name, img.version))
-        out("Inside repository: #l##b#%s#R#" % dstrepo.config.name)
+            out(u"  %s/%s:%s" % (repo.config.name, img.name, img.version))
+        out(u"Inside repository: #l##b#%s#R#" % dstrepo.config.name)
         if not confirm():
             raise Exception("Aborted!")
     # move it for real
@@ -679,7 +679,7 @@ def main():
                     proc.nice = options.nice
                     debug("Setting nice to %d" % options.nice)
                 except Exception:
-                    warn("Unable to nice process to %s" % options.nice)
+                    warn(u"Unable to nice process to %s" % options.nice)
             if options.ionice_class is not None:
                 try:
                     ioclassmap = {
@@ -688,10 +688,10 @@ def main():
                         "be": psutil.IOPRIO_CLASS_BE,
                         "idle": psutil.IOPRIO_CLASS_IDLE}
                     proc.set_ionice(ioclassmap[options.ionice_class], options.ionice_level)
-                    debug("Setting ionice to class %s, level %s" %
+                    debug(u"Setting ionice to class %s, level %s" %
                           (options.ionice_class, options.ionice_level))
                 except Exception:
-                    warn("Unable to ionice process to %s" % options.ionice_class)
+                    warn(u"Unable to ionice process to %s" % options.ionice_class)
         # set timeout option
         if options.timeout is not None:
             socket.setdefaulttimeout(options.timeout)

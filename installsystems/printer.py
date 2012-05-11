@@ -89,7 +89,7 @@ def warn(message, fd=sys.stderr, endl=os.linesep):
 
 def info(message, fd=sys.stderr, endl=os.linesep):
     if installsystems.verbosity > 0:
-        out("#light#Info%s:#reset# %s" % message, fd, endl)
+        out("#light#Info:#reset# %s" % message, fd, endl)
 
 def debug(message, fd=sys.stderr, endl=os.linesep):
     if installsystems.verbosity > 1:

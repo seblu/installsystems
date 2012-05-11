@@ -6,6 +6,7 @@
 InstallSystems Configuration files class
 '''
 
+import codecs
 import os
 import sys
 from argparse import Namespace
@@ -192,7 +193,7 @@ class RepoConfigFile(ConfigFile):
         debug("Loading repository config file: %s" % self.path)
         try:
             cp = RawConfigParser()
-            cp.read(self.path)
+            cp.readfp(codecs.open(self.path, "r", "utf8"))
             # each section is a repository
             for rep in cp.sections():
                 # check if its a repo section

@@ -6,6 +6,7 @@
 Image stuff
 '''
 
+import codecs
 import ConfigParser
 import cStringIO
 import difflib
@@ -493,7 +494,7 @@ class SourceImage(Image):
         try:
             descpath = os.path.join(self.base_path, "description")
             cp = ConfigParser.RawConfigParser()
-            cp.read(descpath)
+            cp.readfp(codecs.open(descpath, "r", "utf8"))
             for n in ("name","version", "description", "author"):
                 d[n] = cp.get("image", n)
             # get min image version
@@ -519,7 +520,7 @@ class SourceImage(Image):
         # try to find a changelog file
         try:
             path = os.path.join(self.base_path, "changelog")
-            fo = open(path, "r")
+            fo = codecs.open(path, "r", "utf8")
         except IOError:
             return None
         # we have it, we need to check everything is ok

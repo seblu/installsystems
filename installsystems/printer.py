@@ -59,7 +59,7 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
     # convert unicode into str before write
     # this can cause issue on python 2.6
     if type(message) == unicode:
-        message = message.encode(locale.getpreferredencoding(), errors='replace')
+        message = message.encode(locale.getpreferredencoding(), "replace")
     # printing
     fd.write("%s%s" % (message, endl))
     if flush:

@@ -803,13 +803,13 @@ class PackageImage(Image):
         if gendescription:
             arrow(u"Generating description file in %s" % directory)
             with open(os.path.join(directory, "description"), "w") as f:
-                f.write((istemplate.description % self._metadata).encode('utf-8'))
+                f.write((istemplate.description % self._metadata).encode("UTF-8"))
         # launch payload extraction
         if payload:
             for payname in self.payload:
                 # here we need to decode payname which is in unicode to escape
                 # tarfile to encode filename of file inside tarball inside unicode
-                dest = os.path.join(directory, "payload", payname.encode("utf-8"))
+                dest = os.path.join(directory, "payload", payname.encode("UTF-8"))
                 arrow(u"Extracting payload %s in %s" % (payname, dest))
                 self.payload[payname].extract(dest, force=force)
 

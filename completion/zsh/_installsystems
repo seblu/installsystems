@@ -56,6 +56,7 @@ _is_commands() {
 }
 
 _is() {
+    setopt extendedglob
     typeset -A opt_args
     local curcontext="$curcontext" state line expl ret=1
 

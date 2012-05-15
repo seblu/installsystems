@@ -11,6 +11,7 @@ import ConfigParser
 import cStringIO
 import difflib
 import json
+import locale
 import math
 import os
 import re
@@ -391,7 +392,7 @@ class SourceImage(Image):
         for fp, fn in self.select_scripts(directory):
             # compiling file
             fs = open(fp, "r").read()
-            compile(fs, fp, mode="exec")
+            compile(fs, fp.encode(encoding=locale.getpreferredencoding()), mode="exec")
             arrow(fn)
         arrowlevel(-1)
 

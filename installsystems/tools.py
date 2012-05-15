@@ -8,6 +8,7 @@ InstallSystems Generic Tools Library
 
 import hashlib
 import jinja2
+import locale
 import math
 import os
 import re
@@ -290,6 +291,8 @@ def smd5sum(buf):
     '''
     Compute md5 of a string
     '''
+    if isinstance(buf, unicode):
+        buf = buf.encode(locale.getpreferredencoding())
     m = hashlib.md5()
     m.update(buf)
     return m.hexdigest()

@@ -16,6 +16,8 @@ import warnings
 import argparse
 import psutil
 import socket
+import sys
+import locale
 import installsystems
 import installsystems.printer
 import installsystems.tools as istools
@@ -406,21 +408,21 @@ def arg_parser_init():
                    action="store_const", const=0,
                    help="active quiet mode")
     # common options
-    parser.add_argument("-c", "--config", default="installsystems",
+    parser.add_argument("-c", "--config", default=u"installsystems",
                         metavar="PATH", help="config file path")
-    parser.add_argument("-R", "--repo-config", default="repository",
+    parser.add_argument("-R", "--repo-config", default=u"repository",
                         metavar="REPO", help="repository config file path")
-    parser.add_argument("-s", "--repo-search", default="",
+    parser.add_argument("-s", "--repo-search", default=u"",
                         metavar="REPO,REPO,...",
                         help="search for images inside those repositories")
-    parser.add_argument("-f", "--repo-filter", default="",
+    parser.add_argument("-f", "--repo-filter", default=u"",
                         metavar="REPO,REPO,...",
                         help="filter repositories by name")
-    parser.add_argument("-r", "--repo-path", default="", metavar="PATH",
+    parser.add_argument("-r", "--repo-path", default=u"", metavar="PATH",
                         help="define a temporary repository")
     parser.add_argument("-T", "--repo-timeout", type=int, default=None,
                         metavar="SECONDS", help="repository access timeout")
-    parser.add_argument("-C", "--cache", default="", metavar="PATH",
+    parser.add_argument("-C", "--cache", default=u"", metavar="PATH",
                         help="path of repositories cache")
     parser.add_argument("-t", "--timeout", dest="timeout", type=int, default=None,
                         metavar="SECONDS", help="socket timeout")
@@ -455,7 +457,7 @@ def arg_parser_init():
                    help="rebuild payloads if already exists")
     p.add_argument("-s", "--no-script", action="store_true",
                    help="doesn't execute build script")
-    p.add_argument("path", nargs="?", default=".")
+    p.add_argument("path", nargs="?", default=u".")
     p.set_defaults(func=c_build)
     # cat command parser
     p = subparser.add_parser("cat", help=c_cat.__doc__.lower())
@@ -477,7 +479,7 @@ def arg_parser_init():
     p = subparser.add_parser("chroot", help=c_chroot.__doc__.lower())
     p.add_argument("-m", "--no-mount", action="store_true",
                    help="disable mouting of /{proc,dev,sys} inside chroot")
-    p.add_argument("-s", "--shell", default="/bin/bash",
+    p.add_argument("-s", "--shell", default=u"/bin/bash",
                    help="shell to call inside chroot")
     p.add_argument("path")
     p.set_defaults(func=c_chroot)
@@ -600,7 +602,7 @@ def arg_parser_init():
                    help="output is formated in json")
     p.add_argument("-i", "--images", action="store_true",
                    help="list images using payload")
-    p.add_argument("payload", nargs='*', default=[""],
+    p.add_argument("payload", nargs='*', default=[u""],
                    help="payload md5 pattern")
     p.set_defaults(func=c_payload)
     # prepare_chroot command parser
@@ -630,7 +632,7 @@ def arg_parser_init():
                    help="display repository url")
     p.add_argument("--purge", action="store_true",
                    help="remove cache databases")
-    p.add_argument("repository", nargs='*', default=["*"], help="repository pattern")
+    p.add_argument("repository", nargs='*', default=[u"*"], help="repository pattern")
     p.set_defaults(func=c_repo)
     # search command parser
     p = subparser.add_parser("search", help=c_search.__doc__.lower())
@@ -654,9 +656,15 @@ def main():
     Program main
     '''
     try:
+        # init arg parser
         arg_parser = arg_parser_init()
+        # encode command line arguments to utf-8
+        try:
+            args = [ unicode(x, encoding=locale.getpreferredencoding()) for x in sys.argv[1:]]
+        except UnicodeDecodeError as e:
+            raise Exception("Invalid character encoding in command line")
         # first partial parsing, to get early debug and config path
-        options = arg_parser.parse_known_args()[0]
+        options = arg_parser.parse_known_args(args=args)[0]
         # set early command line verbosity and color
         installsystems.verbosity = options.verbosity
         installsystems.printer.NOCOLOR = options.no_color
@@ -664,7 +672,7 @@ def main():
         config_parser = MainConfigFile(options.config, "installsystems")
         options = config_parser.parse()
         # second partial parsing, command line option overwrite config file
-        options = arg_parser.parse_known_args(namespace=options)[0]
+        options = arg_parser.parse_known_args(args=args, namespace=options)[0]
         # set verbosity and color
         installsystems.verbosity = options.verbosity
         installsystems.printer.NOCOLOR = options.no_color
@@ -699,7 +707,7 @@ def main():
         # except for install command we parse all args!
         # install command is responsible of parsing
         if options.func is not c_install:
-            options = arg_parser.parse_args(namespace=options)
+            options = arg_parser.parse_args(args=args, namespace=options)
         # let's go
         options.func(options)
         exit(0)

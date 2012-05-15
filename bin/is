@@ -711,11 +711,13 @@ def main():
         # let's go
         options.func(options)
         exit(0)
-    except Exception as e:
-        error(u"%s." % e)
+    except UnicodeDecodeError as e:
+        error("Unable to decode some characters. Check your locale settings.")
     except KeyboardInterrupt:
         warn("Keyboard Interrupted")
         exit(1)
+    except Exception as e:
+        error(u"%s." % e)
 
 # Entry point
 if __name__ == '__main__':

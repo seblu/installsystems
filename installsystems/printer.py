@@ -6,6 +6,7 @@
 Install Systems Printer module
 '''
 
+import locale
 import sys
 import os
 import re
@@ -58,7 +59,7 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
     # convert unicode into str before write
     # this can cause issue on python 2.6
     if type(message) == unicode:
-        message = message.encode("utf8")
+        message = message.encode(locale.getpreferredencoding(), errors='replace')
     # printing
     fd.write("%s%s" % (message, endl))
     if flush:

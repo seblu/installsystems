@@ -39,8 +39,9 @@ def load_repositories(args):
     # remove cache is asked
     if args.no_cache:
         args.cache = None
-    # split filter in list
+    # split filter and search in list
     args.repo_filter = Repository.split_repository_list(args.repo_filter)
+    args.repo_search = Repository.split_repository_list(args.repo_search)
     # init repo cache object
     repoman = RepositoryManager(args.cache, timeout=args.repo_timeout or args.timeout,
                                 filter=args.repo_filter, search=args.repo_search)

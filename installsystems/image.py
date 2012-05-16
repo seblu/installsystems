@@ -392,7 +392,7 @@ class SourceImage(Image):
         for fp, fn in self.select_scripts(directory):
             # compiling file
             fs = open(fp, "r").read()
-            compile(fs, fp.encode(encoding=locale.getpreferredencoding()), mode="exec")
+            compile(fs, fp.encode(locale.getpreferredencoding()), mode="exec")
             arrow(fn)
         arrowlevel(-1)
 

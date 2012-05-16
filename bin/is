@@ -107,6 +107,11 @@ def c_build(args):
     '''
     for path in args.paths:
         arrow("Build %s" % path)
+        # chdir inside path if --chdir
+        if args.chdir:
+            cwd = os.getcwdu()
+            os.chdir(path)
+            path = "."
         arrowlevel(1)
         # build start time
         t0 = time.time()
@@ -119,6 +124,8 @@ def c_build(args):
         t1 = time.time()
         dt = int(t1 - t0)
         arrow(u"Build time: %s" % datetime.timedelta(seconds=dt))
+        if args.chdir:
+            os.chdir(cwd)
         arrowlevel(-1)
 
 def c_cat(args):
@@ -456,6 +463,8 @@ def arg_parser_init():
     p = subparser.add_parser("build", help=c_build.__doc__.lower())
     p.add_argument("-c", "--no-check", action="store_true",
                    help="do not check compilation before adding scripts")
+    p.add_argument("-C", "--chdir", action="store_true",
+                   help="build image inside source image directory, not in current directory")
     p.add_argument("-f", "--force", action="store_true",
                    help="rebuild image if already exists")
     p.add_argument("-p", "--payload", action="store_true",

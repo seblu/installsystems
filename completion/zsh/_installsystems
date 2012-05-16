@@ -130,6 +130,7 @@ _is() {
                     (build)
                         args+=(
                         '(-c --no-check)'{-c,--no-check}'[do not check compilation before adding scripts]'
+                        '(-C --chdir)'{-C,--chdir}'[build image inside source image directory]'
                         '(-f --force)'{-f,--force}'[rebuild image if already exists]'
                         '(-p --payload)'{-p,--payload}'[rebuild payloads if already exists]'
                         '(-s --no-script)'{-s,--no-script}"[doesn't execute build script]"

@@ -25,6 +25,9 @@ class Tarball(tarfile.TarFile):
         ti.mtime = int(time.time())
         ti.uid = ti.gid = 0
         ti.uname = ti.gname = "root"
+        # unicode char is encoded in UTF-8, has changelog must be in UTF-8
+        if isinstance(content, unicode):
+            content = content.encode("UTF-8")
         ti.size = len(content) if content is not None else 0
         self.addfile(ti, StringIO.StringIO(content))
 
@@ -35,6 +38,15 @@ class Tarball(tarfile.TarFile):
         ti = self.getmember(name)
         fd = self.extractfile(ti)
         return fd.read() if fd is not None else ""
+
+    def get_utf8(self, name):
+        '''
+        Return an unicode string from a file encoded in UTF-8 inside tarball
+        '''
+        try:
+            return unicode(self.get_str(name), "UTF-8")
+        except UnicodeDecodeError:
+            raise Exception(u"Invalid UTF-8 character in %s" % name)
 
     def getnames(self, re_pattern=None, glob_pattern=None, dir=True):
         names = super(Tarball, self).getnames()

@@ -651,7 +651,7 @@ class PackageImage(Image):
         '''
         desc = {}
         # check format
-        img_format = self._tarball.get_str("format")
+        img_format = self._tarball.get_utf8("format")
         try:
             if float(img_format) >= math.floor(float(self.format)) + 1.0:
                 raise Exception()
@@ -660,7 +660,7 @@ class PackageImage(Image):
         desc["format"] = img_format
         # check description
         try:
-            img_desc = self._tarball.get_str("description.json")
+            img_desc = self._tarball.get_utf8("description.json")
             desc.update(json.loads(img_desc))
             self.check_image_name(desc["name"])
             self.check_image_version(desc["version"])
@@ -674,7 +674,7 @@ class PackageImage(Image):
             raise Exception(u"Invalid description: %s" % e)
         # try to load changelog
         try:
-            img_changelog = self._tarball.get_str("changelog")
+            img_changelog = self._tarball.get_utf8("changelog")
             desc["changelog"] = Changelog(img_changelog)
         except KeyError:
             desc["changelog"] = Changelog("")
@@ -747,7 +747,7 @@ class PackageImage(Image):
             warn(u"No file matching %s" % filename)
         for filename in filelist:
             arrow(filename)
-            out(self._tarball.get_str(filename))
+            out(self._tarball.get_utf8(filename))
 
     def download(self, directory, force=False, image=True, payload=False):
         '''

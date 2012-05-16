@@ -1217,5 +1217,4 @@ class Changelog(dict):
         Display a version content
         '''
         out(u'  #yellow#Version:#reset# %s' % version)
-        for line in self[version]:
-            out(u"    %s" % line)
+        out(os.linesep.join(self[version]))

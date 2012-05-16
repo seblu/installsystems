@@ -1160,13 +1160,19 @@ class Changelog(dict):
     Object representing a changelog in memory
     '''
     def __init__(self, data):
-        self.verbatim = ""
+        self.verbatim = u""
         self.load(data)
 
     def load(self, data):
         '''
         Load a changelog file
         '''
+        # ensure data are correct UTF-8
+        if isinstance(data, str):
+            try:
+                data = unicode(data, "UTF-8")
+            except UnicodeDecodeError:
+                raise Exception("Invalid character encoding in changelog")
         version = None
         lines = data.split("\n")
         for line in lines:

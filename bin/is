@@ -105,17 +105,21 @@ def c_build(args):
     '''
     Build a source image in the current directory
     '''
-    # build start time
-    t0 = time.time()
-    # load source image
-    simg = SourceImage(args.path)
-    # do the job
-    simg.build(force=args.force, force_payload=args.payload,
-               check=not args.no_check, script=not args.no_script)
-    # compute building time
-    t1 = time.time()
-    dt = int(t1 - t0)
-    arrow(u"Build time: %s" % datetime.timedelta(seconds=dt))
+    for path in args.paths:
+        arrow("Build %s" % path)
+        arrowlevel(1)
+        # build start time
+        t0 = time.time()
+        # load source image
+        simg = SourceImage(path)
+        # do the job
+        simg.build(force=args.force, force_payload=args.payload,
+                   check=not args.no_check, script=not args.no_script)
+        # compute building time
+        t1 = time.time()
+        dt = int(t1 - t0)
+        arrow(u"Build time: %s" % datetime.timedelta(seconds=dt))
+        arrowlevel(-1)
 
 def c_cat(args):
     '''
@@ -458,7 +462,7 @@ def arg_parser_init():
                    help="rebuild payloads if already exists")
     p.add_argument("-s", "--no-script", action="store_true",
                    help="doesn't execute build script")
-    p.add_argument("path", nargs="?", default=u".")
+    p.add_argument("paths", nargs="*", default=u".")
     p.set_defaults(func=c_build)
     # cat command parser
     p = subparser.add_parser("cat", help=c_cat.__doc__.lower())

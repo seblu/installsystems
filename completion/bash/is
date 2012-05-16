@@ -72,7 +72,7 @@ _is() {
       build)
          [[ "$cur" == -* ]] && _opt '-h --help -f --force -p --payload -c --no-check -s --no-script' && return 0
          _count_args
-         (( args == 2 )) && _filedir -d
+         (( args >= 2 )) && _filedir -d
       ;;
       cat)
          [[ "$cur" == -* ]] && _opt '-h --help' && return 0

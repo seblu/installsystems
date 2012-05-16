@@ -306,3 +306,5 @@ _is_caching_policy() {
 }
 
 _is "$@"
+
+# ex: ts=3 sw=3 et filetype=zsh

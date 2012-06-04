@@ -177,7 +177,7 @@ def c_chroot(args):
 
 def c_clean(args):
     '''
-    Remove unreferenced files from repoistory
+    Remove unreferenced files from repositories
     '''
     repoman = load_repositories(args)
     for reponame in args.repository:

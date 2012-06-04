@@ -1,4 +1,4 @@
-# release
+# stable release
 1) edit version in installsystems/__init__.py 
 2) edit debian/changelog
 3) commit
@@ -6,6 +6,12 @@
 5) make tar
 6) upload tarball to forge
 7) make builld
+
+# rc release
+1) edit version in installsystems/__init__.py
+2) edit debian/changelog
+3) commit
+4) make DISTRO=sid tar buildd
 
 # squeeze backport
 1) create a squeeze branch

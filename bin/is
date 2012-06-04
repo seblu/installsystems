@@ -508,7 +508,7 @@ def arg_parser_init():
     # chroot command parser
     p = subparser.add_parser("chroot", help=c_chroot.__doc__.lower())
     p.add_argument("-m", "--no-mount", action="store_true",
-                   help="disable mouting of /{proc,dev,sys} inside chroot")
+                   help="disable mounting of /{proc,dev,sys} inside chroot")
     p.add_argument("-s", "--shell", default=u"/bin/bash",
                    help="shell to call inside chroot")
     p.add_argument("path")
@@ -639,7 +639,7 @@ def arg_parser_init():
     p = subparser.add_parser("prepare_chroot",
                               help=c_prepare_chroot.__doc__.lower())
     p.add_argument("-m", "--no-mount", action="store_true",
-                   help="disable mouting of /{proc,dev,sys}")
+                   help="disable mounting of /{proc,dev,sys}")
     p.add_argument("path")
     p.set_defaults(func=c_prepare_chroot)
     # repo command parser
@@ -672,7 +672,7 @@ def arg_parser_init():
     p = subparser.add_parser("unprepare_chroot",
                               help=c_unprepare_chroot.__doc__.lower())
     p.add_argument("-m", "--no-umount", action="store_true",
-                   help="disable unmouting of /{proc,dev,sys}")
+                   help="disable unmounting of /{proc,dev,sys}")
     p.add_argument("path")
     p.set_defaults(func=c_unprepare_chroot)
     # version command parser

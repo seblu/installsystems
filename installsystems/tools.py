@@ -421,13 +421,13 @@ def guess_distro(path):
 
 def prepare_chroot(path, mount=True):
     '''
-    Prepare a chroot environment by mouting /{proc,sys,dev,dev/pts}
+    Prepare a chroot environment by mounting /{proc,sys,dev,dev/pts}
     and try to guess dest os to avoid daemon launching
     '''
     # try to mount /proc /sys /dev /dev/pts /dev/shm
     if mount:
         mps = ("proc", "sys", "dev", "dev/pts", "dev/shm")
-        arrow("Mouting filesystems")
+        arrow("Mounting filesystems")
         for mp in mps:
             origin =  u"/%s" % mp
             target = os.path.join(path, mp)
@@ -551,7 +551,7 @@ def unprepare_chroot(path, mount=True):
     # unmounting
     if mount:
         mps = ("proc", "sys", "dev", "dev/pts", "dev/shm")
-        arrow("Unmouting filesystems")
+        arrow("Unmounting filesystems")
         for mp in reversed(mps):
             target = join(path, mp)
             if os.path.ismount(target):

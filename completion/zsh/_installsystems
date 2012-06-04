@@ -156,7 +156,7 @@ _is() {
                         ;;
                     (chroot)
                         args+=(
-                        '(-m --no-mount)'{-m,--no-mount}'[disable mouting of /{proc,dev,sys} inside chroot]'
+                        '(-m --no-mount)'{-m,--no-mount}'[disable mounting of /{proc,dev,sys} inside chroot]'
                         '(-s --shell)'{-s,--shell}'[shell to call inside chroot]:shell'
                         '1:path:_files -/'
                         )
@@ -264,7 +264,7 @@ _is() {
                         ;;
                     (prepare_chroot)
                         args+=(
-                        '(-m --no-mount)'{-m,--no-mount}'[disable mouting of /{proc,dev,sys}]'
+                        '(-m --no-mount)'{-m,--no-mount}'[disable mounting of /{proc,dev,sys}]'
                         '1:path:_files -/'
                         )
                         ;;
@@ -288,7 +288,7 @@ _is() {
                         ;;
                     (unprepare_chroot)
                         args+=(
-                        '(-m --no-umount)'{-m,--no-umount}'[disable unmouting of /{proc,dev,sys}]'
+                        '(-m --no-umount)'{-m,--no-umount}'[disable unmounting of /{proc,dev,sys}]'
                         '1:path:_files -/'
                         )
                         ;;

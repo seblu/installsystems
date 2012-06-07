@@ -1,3 +1,47 @@
+installsystems (9) stable; urgency=low
+
+  Aurélien Dunand (14):
+      Fix search command
+      Fix typo in extract function
+      Fix unicode issue when generate description file
+      Add build script in image tarball
+      Add source image in build scripts context
+      Fix arrowlevel in source image build
+      Fix typos
+      Fix format issue in printer.info()
+      Add a function to render all templates in a directory according to an e...
+      Add zsh completion
+      Allow to build multiple images with build command
+      Enable extentedglob for zsh completion
+      Fix typo in Debian package description
+      Fix SyntaxError due to encoding
+
+  Nicolas Delvaux (2):
+      Fix a typo in 'is help', about 'is clean' ("repoistory")
+      Typos: "mout" was used instead of "mount" in several parts of the project.
+
+  Sébastien Luttringer (18):
+      description, changelog and config files must be encoded in utf-8
+      string interpolation must be done in unicode
+      command line argument are in unicode
+      convert printed message regarding current locale
+      catch unicode decoding error
+      fix repo search doesn't be a list
+      fix python2.6 doesn"t allow keywords args for str.encode
+      (bis) fix python2.6 doesn"t allow keywords args for str.encode
+      add vim modeline inside zsh comp
+      add -C option to build
+      ensure changelog data are utf8
+      display changelog line in one shot
+      tarball interface encode check encoding is in UTF8
+      add autors file
+      Add copyright and gplv2 license header
+      ignore test directory and TODO file
+      add Nicolas Delvaux to authors
+      add rc release instructions
+
+ -- Sébastien Luttringer <sebastien.luttringer@smartjog.com>  Thu, 07 Jun 2012 12:01:31 +0200
+
 installsystems (8) stable; urgency=low
 
   Matthieu Gonnet (1):

@@ -1,3 +1,5 @@
+# -*- python -*-
+# -*- coding: utf-8 -*-
 from setuptools import setup
 import os
 import sys
@@ -12,7 +14,7 @@ setup(
     version=installsystems.version,
     description='InstallSystems',
     long_description=ldesc,
-    author='Sebastien Luttringer',
+    author='Sébastien Luttringer',
     author_email='sebastien.luttringer@smartjog.com',
     license='GPL2',
     packages=[ 'installsystems' ],

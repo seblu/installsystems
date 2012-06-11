@@ -20,6 +20,10 @@ from setuptools import setup
 import os
 import sys
 import installsystems
+import subprocess
+
+# Build manpage
+subprocess.call(['rst2man', 'doc/is.1.rst', 'doc/is.1'])
 
 # Retrieval of version
 

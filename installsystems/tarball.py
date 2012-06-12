@@ -27,6 +27,7 @@ import tarfile
 import StringIO
 import re
 import fnmatch
+from installsystems.exception import *
 
 class Tarball(tarfile.TarFile):
     def add_str(self, name, content, ftype, mode):
@@ -60,7 +61,7 @@ class Tarball(tarfile.TarFile):
         try:
             return unicode(self.get_str(name), "UTF-8")
         except UnicodeDecodeError:
-            raise Exception(u"Invalid UTF-8 character in %s" % name)
+            raise ISError(u"Invalid UTF-8 character in %s" % name)
 
     def getnames(self, re_pattern=None, glob_pattern=None, dir=True):
         names = super(Tarball, self).getnames()

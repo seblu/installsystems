@@ -38,6 +38,7 @@ import time
 import installsystems
 import installsystems.template as istemplate
 import installsystems.tools as istools
+from installsystems.exception import *
 from installsystems.printer import *
 from installsystems.tools import PipeFile
 from installsystems.tarball import Tarball
@@ -59,7 +60,7 @@ class Image(object):
         Check if @buf is a valid image name
         '''
         if re.match("^[-_\w]+$", buf) is None:
-            raise Exception(u"Invalid image name %s" % buf)
+            raise ISError(u"Invalid image name %s" % buf)
 
     @staticmethod
     def check_image_version(buf):
@@ -67,7 +68,7 @@ class Image(object):
         Check if @buf is a valid image version
         '''
         if re.match("^\d+$", buf) is None:
-            raise Exception(u"Invalid image version %s" % buf)
+            raise ISError(u"Invalid image version %s" % buf)
 
     @staticmethod
     def compare_versions(v1, v2):
@@ -102,7 +103,7 @@ class SourceImage(Image):
                 if not os.path.exists(d) or not os.path.isdir(d):
                     os.mkdir(d)
         except Exception as e:
-            raise Exception(u"Unable to create directory: %s: %s" % (d, e))
+            raise ISError(u"Unable to create directory: %s" % d, e)
         # create example files
         arrow("Creating examples")
         arrowlevel(1)
@@ -133,7 +134,7 @@ class SourceImage(Image):
                     continue
                 open(expath, "w").write(examples[name]["content"])
             except Exception as e:
-                raise Exception(u"Unable to create example file: %s" % e)
+                raise ISError(u"Unable to create example file", e)
         try:
             # setting executable rights on files in setup and parser
             arrow("Setting executable rights on scripts")
@@ -143,7 +144,7 @@ class SourceImage(Image):
                 for f in os.listdir(dpath):
                     istools.chrights(os.path.join(dpath, f), mode=0777 & ~umask)
         except Exception as e:
-            raise Exception(u"Unable to set rights on %s: %s" % (pf, e))
+            raise ISError(u"Unable to set rights on %s" % pf, e)
         arrowlevel(-1)
 
     def __init__(self, path):
@@ -169,13 +170,13 @@ class SourceImage(Image):
         for d in (self.base_path, self.build_path, self.parser_path,
                   self.setup_path, self.payload_path):
             if not os.path.exists(d):
-                raise Exception(u"Invalid source image: directory %s is missing" % d)
+                raise ISError(u"Invalid source image: directory %s is missing" % d)
             if not os.path.isdir(d):
-                raise Exception(u"Invalid source image: %s is not a directory" % d)
+                raise ISError(u"Invalid source image: %s is not a directory" % d)
             if not os.access(d, os.R_OK|os.X_OK):
-                raise Exception(u"Invalid source image: unable to access to %s" % d)
+                raise ISError(u"Invalid source image: unable to access to %s" % d)
         if not os.path.exists(os.path.join(self.base_path, "description")):
-            raise Exception("Invalid source image: no description file")
+            raise ISError("Invalid source image: no description file")
 
     def build(self, force=False, force_payload=False, check=True, script=True):
         '''
@@ -183,7 +184,7 @@ class SourceImage(Image):
         '''
         # check if free to create script tarball
         if os.path.exists(self.image_name) and force == False:
-            raise Exception("Tarball already exists. Remove it before")
+            raise ISError("Tarball already exists. Remove it before")
         # check python scripts
         if check:
             self.check_scripts(self.build_path)
@@ -217,7 +218,7 @@ class SourceImage(Image):
             try:
                 tarball = Tarball.open(self.image_name, mode="w:gz", dereference=True)
             except Exception as e:
-                raise Exception(u"Unable to create tarball %s: %s" % (self.image_name, e))
+                raise ISError(u"Unable to create tarball %s" % self.image_name, e)
             # add description.json
             arrow("Add description.json")
             tarball.add_str("description.json", jdescription, tarfile.REGTYPE, 0644)
@@ -308,7 +309,7 @@ class SourceImage(Image):
                     os.unlink(paydesc["link_path"])
                 os.symlink(paydesc["dest_path"], paydesc["link_path"])
             except Exception as e:
-                raise Exception(u"Unable to create payload %s: %s" % (payload_name, e))
+                raise ISError(u"Unable to create payload %s" % payload_name, e)
 
     def create_payload_tarball(self, tar_path, data_path):
         '''
@@ -335,10 +336,10 @@ class SourceImage(Image):
             f_dst.close()
             # check tar return 0
             if p_tar.wait() != 0:
-                raise Exception("Tar return is not zero")
+                raise ISError("Tar return is not zero")
             # check compressor return 0
             if p_comp.wait() != 0:
-                raise Exception(u"Compressor %s return is not zero" % a_comp[0])
+                raise ISError(u"Compressor %s return is not zero" % a_comp[0])
         except (SystemExit, KeyboardInterrupt):
             if os.path.exists(tar_path):
                 os.unlink(tar_path)
@@ -367,7 +368,7 @@ class SourceImage(Image):
             f_dst.close()
             # check compressor return 0
             if p_comp.wait() != 0:
-                raise Exception(u"Compressor %s return is not zero" % a_comp[0])
+                raise ISError(u"Compressor %s return is not zero" % a_comp[0])
         except (SystemExit, KeyboardInterrupt):
             if os.path.exists(dest):
                 os.unlink(dest)
@@ -428,8 +429,7 @@ class SourceImage(Image):
             try:
                 o_scripts = compile(open(fp, "r").read(), fn, "exec")
             except Exception as e:
-                raise Exception(u"Unable to compile %s fail: %s" %
-                                (fn, e))
+                raise ISError(u"Unable to compile %s fail" % fn, e)
             # define execution context
             gl = {"rebuild": rebuild_list,
                   "image": self}
@@ -437,8 +437,7 @@ class SourceImage(Image):
             try:
                 exec o_scripts in gl
             except Exception as e:
-                raise Exception(u"Execution script %s fail: %s" %
-                                (fn, e))
+                raise ISError(u"Execution script %s fail" % fn, e)
             arrowlevel(level=old_level)
         os.chdir(cwd)
         arrowlevel(-1)
@@ -497,7 +496,7 @@ class SourceImage(Image):
         # check md5 are uniq
         md5s = [v["md5"] for v in desc["payload"].values()]
         if len(md5s) != len(set(md5s)):
-            raise Exception("Two payloads cannot have the same md5")
+            raise ISError("Two payloads cannot have the same md5")
         # serialize
         return json.dumps(desc)
 
@@ -524,9 +523,9 @@ class SourceImage(Image):
             self.check_image_version(d["version"])
             # check installsystems min version
             if self.compare_versions(installsystems.version, d["is_min_version"]) < 0:
-                raise Exception("Minimum Installsystems version not satisfied")
+                raise ISError("Minimum Installsystems version not satisfied")
         except Exception as e:
-            raise Exception(u"Bad description: %s" % e)
+            raise ISError(u"Bad description", e)
         return d
 
     def parse_changelog(self):
@@ -544,7 +543,7 @@ class SourceImage(Image):
         try:
             cl = Changelog(fo.read())
         except Exception as e:
-            raise Exception(u"Bad changelog: %s" % e)
+            raise ISError(u"Bad changelog", e)
         return cl
 
     @property
@@ -627,7 +626,7 @@ class PackageImage(Image):
             memfile.seek(0)
             self._tarball = Tarball.open(fileobj=memfile, mode='r:gz')
         except Exception as e:
-            raise Exception(u"Unable to open image %s: %s" % (path, e))
+            raise ISError(u"Unable to open image %s" % path, e)
         self._metadata = self.read_metadata()
         # print info
         arrow(u"Image %s v%s loaded" % (self.name, self.version))
@@ -671,7 +670,7 @@ class PackageImage(Image):
             if float(img_format) >= math.floor(float(self.format)) + 1.0:
                 raise Exception()
         except:
-            raise Exception(u"Invalid image format %s" % img_format)
+            raise ISError(u"Invalid image format %s" % img_format)
         desc["format"] = img_format
         # check description
         try:
@@ -684,9 +683,9 @@ class PackageImage(Image):
                 desc["is_min_version"] = 0
             # check installsystems min version
             if self.compare_versions(installsystems.version, desc["is_min_version"]) < 0:
-                raise Exception("Minimum Installsystems version not satisfied")
+                raise ISError("Minimum Installsystems version not satisfied")
         except Exception as e:
-            raise Exception(u"Invalid description: %s" % e)
+            raise ISError(u"Invalid description", e)
         # try to load changelog
         try:
             img_changelog = self._tarball.get_utf8("changelog")
@@ -744,9 +743,9 @@ class PackageImage(Image):
         fo.consume()
         fo.close()
         if self.size != fo.read_size:
-            raise Exception(u"Invalid size of image %s" % self.name)
+            raise ISError(u"Invalid size of image %s" % self.name)
         if self.md5 != fo.md5:
-            raise Exception(u"Invalid MD5 of image %s" % self.name)
+            raise ISError(u"Invalid MD5 of image %s" % self.name)
         # check payloads
         for pay_name, pay_obj in self.payload.items():
             arrow(pay_name)
@@ -775,7 +774,7 @@ class PackageImage(Image):
         if image:
             dest = os.path.join(directory, self.filename)
             if not force and os.path.exists(dest):
-                raise Exception(u"Image destination already exists: %s" % dest)
+                raise ISError(u"Image destination already exists: %s" % dest)
             # some display
             arrow(u"Downloading image in %s" % directory)
             debug(u"Downloading %s from %s" % (self.filename, self.path))
@@ -783,16 +782,16 @@ class PackageImage(Image):
             fs = PipeFile(self.path, progressbar=True)
             # check if announced file size is good
             if fs.size is not None and self.size != fs.size:
-                raise Exception(u"Downloading image %s failed: Invalid announced size" % self.name)
+                raise ISError(u"Downloading image %s failed: Invalid announced size" % self.name)
             # open destination
             fd = open(self.filename, "wb")
             fs.consume(fd)
             fs.close()
             fd.close()
             if self.size != fs.consumed_size:
-                raise Exception(u"Download image %s failed: Invalid size" % self.name)
+                raise ISError(u"Download image %s failed: Invalid size" % self.name)
             if self.md5 != fs.md5:
-                raise Exception(u"Download image %s failed: Invalid MD5" % self.name)
+                raise ISError(u"Download image %s failed: Invalid MD5" % self.name)
         if payload:
             for payname in self.payload:
                 arrow(u"Downloading payload %s in %s" % (payname, directory))
@@ -806,9 +805,9 @@ class PackageImage(Image):
         # check validity of dest
         if os.path.exists(directory):
             if not os.path.isdir(directory):
-                raise Exception(u"Destination %s is not a directory" % directory)
+                raise ISError(u"Destination %s is not a directory" % directory)
             if not force and len(os.listdir(directory)) > 0:
-                raise Exception(u"Directory %s is not empty (need force)" % directory)
+                raise ISError(u"Directory %s is not empty (need force)" % directory)
         else:
             istools.mkdir(directory)
         # extract content
@@ -858,14 +857,12 @@ class PackageImage(Image):
             try:
                 s_scripts = self._tarball.get_str(n_scripts)
             except Exception as e:
-                raise Exception(u"Extracting script %s fail: %s" %
-                                (n_scripts, e))
+                raise ISError(u"Extracting script %s fail" % n_scripts, e)
             # compile source code
             try:
                 o_scripts = compile(s_scripts, n_scripts, "exec")
             except Exception as e:
-                raise Exception(u"Unable to compile %s fail: %s" %
-                                (n_scripts, e))
+                raise ISError(u"Unable to compile %s fail" % n_scripts, e)
             # define execution context
             gl = {}
             for k in kwargs:
@@ -875,8 +872,7 @@ class PackageImage(Image):
             try:
                 exec o_scripts in gl
             except Exception as e:
-                raise Exception(u"Execution script %s fail: %s" %
-                                (n_scripts, e))
+                raise ISError(u"Execution script %s fail" % n_scripts, e)
             arrowlevel(level=old_level)
         arrowlevel(-1)
 
@@ -1009,9 +1005,9 @@ class Payload(object):
         fileobj.consume()
         fileobj.close()
         if self._size != fileobj.read_size:
-            raise Exception(u"Invalid size of payload %s" % self.name)
+            raise ISError(u"Invalid size of payload %s" % self.name)
         if self._md5 != fileobj.md5:
-            raise Exception(u"Invalid MD5 of payload %s" % self._md5)
+            raise ISError(u"Invalid MD5 of payload %s" % self._md5)
 
     def download(self, dest, force=False):
         '''
@@ -1026,15 +1022,15 @@ class Payload(object):
         # check validity of dest
         if os.path.exists(dest):
             if os.path.isdir(dest):
-                raise Exception(u"Destination %s is a directory" % dest)
+                raise ISError(u"Destination %s is a directory" % dest)
             if not force:
-                raise Exception(u"File %s already exists" % dest)
+                raise ISError(u"File %s already exists" % dest)
         # Open remote file
         debug(u"Downloading payload %s from %s" % (self.filename, self.path))
         fs = PipeFile(self.path, progressbar=True)
         # check if announced file size is good
         if fs.size is not None and self.size != fs.size:
-            raise Exception(u"Downloading payload %s failed: Invalid announced size" %
+            raise ISError(u"Downloading payload %s failed: Invalid announced size" %
                             self.name)
         fd = open(dest, "wb")
         fs.consume(fd)
@@ -1043,9 +1039,9 @@ class Payload(object):
         fd.close()
         # checking download size
         if self.size != fs.read_size:
-            raise Exception(u"Downloading payload %s failed: Invalid size" % self.name)
+            raise ISError(u"Downloading payload %s failed: Invalid size" % self.name)
         if self.md5 != fs.md5:
-            raise Exception(u"Downloading payload %s failed: Invalid MD5" % self.name)
+            raise ISError(u"Downloading payload %s failed: Invalid MD5" % self.name)
 
     def extract(self, dest, force=False, filelist=None):
         '''
@@ -1059,7 +1055,7 @@ class Payload(object):
             else:
                 self.extract_file(dest, force=force)
         except Exception as e:
-            raise Exception(u"Extracting payload %s failed: %s" % (self.name, e))
+            raise ISError(u"Extracting payload %s failed" % self.name, e)
 
     def extract_tar(self, dest, force=False, filelist=None):
         '''
@@ -1069,19 +1065,19 @@ class Payload(object):
         # check validity of dest
         if os.path.exists(dest):
             if not os.path.isdir(dest):
-                raise Exception(u"Destination %s is not a directory" % dest)
+                raise ISError(u"Destination %s is not a directory" % dest)
             if not force and len(os.listdir(dest)) > 0:
-                raise Exception(u"Directory %s is not empty (need force)" % dest)
+                raise ISError(u"Directory %s is not empty (need force)" % dest)
         else:
             istools.mkdir(dest)
         # try to open payload file
         try:
             fo = PipeFile(self.path, progressbar=True)
         except Exception as e:
-            raise Exception(u"Unable to open %s" % self.path)
+            raise ISError(u"Unable to open %s" % self.path)
         # check if announced file size is good
         if fo.size is not None and self.size != fo.size:
-            raise Exception(u"Invalid announced size on %s" % self.path)
+            raise ISError(u"Invalid announced size on %s" % self.path)
         # get compressor argv (first to escape file creation if not found)
         a_comp = istools.get_compressor_path(self.compressor, compress=False)
         a_tar = ["tar", "--extract", "--numeric-owner", "--ignore-zeros",
@@ -1101,18 +1097,18 @@ class Payload(object):
         fo.close()
         # checking downloaded size
         if self.size != fo.read_size:
-            raise Exception("Invalid size")
+            raise ISError("Invalid size")
         # checking downloaded md5
         if self.md5 != fo.md5:
-            raise Exception("Invalid MD5")
+            raise ISError("Invalid MD5")
         # close compressor pipe
         p_comp.stdin.close()
         # check compressor return 0
         if p_comp.wait() != 0:
-            raise Exception(u"Compressor %s return is not zero" % a_comp[0])
+            raise ISError(u"Compressor %s return is not zero" % a_comp[0])
         # check tar return 0
         if p_tar.wait() != 0:
-            raise Exception("Tar return is not zero")
+            raise ISError("Tar return is not zero")
 
     def extract_file(self, dest, force=False):
         '''
@@ -1128,24 +1124,24 @@ class Payload(object):
         # check validity of dest
         if os.path.exists(dest):
             if os.path.isdir(dest):
-                raise Exception(u"Destination %s is a directory" % dest)
+                raise ISError(u"Destination %s is a directory" % dest)
             if not force:
-                raise Exception(u"File %s already exists" % dest)
+                raise ISError(u"File %s already exists" % dest)
         # get compressor argv (first to escape file creation if not found)
         a_comp = istools.get_compressor_path(self.compressor, compress=False)
         # try to open payload file (source)
         try:
             f_src = PipeFile(self.path, "r", progressbar=True)
         except Exception as e:
-            raise Exception(u"Unable to open payload file %s: %s" % (self.path, e))
+            raise ISError(u"Unable to open payload file %s" % self.path, e)
         # check if announced file size is good
         if f_src.size is not None and self.size != f_src.size:
-            raise Exception(u"Invalid announced size on %s" % self.path)
+            raise ISError(u"Invalid announced size on %s" % self.path)
         # opening destination
         try:
             f_dst = open(dest, "wb")
         except Exception as e:
-            raise Exception(u"Unable to open destination file %s: %s" % (dest, e))
+            raise ISError(u"Unable to open destination file %s" % dest, e)
         # run compressor process
         p_comp = subprocess.Popen(a_comp, shell=False, close_fds=True,
                                   stdin=subprocess.PIPE, stdout=f_dst)
@@ -1157,15 +1153,15 @@ class Payload(object):
         f_src.close()
         # checking download size
         if self.size != f_src.read_size:
-            raise Exception("Invalid size")
+            raise ISError("Invalid size")
         # checking downloaded md5
         if self.md5 != f_src.md5:
-            raise Exception("Invalid MD5")
+            raise ISError("Invalid MD5")
         # close compressor pipe
         p_comp.stdin.close()
         # check compressor return 0
         if p_comp.wait() != 0:
-            raise Exception(u"Compressor %s return is not zero" % a_comp[0])
+            raise ISError(u"Compressor %s return is not zero" % a_comp[0])
         # settings file orginal rights
         istools.chrights(dest, self.uid, self.gid, self.mode, self.mtime)
 
@@ -1187,7 +1183,7 @@ class Changelog(dict):
             try:
                 data = unicode(data, "UTF-8")
             except UnicodeDecodeError:
-                raise Exception("Invalid character encoding in changelog")
+                raise ISError("Invalid character encoding in changelog")
         version = None
         lines = data.split("\n")
         for line in lines:
@@ -1205,7 +1201,7 @@ class Changelog(dict):
                 continue
             # if line are out of a version => invalid format
             if version is None:
-                raise Exception("Invalid format: Line outside version")
+                raise ISError("Invalid format: Line outside version")
             # add line to version changelog
             self[version] += [line]
         # save original

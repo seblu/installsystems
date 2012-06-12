@@ -25,6 +25,7 @@ import os
 import sys
 from argparse import Namespace
 from ConfigParser import RawConfigParser
+from installsystems.exception import *
 from installsystems.printer import *
 from installsystems.repository import RepositoryConfig
 
@@ -104,7 +105,7 @@ class MainConfigFile(ConfigFile):
             if cp.has_section(self.prefix):
                 self._config.update(cp.items(self.prefix))
         except Exception as e:
-            raise Exception(u"Unable load main config file %s: %s" % (self.path, e))
+            raise ISError(u"Unable load main config file %s" % self.path, e)
 
     def parse(self, namespace=None):
         '''
@@ -216,7 +217,7 @@ class RepoConfigFile(ConfigFile):
                 # get all options in repo
                 self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))
         except Exception as e:
-            raise Exception(u"Unable to load repository file %s: %s" % (self.path, e))
+            raise ISError(u"Unable to load repository file %s" % self.path, e)
 
     @property
     def repos(self):

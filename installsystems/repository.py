@@ -32,6 +32,7 @@ import cStringIO
 import json
 import installsystems
 import installsystems.tools as istools
+from installsystems.exception import *
 from installsystems.printer import *
 from installsystems.tarball import Tarball
 from installsystems.tools import PipeFile
@@ -53,7 +54,7 @@ class Repository(object):
         Raise exception is repository name is invalid
         '''
         if not Repository.is_repository_name(name):
-            raise Exception(u"Invalid repository name %s" % name)
+            raise ISError(u"Invalid repository name %s" % name)
         return name
 
     @staticmethod
@@ -64,7 +65,7 @@ class Repository(object):
         '''
         x = re.match(u"^(?:([^/:]+)/)?([^/:]+)?(?::v?([^/:]+)?)?$", path)
         if x is None:
-            raise Exception(u"invalid image path: %s" % path)
+            raise ISError(u"invalid image path: %s" % path)
         return x.group(1, 2, 3)
 
     @staticmethod
@@ -136,7 +137,7 @@ class Repository(object):
             return object.__getattribute__(self, name)
         # if no db (not init or not accessible) raise error
         if config.offline:
-            raise Exception(u"Repository %s is offline" % config.name)
+            raise ISError(u"Repository %s is offline" % config.name)
         return object.__getattribute__(self, name)
 
     @property
@@ -153,7 +154,7 @@ class Repository(object):
         config = self.config
         # check local repository
         if not self.local:
-            raise Exception(u"Repository creation must be local")
+            raise ISError(u"Repository creation must be local")
         # create base directories
         arrow("Creating base directories")
         arrowlevel(1)
@@ -165,7 +166,7 @@ class Repository(object):
                 istools.mkdir(config.path, config.uid, config.gid, config.dmod)
                 arrow(u"%s directory created" % config.path)
         except Exception as e:
-            raise Exception(u"Unable to create directory %s: %s" % (config.path, e))
+            raise ISError(u"Unable to create directory %s" % config.path, e)
         arrowlevel(-1)
         # create database
         d = Database.create(config.dbpath)
@@ -184,14 +185,14 @@ class Repository(object):
         '''
         # check local repository
         if not self.local:
-            raise Exception(u"Repository addition must be local")
+            raise ISError(u"Repository addition must be local")
         try:
             arrow("Updating last file")
             last_path = os.path.join(self.config.path, self.config.lastname)
             open(last_path, "w").write("%s\n" % int(time.time()))
             istools.chrights(last_path, self.config.uid, self.config.gid, self.config.fmod)
         except Exception as e:
-            raise Exception(u"Update last file failed: %s" % e)
+            raise ISError(u"Update last file failed", e)
 
     def last(self, name):
         '''
@@ -211,10 +212,10 @@ class Repository(object):
         '''
         # check local repository
         if not self.local:
-            raise Exception(u"Repository addition must be local")
+            raise ISError(u"Repository addition must be local")
         # cannot add already existant image
         if self.has(image.name, image.version):
-            raise Exception(u"Image already in database, delete first!")
+            raise ISError(u"Image already in database, delete first!")
         # adding file to repository
         arrow("Copying images and payload")
         for obj in [ image ] + image.payload.values():
@@ -286,7 +287,7 @@ class Repository(object):
         '''
         # Check if the repo is local
         if not self.local:
-            raise Exception(u"Repository must be local")
+            raise ISError(u"Repository must be local")
         local_files = set(os.listdir(self.config.path))
         local_files.remove(self.config.dbname)
         local_files.remove(self.config.lastname)
@@ -316,7 +317,7 @@ class Repository(object):
         '''
         # Check if the repo is local
         if not self.local:
-            raise Exception(u"Repository must be local")
+            raise ISError(u"Repository must be local")
         allmd5 = set(self.getallmd5())
         repofiles = set(os.listdir(self.config.path)) - set([self.config.dbname, self.config.lastname])
         dirtyfiles = repofiles - allmd5
@@ -327,7 +328,7 @@ class Repository(object):
                 arrow(f, 1)
             # ask confirmation
             if not force and not confirm("Remove dirty files? (yes) "):
-                raise Exception(u"Aborted!")
+                raise ISError(u"Aborted!")
             # start cleaning
             arrow("Cleaning")
             for f in dirtyfiles:
@@ -349,7 +350,7 @@ class Repository(object):
         '''
         # check local repository
         if not self.local:
-            raise Exception(u"Repository deletion must be local")
+            raise ISError(u"Repository deletion must be local")
         # get md5 of files related to images (exception is raised if not exists
         md5s = self.getmd5(name, version)
         # cleaning db (must be done before cleaning)
@@ -455,14 +456,14 @@ class Repository(object):
         if version is None:
             version = self.last(name)
             if version < 0:
-                raise Exception(u"Unable to find image %s in %s" % (name,
-                                                                    self.config.name))
+                raise ISError(u"Unable to find image %s in %s" % (name,
+                                                                      self.config.name))
         # get file md5 from db
         r = self.db.ask("select md5 from image where name = ? and version = ? limit 1",
                         (name, version)).fetchone()
         if r is None:
-            raise Exception(u"Unable to find image %s v%s in %s" % (name, version,
-                                                                    self.config.name))
+            raise ISError(u"Unable to find image %s v%s in %s" % (name, version,
+                                                                      self.config.name))
         path = os.path.join(self.config.path, r[0])
         # getting the file
         arrow(u"Loading image %s v%s from repository %s" % (name,
@@ -474,11 +475,11 @@ class Repository(object):
             fo.consume(memfile)
             fo.close()
         except Exception as e:
-            raise Exception(u"Loading image %s v%s failed: %s" % (name, version, e))
+            raise ISError(u"Loading image %s v%s failed" % (name, version), e)
         memfile.seek(0)
         pkg = PackageImage(path, fileobj=memfile, md5name=True)
         if pkg.md5 != r[0]:
-            raise Exception(u"Image MD5 verification failure")
+            raise ISError(u"Image MD5 verification failure")
         return pkg
 
     def getmd5(self, name, version):
@@ -490,7 +491,7 @@ class Repository(object):
         a = self.db.ask("SELECT md5 FROM image WHERE name = ? AND version = ? LIMIT 1",
                         (name,version)).fetchone()
         if a is None:
-            raise Exception(u"No such image %s version %s" % (name, version))
+            raise ISError(u"No such image %s version %s" % (name, version))
         b = self.db.ask("SELECT md5 FROM payload WHERE image_md5 = ?",
                         (a[0],)).fetchall()
         return [ a[0] ] + [ x[0] for x in b ]
@@ -524,7 +525,7 @@ class RepositoryManager(object):
                 os.mkdir(self.cache_path)
             # ensure directories are avaiblable
             if not os.access(self.cache_path, os.W_OK | os.X_OK):
-                raise Exception(u"%s is not writable or executable" % self.cache_path)
+                raise ISError(u"%s is not writable or executable" % self.cache_path)
             debug(u"Repository cache is in %s" % self.cache_path)
 
     def __del__(self):
@@ -681,7 +682,7 @@ class RepositoryManager(object):
         Return a list of available images
         '''
         if len(self.onlines) == 0:
-            raise Exception(u"No online repository")
+            raise ISError(u"No online repository")
         ans = {}
         for pattern in patterns:
             path, image, version = Repository.split_image_path(pattern)
@@ -767,7 +768,7 @@ class RepositoryManager(object):
         Return a list of available payloads
         '''
         if len(self.onlines) == 0:
-            raise Exception(u"No online repository")
+            raise ISError(u"No online repository")
         # building payload list
         paylist = {}
         for reponame in self.onlines:

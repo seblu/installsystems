@@ -38,6 +38,7 @@ from progressbar import Widget, ProgressBar, Percentage
 from progressbar import FileTransferSpeed
 from progressbar import Bar, BouncingBar, ETA, UnknownLength
 from installsystems.tarball import Tarball
+from installsystems.exception import *
 from installsystems.printer import *
 
 
@@ -629,7 +630,7 @@ def get_compressor_path(name, compress=True, level=None):
     allcompressors = compressors if compress else decompressors
     # check compressor exists
     if name not in allcompressors.keys():
-        raise Exception(u"Invalid compressor name: %s" % name)
+        raise ISError(u"Invalid compressor name: %s" % name)
     # get valid compressors
     for compressor in allcompressors[name]:
         path = pathsearch(compressor[0])
@@ -638,7 +639,7 @@ def get_compressor_path(name, compress=True, level=None):
         if level is not None:
             compressor.append("-%d" % level)
         return compressor
-    raise Exception(u"No external decompressor for %s" % name)
+    raise ISError(u"No external decompressor for %s" % name)
 
 def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False):
     '''
@@ -653,16 +654,16 @@ def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False)
                 file_path = os.path.join(path[0], name)
                 arrow(tpl_path)
                 if os.path.exists(file_path) and not force:
-                    raise Exception(u"%s will be overwritten, cancel template "
-                                    "generation (set force=True if you know "
-                                    "what you do)" % file_path)
+                    raise ISError(u"%s will be overwritten, cancel template "
+                                  "generation (set force=True if you know "
+                                  "what you do)" % file_path)
                 try:
                     with open(tpl_path) as tpl_file:
                         template = jinja2.Template(tpl_file.read())
                         with open(file_path, "w") as rendered_file:
                             rendered_file.write(template.render(context))
                 except Exception as e:
-                    raise Exception(u"Render template fail: %s" % e)
+                    raise ISError(u"Render template fail", e)
                 st = os.stat(tpl_path)
                 os.chown(file_path, st.st_uid, st.st_gid)
                 os.chmod(file_path, st.st_mode)

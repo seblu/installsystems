@@ -25,6 +25,7 @@ import sqlite3
 import installsystems.tools as istools
 import installsystems.template as istemplate
 from installsystems.tarball import Tarball
+from installsystems.exception import *
 from installsystems.printer import *
 
 class Database(object):
@@ -38,10 +39,10 @@ class Database(object):
         arrow("Creating repository database")
         # check locality
         if not istools.isfile(path):
-            raise Exception("Database creation must be local")
+            raise ISError("Database creation must be local")
         path = os.path.abspath(path)
         if os.path.exists(path):
-            raise Exception("Database already exists. Remove it before")
+            raise ISError("Database already exists. Remove it before")
         try:
             conn = sqlite3.connect(path, isolation_level=None)
             conn.execute("PRAGMA foreign_keys = ON")
@@ -49,16 +50,16 @@ class Database(object):
             conn.commit()
             conn.close()
         except Exception as e:
-            raise Exception(u"Create database failed: %s" % e)
+            raise ISError(u"Create database failed", e)
         return cls(path)
 
     def __init__(self, path):
         # check locality
         if not istools.isfile(path):
-            raise Exception("Database must be local")
+            raise ISError("Database must be local")
         self.path = os.path.abspath(path)
         if not os.path.exists(self.path):
-            raise Exception("Database not exists")
+            raise ISError("Database not exists")
         self.conn = sqlite3.connect(self.path, isolation_level=None)
         self.conn.execute("PRAGMA foreign_keys = ON")
         # get database version
@@ -72,13 +73,13 @@ class Database(object):
         # we only support database v1
         if self.version >= 2.0:
             debug(u"Invalid database format: %s" % self.version)
-            raise Exception("Invalid database format")
+            raise ISError("Invalid database format")
         # we make a query to be sure format is valid
         try:
             self.ask("SELECT * FROM image")
         except:
             debug(u"Invalid database format: %s" % self.version)
-            raise Exception("Invalid database format")
+            raise ISError("Invalid database format")
 
     def begin(self):
         '''

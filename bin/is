@@ -34,6 +34,7 @@ import locale
 import installsystems
 import installsystems.printer
 import installsystems.tools as istools
+from installsystems.exception import *
 from installsystems.printer import *
 from installsystems.repository import Repository
 from installsystems.repository import RepositoryManager
@@ -87,11 +88,11 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
             ans += sorted(repoman.select_images([pattern]).items())
     # check selected images cound
     if min is not None and len(ans) < min:
-        raise Exception(u"%s images found. Should be at least %s" % (
+        raise ISError(u"%s images found. Should be at least %s" % (
                 len(ans), min))
     # check max selected images
     if max is not None and  len(ans) > max:
-        raise Exception(u"Too many selected images: %s. Max is %s" % (
+        raise ISError(u"Too many selected images: %s. Max is %s" % (
                 ", ".join([n[0] for n in ans]), max))
     for item in ans:
         if item[1] is None:
@@ -194,7 +195,7 @@ def c_copy(args):
             out(u"  %s/%s:%s" % (repo.config.name, img.name, img.version))
         out(u"Inside repository: #l##b#%s#R#" % dstrepo.config.name)
         if not confirm():
-            raise Exception("Aborted!")
+            raise ISError("Aborted!")
     # copy it for real
     for srcimg, srcrepo in todo:
         arrow("Copying %s v%s from repository %s to %s" %
@@ -213,7 +214,7 @@ def c_del(args):
     # check all source repository are local (need by deletion)
     for img, repo in todo:
         if not repo.local:
-            raise Exception("Repository %s is not local. Unable to delete" %
+            raise ISError("Repository %s is not local. Unable to delete" %
                             repo.config.name)
     # check user really want to this
     if not args.force:
@@ -221,7 +222,7 @@ def c_del(args):
         for img, repo in todo:
             out(u"  %s/%s:%s" % (repo.config.name, img.name, img.version))
         if not confirm():
-            raise Exception("Aborted!")
+            raise ISError("Aborted!")
     # delete it for real
     for img, repo in todo:
         arrow("Deleting %s v%s from repository %s" %
@@ -306,7 +307,11 @@ def c_install(args):
     image.run_parser(parser=subparser)
     # call parser again, with extended attributes
     arrow("Parsing arguments")
-    args = args.parser.parse_args()
+    # Catch exception in custom argparse action
+    try:
+        args = args.parser.parse_args()
+    except Exception as e:
+        raise ISError("Parsing error", e)
     # run setup scripts
     if not args.dry_run:
         image.run_setup(namespace=args)
@@ -339,7 +344,7 @@ def c_move(args):
     # check all source repository are local (need by deletion)
     for img, repo in todo:
         if not repo.local:
-            raise Exception("Repository %s is not local. Unable to move" %
+            raise ISError("Repository %s is not local. Unable to move" %
                             repo.config.name)
     # check user really want to this
     if not args.force:
@@ -348,7 +353,7 @@ def c_move(args):
             out(u"  %s/%s:%s" % (repo.config.name, img.name, img.version))
         out(u"Inside repository: #l##b#%s#R#" % dstrepo.config.name)
         if not confirm():
-            raise Exception("Aborted!")
+            raise ISError("Aborted!")
     # move it for real
     for srcimg, srcrepo in todo:
         arrow("Moving %s v%s from repository %s to %s" %
@@ -689,7 +694,7 @@ def main():
         try:
             args = [ unicode(x, encoding=locale.getpreferredencoding()) for x in sys.argv[1:]]
         except UnicodeDecodeError as e:
-            raise Exception("Invalid character encoding in command line")
+            raise ISError("Invalid character encoding in command line")
         # first partial parsing, to get early debug and config path
         options = arg_parser.parse_known_args(args=args)[0]
         # set early command line verbosity and color
@@ -743,8 +748,10 @@ def main():
     except KeyboardInterrupt:
         warn("Keyboard Interrupted")
         exit(1)
+    except ISException as e:
+        error(u"%s.%s" % (e, e.get_tb()))
     except Exception as e:
-        error(u"%s." % e)
+        error(u"Unknown error, please report it: %s." % e)
 
 # Entry point
 if __name__ == '__main__':

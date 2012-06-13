@@ -32,34 +32,46 @@ class ISException(Exception):
     '''
     Base exception class
     '''
-    def __init__(self, message='', exception=None):
-        self.message = message
+    def __init__(self, message="", exception=None):
+        self.message = unicode(message)
         self.exception = exception
         if exception:
             self.exc_info = sys.exc_info()
 
     def __str__(self):
         if self.exception:
-            return "%s: %s" % (self.message, self.exception)
+            return u"%s: %s" % (self.message, self.exception)
         else:
             return self.message
 
-    def get_tb(self):
-        if self.exception and installsystems.verbosity > 1:
-            sio = StringIO.StringIO()
+    def print_tb(self, fd=sys.stderr):
+        '''
+        Print traceback from embeded exception or current one
+        '''
+        from installsystems.printer import out
+        # coloring
+        out("#l##B#", fd=fd, endl="")
+        # print original exception traceback
+        if self.exception is not None:
             traceback.print_exception(self.exc_info[0], self.exc_info[1],
-                                      self.exc_info[2], file=sio)
-            str = "\n#R#%s" % sio.getvalue()
-            sio.close()
-            return str
-        return ""
+                                      self.exc_info[2], file=fd)
+        # print current exception traceback
+        else:
+            exc_info = sys.exc_info()
+            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2],
+                                      file=fd)
+        # reset color
+        out("#R#", fd=fd, endl="")
+
 
 class ISError(ISException):
     '''
     Installsystems error; this exception will stop execution
     '''
 
+
 class ISWarning(ISException):
     '''
     Installsystems warning; this exception do not stop execution
     '''
+

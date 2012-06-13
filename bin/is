@@ -748,10 +748,10 @@ def main():
     except KeyboardInterrupt:
         warn("Keyboard Interrupted")
         exit(1)
-    except ISException as e:
-        error(u"%s.%s" % (e, e.get_tb()))
+    except ISError as e:
+        error(exception=e)
     except Exception as e:
-        error(u"Unknown error, please report it: %s." % e)
+        error(u"Unexpected error, please report it with debug enabled", exception=e)
 
 # Entry point
 if __name__ == '__main__':

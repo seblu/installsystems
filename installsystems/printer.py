@@ -25,6 +25,7 @@ import sys
 import os
 import re
 import installsystems
+from installsystems.exception import *
 
 NOCOLOR = False
 
@@ -92,10 +93,22 @@ def fatal(message, quit=True, fd=sys.stderr, endl=os.linesep):
     if quit:
         os._exit(21)
 
-def error(message, quit=True, fd=sys.stderr, endl=os.linesep):
-    out(u"#light##red#Error:#reset# #red#%s#reset#" % message, fd, endl)
-    if sys.exc_info()[0] is not None and installsystems.verbosity > 1:
-        raise
+def error(message=None, exception=None, quit=True, fd=sys.stderr, endl=os.linesep):
+    # create error message
+    pmesg = u""
+    if message is not None:
+        pmesg += unicode(message)
+    if exception is not None:
+        if pmesg == "":
+            pmesg += unicode(exception)
+        else:
+            pmesg += u": %s" % unicode(exception)
+    # print error message
+    if pmesg != "":
+        out(u"#light##red#Error:#reset# #red#%s#reset#" % pmesg, fd, endl)
+    # print traceback in debug mode
+    if installsystems.verbosity > 1 and isinstance(exception, ISException):
+        exception.print_tb(fd)
     if quit:
         exit(42)
 

@@ -173,7 +173,7 @@ extract [-h] [-f] [-g] [-p] *image* *path*
 
 
 get [-h] [-f] [-I] [-p] *image*...
-Download a remote InstallSystem *image* in current directory.
+    Download a remote InstallSystem *image* in current directory.
 
     -f, --force
         overwrite existing destination
@@ -337,7 +337,7 @@ InstallSystems use two kind of images:
 
 **source image**
 
-     Each image available in repositories has to be build. The image before building is called a source image. In a source image, there are three directories and two files. Each images make the distinction between scripts and chroot.
+     Each image available in repositories has to be build. The image before building is called a source image. In a source image, there are four directories and two files. Each images make the distinction between scripts and payloads.
 
     build/
         Scripts to customize the build process for the image.
@@ -349,7 +349,7 @@ InstallSystems use two kind of images:
         The scripts with logical steps of the install are in this directory.
 
     payload/
-        The payload directory embeds one or more rootfs for the image.
+        This directory embeds one or more payloads (typically rootfs) for the image.
 
     description
         It defines the author, the date and the version of the image.
@@ -360,19 +360,18 @@ InstallSystems use two kind of images:
 
 **packaged image**
 
-    Built images are called packaged images. They are versionned, gunzipped and ready to deploy. Like source images, package images still make the difference between scripts and chroot. But it doesn't make difference between parser scripts and setup scripts. In fact you will have at least two tarballs:
+    Built images are called packaged images. They are versionned, gzipped and ready to deploy. Like source images, package images still make the difference between scripts and payloads. But it doesn't make difference between build, parser and setup scripts. In fact you will have at least two tarballs:
 
     image_name.isimage
-        This tarball contains parser/, setup/, description and changelog.
+        This tarball contains build/, parser/, setup/, description and changelog.
 
     image_name.isdata
-        This tarball contains one rootfs from payload/
+        This tarball contains one payload from payload/
 
 REPOSITORIES
 ============
 
 InstallSystems manages images with repositories.
 
-An InstallSystems repository use a SQLite3 database (db), a last file (last version of images) and Md5s of images. The repos are reachable by HTTP, FTP and SSH. This allows you to easily access images.
+An InstallSystems repository use a SQLite3 database (db), a last file (timestamp of last db modification) and MD5s of images. The repos are reachable by HTTP(S), FTP and SSH. This allows you to easily access images.
 Also, please note that you can only modify local repositories.
-

@@ -227,7 +227,7 @@ install [--dry-run] <image>
         do not execute setup scripts
 
 
-list [-h] [-A] [-d] [-D] [-j] [-l] [-m] [-s] [-u] [<remote_image>...]
+list [-h] [-A] [-d] [-D] [-f] [-j] [-i] [-l] [-m] [-s] [-u] [<remote_image>...]
     List available *images*. By default, it displays the image name and its repository, ordered by repositories/images/version.
 
     -A, --author
@@ -239,8 +239,14 @@ list [-h] [-A] [-d] [-D] [-j] [-l] [-m] [-s] [-u] [<remote_image>...]
     -D, --description
         display image description
 
+    -f, --format
+        display image format
+
     -j, --json
         output is formated in json
+
+    -i, --is-min-version
+        display minimum Installsystems version required
 
     -l, --long
         long display

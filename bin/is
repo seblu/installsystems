@@ -339,7 +339,8 @@ def c_list(args):
     repoman.show_images(args.pattern, o_long=args.long, o_json=args.json,
                         o_md5=args.md5, o_date=args.date, o_author=args.author,
                         o_size=args.size, o_url=args.url,
-                        o_description=args.description)
+                        o_description=args.description, o_format=args.format,
+                        o_min_version=args.is_min_version)
 
 def c_motd(args):
     '''
@@ -640,6 +641,10 @@ def arg_parser_init():
                    help="display image date")
     p.add_argument("-D", "--description", action="store_true",
                    help="display image description")
+    p.add_argument("-f", "--format", action="store_true",
+                   help="display image format")
+    p.add_argument("-i", "--is-min-version", action="store_true",
+                   help="display minimum Installsystems version required")
     p.add_argument("-j", "--json", action="store_true",
                    help="output is formated in json")
     p.add_argument("-l", "--long", action="store_true",

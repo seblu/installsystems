@@ -418,10 +418,13 @@ class Repository(object):
         '''
         Return a dict of information on images
         '''
-        db_images = self.db.ask("SELECT md5, name, version, date,\
-                author, description, size FROM image ORDER BY name, version").fetchall()
+        db_images = self.db.ask("SELECT md5, name, version, date, author, \
+                           description, size, is_min_version, format \
+                           FROM image ORDER BY name, version").fetchall()
+
         images = []
-        field = ("md5", "name", "version", "date", "author", "description", "size")
+        field = ("md5", "name", "version", "date", "author", "description",
+                 "size", "is_min_version", "format")
         for info in db_images:
             d = dict(zip(field, info))
             d["repo"] = self.config.name
@@ -934,8 +937,8 @@ class RepositoryManager(object):
             self[repo].search(pattern)
 
     def show_images(self, patterns, o_json=False, o_long=False, o_md5=False,
-                    o_date=False, o_author=False, o_size=False,
-                    o_url=False, o_description=False):
+                    o_date=False, o_author=False, o_size=False, o_url=False,
+                    o_description=False, o_format=False, o_min_version=False):
         '''
         Show images inside manager
         '''
@@ -962,6 +965,10 @@ class RepositoryManager(object):
                     l.append(u"  #l#url:#R# %s" % img["url"])
                 if o_description or o_long:
                     l.append(u"  #l#description:#R# %s" % img["description"])
+                if o_format or o_long:
+                    l.append(u"  #l#format:#R# %s" % img["format"])
+                if o_min_version or o_long:
+                    l.append(u"  #l#is min version:#R# %s" % img["is_min_version"])
             s = os.linesep.join(l)
         if len(s) > 0:
             out(s)

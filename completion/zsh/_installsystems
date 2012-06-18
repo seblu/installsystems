@@ -250,6 +250,8 @@ _is() {
                         '(-A --author)'{-A,--author}'[display image author]'
                         '(-d --date)'{-d,--date}'[display image date]'
                         '(-D --description)'{-D,--description}'[display image description]'
+                        '(-f --format)'{-f,--format}'[display image format]'
+                        '(-i --is-min-version)'{-i,--is-min-version}'[display minimum Installsystems version required]'
                         '(-j --json)'{-j,--json}'[output is formated in json]'
                         '(-l --long)'{-l,--long}'[long display]'
                         '(-m --md5)'{-m,--md5}'[display image md5]'

@@ -301,6 +301,8 @@ _is() {
                         '(-O --offline)'{-O,--offline}'[list offline repository (filter)]'
                         '(-s --state)'{-s,--state}'[display repository state (online/offline/local/remote)]'
                         '(-u --url)'{-u,--url}'[display repository url]'
+                        '(-U --uuid)'{-U,--uuid}'[display repository UUID]'
+                        '(-v --version)'{-v,--version}'[display repository version]'
                         '--purge[remove cache databases]'
                         '*:repo:_installsystems_repo'
                         )

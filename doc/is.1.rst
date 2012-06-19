@@ -299,7 +299,7 @@ prepare_chroot [-h] [-m] *path*
         disable mounting of /{proc,dev,sys}
 
 
-repo [-h] [-j] [-l|-r] [-o|-O] [-s] [-u] [--purge] [repository]...
+repo [-h] [-j] [-l|-r] [-o|-O] [-s] [-u] [-U] [-v] [--purge] [repository]...
     List available repositories. By defaut, only names are displayed.
 
     -j, --json
@@ -322,6 +322,12 @@ repo [-h] [-j] [-l|-r] [-o|-O] [-s] [-u] [--purge] [repository]...
 
     -u, --url
         display repository url
+
+    -U, --uuid
+        display repository UUID
+
+    -v, --version
+        display repository version
 
     --purge
         remove cache databases

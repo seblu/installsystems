@@ -178,7 +178,7 @@ _is() {
          _filedir -d
       ;;
       repo)
-         [[ "$cur" == -* ]] && _opt '-h --help -l --local -r --remote -o --online -O --offline -s --state --force-offline --purge -u --url -j --json' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -l --local -r --remote -o --online -O --offline -s --state --force-offline --purge -u --url -U --uuid -j --json -v --version' && return 0
          _repo
       ;;
       search)

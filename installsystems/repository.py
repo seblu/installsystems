@@ -1047,8 +1047,8 @@ class RepositoryManager(object):
             else:
                 arrow("nothing to do", 1)
 
-    def show_repositories(self, patterns, local=None, online=None,
-                          o_url=False, o_state=False, o_json=False):
+    def show_repositories(self, patterns, local=None, online=None, o_url=False,
+                          o_state=False, o_uuid=False, o_json=False, o_version=False):
         '''
         Show repository inside manager
         if :param online: is true, list only online repositories
@@ -1072,6 +1072,9 @@ class RepositoryManager(object):
                 continue
             repos[reponame] = dict(repo.config.items())
             repos[reponame]["local"] = repo.local
+            if not repo.config.offline:
+                repos[reponame]["uuid"] = repo.uuid
+                repos[reponame]["version"] = repo.version
         # display result
         if o_json:
             s = json.dumps(repos)
@@ -1088,6 +1091,11 @@ class RepositoryManager(object):
                 ln += u"%s%s#R#"% (rc, name)
                 if o_url:
                     ln += u"  (%s)" % repo["path"]
+                if not repo["offline"]:
+                    if o_version:
+                        ln += u"  (#p#v%s#R#)" % repo["version"]
+                    if o_uuid:
+                        ln += u"  [%s]" % repo["uuid"]
                 l.append(ln)
             s = os.linesep.join(l)
         out(s)

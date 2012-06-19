@@ -430,7 +430,8 @@ def c_repo(args):
         repoman.show_repositories(args.repository,
                                   online=args.online, local=args.local,
                                   o_url=args.url, o_state=args.state,
-                                  o_json=args.json)
+                                  o_uuid=args.uuid, o_json=args.json,
+                                  o_version=args.repo_version)
 
 def c_search(args):
     '''
@@ -712,6 +713,10 @@ def arg_parser_init():
                    help="display repository state (online/offline/local/remote)")
     p.add_argument("-u", "--url", action="store_true",
                    help="display repository url")
+    p.add_argument("-U", "--uuid", action="store_true",
+                   help="display repository UUID")
+    p.add_argument("-v", "--version", dest="repo_version", action="store_true",
+                   help="display repository version")
     p.add_argument("--purge", action="store_true",
                    help="remove cache databases")
     p.add_argument("repository", nargs='*', default=[u"*"], help="repository pattern")

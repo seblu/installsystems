@@ -555,7 +555,7 @@ class RepositoryManager(object):
                     return repo
             raise IndexError(u"No repository named: %s" % key)
         else:
-            raise TypeError(u"Invalid type %s for %" % (type(key), key))
+            raise TypeError(u"Invalid type %s for %s" % (type(key), key))
 
     def __contains__(self, key):
         '''

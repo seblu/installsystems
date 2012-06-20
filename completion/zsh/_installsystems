@@ -20,7 +20,7 @@
 (( $+functions[_installsystems_local_repo] )) ||
 _installsystems_local_repo() {
     local repos expl
-    repos=($(_call_program options is --quiet --no-color --no-sync repo --local))
+    repos=($(_call_program options is --quiet --no-color --no-sync repo --local 2>/dev/null))
     _wanted list expl 'local repo' compadd ${expl} - ${repos}
 }
 
@@ -28,7 +28,7 @@ _installsystems_local_repo() {
 (( $+functions[_installsystems_repo] )) ||
 _installsystems_repo() {
     local repos expl
-    repos=($(_call_program options is --quiet --no-color --no-sync repo))
+    repos=($(_call_program options is --quiet --no-color --no-sync repo 2>/dev/null))
     _wanted list expl 'repo' compadd ${expl} - ${repos}
 }
 
@@ -36,7 +36,7 @@ _installsystems_repo() {
 (( $+functions[_installsystems_remote_images] )) ||
 _installsystems_remote_images() {
     local images expl
-    images=($(_call_program options is --quiet --no-color --no-sync list "'*/*:*'"))
+    images=($(_call_program options is --quiet --no-color --no-sync list "'*/*:*'" 2>/dev/null))
     _wanted list expl 'remote image' compadd ${expl} - ${images}
 }
 
@@ -44,8 +44,8 @@ _installsystems_remote_images() {
 (( $+functions[_installsystems_local_images] )) ||
 _installsystems_local_images() {
     local localrepos expl images
-    localrepos=${(j:,:)${$(_call_program options is --quiet --no-color --no-sync repo --local)}}
-    images=($(_call_program options is --quiet --no-color --no-sync -s ${localrepos} -f ${localrepos} list "'*/*:*'"))
+    localrepos=${(j:,:)${$(_call_program options is --quiet --no-color --no-sync repo --local 2>/dev/null)}}
+    images=($(_call_program options is --quiet --no-color --no-sync -s ${localrepos} -f ${localrepos} list "'*/*:*'" 2>/dev/null))
     _wanted list expl 'local image' compadd ${expl} - ${images}
 }
 

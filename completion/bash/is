@@ -15,17 +15,17 @@
 
 # list local repositories
 _local_repo() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync repo --local)"  -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync repo --local 2>/dev/null)"  -- "$cur"))
 }
 
 # list all defined repositories
 _repo() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync repo)"  -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync repo 2>/dev/null)"  -- "$cur"))
 }
 
 # list all images available in any online repositories
 _remote_image() {
-   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync list '*/*:*')" -- "$cur"))
+   COMPREPLY=("${COMPREPLY[@]}" $(compgen -W "$(is --quiet --no-color --no-sync list '*/*:*' 2>/dev/null)" -- "$cur"))
 }
 
 # list all local (files) images

@@ -109,6 +109,10 @@ def error(message=None, exception=None, quit=True, fd=sys.stderr, endl=os.linese
     # print traceback in debug mode
     if installsystems.verbosity > 1 and isinstance(exception, ISException):
         exception.print_tb(fd)
+    elif installsystems.verbosity > 1:
+        out("#l##B#", fd=fd, endl="")
+        traceback.print_exc(file=fd)
+        out("#R#", fd=fd, endl="")
     if quit:
         exit(42)
 

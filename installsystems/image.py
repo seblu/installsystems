@@ -33,6 +33,7 @@ import re
 import shutil
 import stat
 import subprocess
+import sys
 import tarfile
 import time
 import installsystems
@@ -78,6 +79,36 @@ class Image(object):
         '''
         return istools.compare_versions(v1, v2)
 
+    def _load_modules(self, lib_list, get_str):
+        '''
+        Load python module embedded in image
+
+        Return a dict of {module_name: module object}
+        '''
+        if not lib_list:
+            return {}
+        arrow(u"Load libs")
+        old_level = arrowlevel(1)
+        gl ={}
+        # order matter!
+        lib_list.sort()
+        for filename in lib_list:
+            arrow(os.path.basename(filename))
+            name = os.path.basename(filename).split('-', 1)[1][:-3]
+            if name in gl:
+                error('Module %s already loaded' % name)
+            # extract source code
+            try:
+                code = get_str(filename)
+            except Exception as e:
+                raise ISError(u"Extracting lib %s fail: %s" %
+                                (filename, e))
+            gl[name] = istools.string2module(name, code, filename)
+            # avoid ImportError when exec 'import name'
+            sys.modules[name] = gl[name]
+        arrowlevel(level=old_level)
+        return gl
+
 class SourceImage(Image):
     '''
     Image source manipulation class
@@ -96,10 +127,12 @@ class SourceImage(Image):
         parser_path = os.path.join(path, "parser")
         setup_path = os.path.join(path, "setup")
         payload_path = os.path.join(path, "payload")
+        lib_path = os.path.join(path, "lib")
         # create base directories
         arrow("Creating base directories")
         try:
-            for d in (path, build_path, parser_path, setup_path, payload_path):
+            for d in (path, build_path, parser_path, setup_path, payload_path,
+                      lib_path):
                 if not os.path.exists(d) or not os.path.isdir(d):
                     os.mkdir(d)
         except Exception as e:
@@ -153,7 +186,7 @@ class SourceImage(Image):
             raise NotImplementedError("SourceImage must be local")
         Image.__init__(self)
         self.base_path = os.path.abspath(path)
-        for pathtype in ("build", "parser", "setup", "payload"):
+        for pathtype in ("build", "parser", "setup", "payload", "lib"):
             setattr(self, u"%s_path" % pathtype, os.path.join(self.base_path, pathtype))
         self.check_source_image()
         self.description = self.parse_description()
@@ -168,7 +201,7 @@ class SourceImage(Image):
         Check if we are a valid SourceImage directories
         '''
         for d in (self.base_path, self.build_path, self.parser_path,
-                  self.setup_path, self.payload_path):
+                  self.setup_path, self.payload_path, self.lib_path):
             if not os.path.exists(d):
                 raise ISError(u"Invalid source image: directory %s is missing" % d)
             if not os.path.isdir(d):
@@ -187,9 +220,9 @@ class SourceImage(Image):
             raise ISError("Tarball already exists. Remove it before")
         # check python scripts
         if check:
-            self.check_scripts(self.build_path)
-            self.check_scripts(self.parser_path)
-            self.check_scripts(self.setup_path)
+            for d in (self.build_path, self.parser_path, self.setup_path,
+                      self.lib_path):
+                self.check_scripts(d)
         # remove list
         rl = set()
         # run build script
@@ -235,6 +268,8 @@ class SourceImage(Image):
             self.add_scripts(tarball, self.parser_path)
             # add setup scripts
             self.add_scripts(tarball, self.setup_path)
+            # add lib
+            self.add_scripts(tarball, self.lib_path)
             # closing tarball file
             tarball.close()
         except (SystemExit, KeyboardInterrupt):
@@ -421,6 +456,11 @@ class SourceImage(Image):
         rebuild_list = []
         cwd = os.getcwd()
         arrowlevel(1)
+        # load modules
+        lib_list = [fp.encode(locale.getpreferredencoding())
+                    for fp, fn in self.select_scripts(self.lib_path)]
+        func = lambda f: open(f).read()
+        modules = self._load_modules(lib_list, func)
         for fp, fn in self.select_scripts(script_directory):
             arrow(fn)
             os.chdir(exec_directory)
@@ -433,6 +473,8 @@ class SourceImage(Image):
             # define execution context
             gl = {"rebuild": rebuild_list,
                   "image": self}
+            # add embedded modules
+            gl.update(modules)
             # execute source code
             try:
                 exec o_scripts in gl
@@ -845,6 +887,9 @@ class PackageImage(Image):
         '''
         arrow(u"Run %s scripts" % directory)
         arrowlevel(1)
+        # load modules
+        lib_list = self._tarball.getnames(re_pattern="lib/.*\.py")
+        modules = self._load_modules(lib_list, self._tarball.get_str)
         # get list of parser scripts
         l_scripts = self._tarball.getnames(re_pattern="%s/.*\.py" % directory)
         # order matter!
@@ -868,6 +913,8 @@ class PackageImage(Image):
             for k in kwargs:
                 gl[k] = kwargs[k]
             gl["image"] = self
+            # Add embedded modules
+            gl.update(modules)
             # execute source code
             try:
                 exec o_scripts in gl

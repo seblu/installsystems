@@ -337,7 +337,7 @@ InstallSystems use two kind of images:
 
 **source image**
 
-     Each image available in repositories has to be build. The image before building is called a source image. In a source image, there are four directories and two files. Each images make the distinction between scripts and payloads.
+     Each image available in repositories has to be build. The image before building is called a source image. In a source image, there are five directories and two files. Each images make the distinction between scripts and payloads.
 
     build/
         Scripts to customize the build process for the image.
@@ -347,6 +347,9 @@ InstallSystems use two kind of images:
 
     setup/
         The scripts with logical steps of the install are in this directory.
+
+    lib/
+        Python modules which are embeded in image.
 
     payload/
         This directory embeds one or more payloads (typically rootfs) for the image.

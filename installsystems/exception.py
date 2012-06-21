@@ -23,26 +23,41 @@
 InstallSystems Exceptions
 '''
 
-import StringIO
-import sys
 import traceback
-import installsystems
+import sys
 
 class ISException(Exception):
     '''
     Base exception class
     '''
+
     def __init__(self, message="", exception=None):
         self.message = unicode(message)
-        self.exception = exception
-        if exception:
-            self.exc_info = sys.exc_info()
+        self.exception = None if exception is None else sys.exc_info()
 
     def __str__(self):
-        if self.exception:
-            return u"%s: %s" % (self.message, self.exception)
+        '''
+        Return a description of exception
+        '''
+        if self.exception is not None:
+            return u"%s: %s" % (self.message, self.exception[1])
         else:
             return self.message
+
+    def print_sub_tb(self, fd=sys.stderr):
+        '''
+        Print stored exception traceback and exception message
+        '''
+        # no exception, do nothing
+        if self.exception is None:
+            return
+        # print traceback and exception separatly to avoid recursive print of
+        # "Traceback (most recent call last)" from traceback.print_exception
+        traceback.print_tb(self.exception[2], file=fd)
+        fd.write("".join(traceback.format_exception_only(self.exception[0], self.exception[1])))
+        # recursively call traceback print on ISException error
+        if isinstance(self.exception[1], ISException):
+            self.exception[1].print_sub_tb()
 
     def print_tb(self, fd=sys.stderr):
         '''
@@ -51,18 +66,10 @@ class ISException(Exception):
         from installsystems.printer import out
         # coloring
         out("#l##B#", fd=fd, endl="")
-        # print original exception traceback
-        if self.exception is not None:
-            traceback.print_exception(self.exc_info[0], self.exc_info[1],
-                                      self.exc_info[2], file=fd)
-        # print current exception traceback
-        else:
-            exc_info = sys.exc_info()
-            traceback.print_exception(exc_info[0], exc_info[1], exc_info[2],
-                                      file=fd)
+        traceback.print_exc(file=fd)
+        self.print_sub_tb(fd)
         # reset color
         out("#R#", fd=fd, endl="")
-
 
 class ISError(ISException):
     '''
@@ -74,4 +81,3 @@ class ISWarning(ISException):
     '''
     Installsystems warning; this exception do not stop execution
     '''
-

@@ -671,7 +671,7 @@ def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False)
                 if not keep:
                     os.unlink(tpl_path)
 
-def string2module(name, code, filename):
+def string2module(name, string, filename):
     '''
     Create a python module from a string
     '''
@@ -679,10 +679,12 @@ def string2module(name, code, filename):
     module = imp.new_module(name)
     # compile module code
     try:
-        bytecode = compile(code, filename, "exec")
+        bytecode = compile(string, filename, "exec")
     except Exception as e:
-        raise ISError(u"Unable to compile %s fail: %s" %
-                      (filename, e))
-    # fill module
-    exec bytecode in module.__dict__
+        raise ISError(u"Unable to compile %s" % filename, e)
+    # Load module
+    try:
+        exec bytecode in module.__dict__
+    except Exception as e:
+        raise ISError(u"Unable to load %s" % filename, e)
     return module

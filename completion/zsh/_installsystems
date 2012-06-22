@@ -240,7 +240,7 @@ _is() {
                         ;;
                     (install)
                         args+=(
-                        "--dry-run:[doesn't execute setup scripts]"
+                        "--dry-run[doesn't execute setup scripts]"
                         '1:image:_installsystems_images'
                         '2:target:_files -/'
                         )

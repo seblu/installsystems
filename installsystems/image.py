@@ -638,7 +638,8 @@ class SourceImage(Image):
             self.check_image_version(d["version"])
             # check installsystems min version
             if self.compare_versions(installsystems.version, d["is_min_version"]) < 0:
-                raise ISError("Minimum Installsystems version not satisfied")
+                raise ISError("Minimum Installsystems version not satisfied "
+                              "(%s)" % d["is_min_version"])
         except Exception as e:
             raise ISError(u"Bad description", e)
         return d
@@ -798,7 +799,8 @@ class PackageImage(Image):
                 desc["is_min_version"] = 0
             # check installsystems min version
             if self.compare_versions(installsystems.version, desc["is_min_version"]) < 0:
-                raise ISError("Minimum Installsystems version not satisfied")
+                raise ISError("Minimum Installsystems version not satisfied "
+                              "(%s)" % desc["is_min_version"])
         except Exception as e:
             raise ISError(u"Invalid description", e)
         # try to load changelog

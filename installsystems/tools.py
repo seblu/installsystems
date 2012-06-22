@@ -21,7 +21,6 @@ InstallSystems Generic Tools Library
 '''
 
 import hashlib
-import imp
 import jinja2
 import locale
 import math
@@ -670,21 +669,3 @@ def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False)
                 os.chmod(file_path, st.st_mode)
                 if not keep:
                     os.unlink(tpl_path)
-
-def string2module(name, string, filename):
-    '''
-    Create a python module from a string
-    '''
-    # create an empty module
-    module = imp.new_module(name)
-    # compile module code
-    try:
-        bytecode = compile(string, filename, "exec")
-    except Exception as e:
-        raise ISError(u"Unable to compile %s" % filename, e)
-    # Load module
-    try:
-        exec bytecode in module.__dict__
-    except Exception as e:
-        raise ISError(u"Unable to load %s" % filename, e)
-    return module

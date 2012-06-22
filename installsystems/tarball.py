@@ -16,10 +16,6 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Installsystems.  If not, see <http://www.gnu.org/licenses/>.
 
-'''
-Tarball wrapper
-'''
-
 import os
 import sys
 import time
@@ -30,16 +26,25 @@ import fnmatch
 from installsystems.exception import *
 
 class Tarball(tarfile.TarFile):
-    def add_str(self, name, content, ftype, mode):
+    '''
+    Tarball wrapper
+    '''
+
+    def add_str(self, name, content, ftype, mode, mtime=None,
+                uid=None, gid=None, uname=None, gname=None):
         '''
         Add a string in memory as a file in tarball
         '''
+        if isinstance(name, unicode):
+            name = name.encode("UTF-8")
         ti = tarfile.TarInfo(name)
-        ti.type = ftype
-        ti.mode = mode
-        ti.mtime = int(time.time())
-        ti.uid = ti.gid = 0
-        ti.uname = ti.gname = "root"
+        # set tarinfo attribute
+        for v in ("name", "ftype", "mode", "mtime", "uid", "gid", "uname", "gname"):
+            if vars()[v] is not None:
+                vars(ti)[v] = vars()[v]
+        # set mtime to current if not specified
+        if mtime is None:
+            ti.mtime = int(time.time())
         # unicode char is encoded in UTF-8, has changelog must be in UTF-8
         if isinstance(content, unicode):
             content = content.encode("UTF-8")
@@ -50,6 +55,8 @@ class Tarball(tarfile.TarFile):
         '''
         Return a string from a filename in a tarball
         '''
+        if isinstance(name, unicode):
+            name = name.encode("UTF-8")
         ti = self.getmember(name)
         fd = self.extractfile(ti)
         return fd.read() if fd is not None else ""
@@ -58,6 +65,8 @@ class Tarball(tarfile.TarFile):
         '''
         Return an unicode string from a file encoded in UTF-8 inside tarball
         '''
+        if isinstance(name, unicode):
+            name = name.encode("UTF-8")
         try:
             return unicode(self.get_str(name), "UTF-8")
         except UnicodeDecodeError:
@@ -74,7 +83,8 @@ class Tarball(tarfile.TarFile):
         # dir filering
         if not dir:
             names = filter(lambda x: not self.getmember(x).isdir(), names)
-        return names
+        # unicode encoding
+        return map(lambda x: unicode(x, "UTF-8"), names)
 
     def size(self):
         '''

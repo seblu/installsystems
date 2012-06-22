@@ -304,7 +304,7 @@ def c_install(args):
     # install start time
     t0 = time.time()
     # run parser scripts with parser parser argument
-    image.run_parser(parser=subparser)
+    image.run_parser({"parser": subparser})
     # call parser again, with extended attributes
     arrow("Parsing arguments")
     # Catch exception in custom argparse action
@@ -314,7 +314,7 @@ def c_install(args):
         raise ISError("Parsing error", e)
     # run setup scripts
     if not args.dry_run:
-        image.run_setup(namespace=args)
+        image.run_setup({"namespace": args})
         # compute building time
         t1 = time.time()
         dt = int(t1 - t0)

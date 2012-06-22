@@ -25,6 +25,7 @@ import codecs
 import ConfigParser
 import cStringIO
 import difflib
+import imp
 import json
 import locale
 import math
@@ -43,7 +44,6 @@ from installsystems.exception import *
 from installsystems.printer import *
 from installsystems.tools import PipeFile
 from installsystems.tarball import Tarball
-
 
 class Image(object):
     '''
@@ -79,35 +79,114 @@ class Image(object):
         '''
         return istools.compare_versions(v1, v2)
 
-    def _load_modules(self, lib_list, get_str):
-        '''
-        Load python module embedded in image
+    def __init__(self):
+        self.modules = {}
 
-        Return a dict of {module_name: module object}
+    def _load_module(self, name, filename, code=None):
         '''
-        if not lib_list:
-            return {}
-        arrow(u"Load libs")
+        Create a python module from a string or a filename
+        '''
+        # unicode safety check
+        assert(isinstance(name, unicode))
+        assert(isinstance(filename, unicode))
+        assert(code is None or isinstance(code, str))
+        # load code if not provided
+        if code is None:
+            code = open(filename, "r").read()
+        # create an empty module
+        module = imp.new_module(name)
+        # compile module code
+        try:
+            bytecode = compile(code, filename.encode(locale.getpreferredencoding()), "exec")
+        except Exception as e:
+            raise ISError(u"Unable to compile %s" % filename, e)
+        # Load module
+        try:
+            exec bytecode in module.__dict__
+        except Exception as e:
+            raise ISError(u"Unable to load %s" % filename, e)
+        return module
+
+    def load_modules(self, select_scripts):
+        '''
+        Load all modules selected by generator select_scripts
+
+        select_scripts is a generator which return tuples (fp, fn, fc) where:
+          fp is unicode file path of the module
+          fn is unicode file name of the module (basename)
+          fc is unicode file content
+        '''
+        arrow(u"Load lib scripts")
         old_level = arrowlevel(1)
-        gl ={}
-        # order matter!
-        lib_list.sort()
-        for filename in lib_list:
-            arrow(os.path.basename(filename))
-            name = os.path.basename(filename).split('-', 1)[1][:-3]
-            if name in gl:
-                error('Module %s already loaded' % name)
-            # extract source code
-            try:
-                code = get_str(filename)
-            except Exception as e:
-                raise ISError(u"Extracting lib %s fail: %s" %
-                                (filename, e))
-            gl[name] = istools.string2module(name, code, filename)
-            # avoid ImportError when exec 'import name'
-            sys.modules[name] = gl[name]
+        self.modules = {}
+        for fp, fn, fc in select_scripts():
+            # check input unicode stuff
+            assert(isinstance(fp, unicode))
+            assert(isinstance(fn, unicode))
+            assert(isinstance(fc, str))
+            arrow(fn)
+            module_name = os.path.splitext(fn.split('-', 1)[1])[0]
+            self.modules[module_name] = self._load_module(module_name, fp, fc)
         arrowlevel(level=old_level)
-        return gl
+
+    def run_scripts(self, scripts_name, select_scripts, exec_directory, global_dict):
+        '''
+        Execute scripts selected by generator select_scripts
+
+        scripts_name is only for display the first arrow before execution
+
+        select_scripts is a generator which return tuples (fp, fn, fc) where:
+          fp is file path of the scripts
+          fn is file name of the scripts (basename)
+          fc is file content
+
+        exec_directory is the cwd of the running script
+
+        global_dict is the globals environment given to scripts
+        '''
+        arrow(u"Run %s scripts" % scripts_name)
+        # backup current directory and loaded modules
+        cwd = os.getcwd()
+        # system modules dict
+        sysmodules = sys.modules
+        sysmodules_backup = sysmodules.copy()
+        for fp, fn, fc in select_scripts():
+            # check input unicode stuff
+            assert(isinstance(fp, unicode))
+            assert(isinstance(fn, unicode))
+            assert(isinstance(fc, str))
+            arrow(fn, 1)
+            # backup arrow level
+            old_level = arrowlevel(1)
+            # chdir in exec_directory
+            os.chdir(exec_directory)
+            # compile source code
+            try:
+                bytecode = compile(fc, fn.encode(locale.getpreferredencoding()), "exec")
+            except Exception as e:
+                raise ISError(u"Unable to compile script %s" % fp, e)
+            # autoload modules
+            global_dict.update(self.modules)
+            # add current image
+            global_dict["image"] = self
+            # execute source code
+            try:
+                # replace system modules by image loaded
+                # we must use the same directory and not copy it (probably C reference)
+                sysmodules.clear()
+                # sys must be in sys.module to allow loading of modules
+                sysmodules["sys"] = sys
+                sysmodules.update(self.modules)
+                exec bytecode in global_dict
+                sysmodules.clear()
+                sysmodules.update(sysmodules_backup)
+            except Exception as e:
+                sysmodules.clear()
+                sysmodules.update(sysmodules_backup)
+                raise ISError(u"Unable to execute script %s" % fp, e)
+            arrowlevel(level=old_level)
+        os.chdir(cwd)
+
 
 class SourceImage(Image):
     '''
@@ -181,16 +260,20 @@ class SourceImage(Image):
         arrowlevel(-1)
 
     def __init__(self, path):
+        '''
+        Initialize source image
+        '''
+        Image.__init__(self)
         # check local repository
         if not istools.isfile(path):
             raise NotImplementedError("SourceImage must be local")
-        Image.__init__(self)
         self.base_path = os.path.abspath(path)
         for pathtype in ("build", "parser", "setup", "payload", "lib"):
             setattr(self, u"%s_path" % pathtype, os.path.join(self.base_path, pathtype))
         self.check_source_image()
         self.description = self.parse_description()
         self.changelog = self.parse_changelog()
+        self.modules = None
         # script tarball path
         self.image_name = u"%s-%s%s" % (self.description["name"],
                                         self.description["version"],
@@ -220,14 +303,15 @@ class SourceImage(Image):
             raise ISError("Tarball already exists. Remove it before")
         # check python scripts
         if check:
-            for d in (self.build_path, self.parser_path, self.setup_path,
-                      self.lib_path):
+            for d in (self.build_path, self.parser_path, self.setup_path):
                 self.check_scripts(d)
+        # load modules
+        self.load_modules(lambda: self.select_scripts(self.lib_path))
         # remove list
         rl = set()
         # run build script
         if script:
-            rl |= set(self.run_scripts(self.build_path, self.payload_path))
+            rl |= set(self.run_build())
         if force_payload:
             rl |= set(self.select_payloads())
         # remove payloads
@@ -268,7 +352,7 @@ class SourceImage(Image):
             self.add_scripts(tarball, self.parser_path)
             # add setup scripts
             self.add_scripts(tarball, self.setup_path)
-            # add lib
+            # add lib scripts
             self.add_scripts(tarball, self.lib_path)
             # closing tarball file
             tarball.close()
@@ -409,6 +493,30 @@ class SourceImage(Image):
                 os.unlink(dest)
             raise
 
+    def select_scripts(self, directory):
+        '''
+        Generator of tuples (fp,fn,fc) of scripts witch are allocatable
+        in a real directory
+        '''
+        # ensure directory is unicode to have fn and fp in unicode
+        if not isinstance(directory, unicode):
+            directory = unicode(directory, locale.getpreferredencoding())
+        for fn in sorted(os.listdir(directory)):
+            fp = os.path.join(directory, fn)
+            # check name
+            if not re.match("^\d+-.*\.py$", fn):
+                continue
+            # check execution bit
+            if not os.access(fp, os.X_OK):
+                continue
+            # get module content
+            try:
+                fc = open(fp, "r").read()
+            except Exception as e:
+                raise ISError(u"Unable to read script %s" % n_scripts, e)
+            # yield complet file path, file name and file content
+            yield (fp, fn, fc)
+
     def add_scripts(self, tarball, directory):
         '''
         Add scripts inside a directory into a tarball
@@ -420,15 +528,20 @@ class SourceImage(Image):
         ti = tarball.gettarinfo(directory, arcname=basedirectory)
         ti.mode = 0755
         ti.uid = ti.gid = 0
-        ti.uname = ti.gname = "root"
+        ti.uname = ti.gname = ""
         tarball.addfile(ti)
         # adding each file
-        for fp, fn in self.select_scripts(directory):
-            ti = tarball.gettarinfo(fp, arcname=os.path.join(basedirectory, fn))
-            ti.mode = 0755
-            ti.uid = ti.gid = 0
-            ti.uname = ti.gname = "root"
-            tarball.addfile(ti, open(fp, "rb"))
+        for fp, fn, fc in self.select_scripts(directory):
+            # check input unicode stuff
+            assert(isinstance(fp, unicode))
+            assert(isinstance(fn, unicode))
+            assert(isinstance(fc, str))
+            # add file into tarball
+            tarball.add_str(os.path.join(basedirectory, fn),
+                            fc,
+                            tarfile.REGTYPE,
+                            0755,
+                            int(os.stat(fp).st_mtime))
             arrow(u"%s added" % fn)
         arrowlevel(-1)
 
@@ -440,65 +553,25 @@ class SourceImage(Image):
         arrow(u"Checking %s scripts" % basedirectory)
         arrowlevel(1)
         # checking each file
-        for fp, fn in self.select_scripts(directory):
-            # compiling file
-            fs = open(fp, "r").read()
-            compile(fs, fp.encode(locale.getpreferredencoding()), mode="exec")
+        for fp, fn, fc in self.select_scripts(directory):
+            # check input unicode stuff
+            assert(isinstance(fp, unicode))
+            assert(isinstance(fn, unicode))
+            assert(isinstance(fc, str))
             arrow(fn)
+            compile(fc, fn.encode(locale.getpreferredencoding()), "exec")
         arrowlevel(-1)
 
-    def run_scripts(self, script_directory, exec_directory):
+    def run_build(self):
         '''
-        Execute script inside a directory
-        Return a list of payload to force rebuild
+        Run build scripts
         '''
-        arrow(u"Run %s scripts" % os.path.basename(script_directory))
         rebuild_list = []
-        cwd = os.getcwd()
-        arrowlevel(1)
-        # load modules
-        lib_list = [fp.encode(locale.getpreferredencoding())
-                    for fp, fn in self.select_scripts(self.lib_path)]
-        func = lambda f: open(f).read()
-        modules = self._load_modules(lib_list, func)
-        for fp, fn in self.select_scripts(script_directory):
-            arrow(fn)
-            os.chdir(exec_directory)
-            old_level = arrowlevel(1)
-            # compile source code
-            try:
-                o_scripts = compile(open(fp, "r").read(), fn, "exec")
-            except Exception as e:
-                raise ISError(u"Unable to compile %s fail" % fn, e)
-            # define execution context
-            gl = {"rebuild": rebuild_list,
-                  "image": self}
-            # add embedded modules
-            gl.update(modules)
-            # execute source code
-            try:
-                exec o_scripts in gl
-            except Exception as e:
-                raise ISError(u"Execution script %s fail" % fn, e)
-            arrowlevel(level=old_level)
-        os.chdir(cwd)
-        arrowlevel(-1)
+        self.run_scripts(os.path.basename(self.build_path),
+                         lambda: self.select_scripts(self.build_path),
+                         self.payload_path,
+                         {"rebuild": rebuild_list})
         return rebuild_list
-
-    def select_scripts(self, directory):
-        '''
-        Select script with are allocatable in a directory
-        '''
-        for fn in sorted(os.listdir(directory)):
-            fp = os.path.join(directory, fn)
-            # check name
-            if not re.match("\d+-.*\.py$", fn):
-                continue
-            # check execution bit
-            if not os.access(fp, os.X_OK):
-                continue
-            # yield complet filepath and only script name
-            yield fp, fn
 
     def generate_json_description(self):
         '''
@@ -551,7 +624,7 @@ class SourceImage(Image):
         try:
             descpath = os.path.join(self.base_path, "description")
             cp = ConfigParser.RawConfigParser()
-            cp.readfp(codecs.open(descpath, "r", "utf8"))
+            cp.readfp(codecs.open(descpath, "r", "UTF-8"))
             for n in ("name","version", "description", "author"):
                 d[n] = cp.get("image", n)
             # get min image version
@@ -869,59 +942,36 @@ class PackageImage(Image):
                 arrow(u"Extracting payload %s in %s" % (payname, dest))
                 self.payload[payname].extract(dest, force=force)
 
-    def run_parser(self, **kwargs):
+    def run_parser(self, global_dict):
         '''
         Run parser scripts
         '''
-        self._run_scripts("parser", **kwargs)
+        if global_dict is None:
+            global_dict = {}
+        self.run_scripts("parser", lambda: self.select_scripts("parser"), "/", global_dict)
 
-    def run_setup(self, **kwargs):
+    def run_setup(self, global_dict=None):
         '''
         Run setup scripts
         '''
-        self._run_scripts("setup", **kwargs)
+        if global_dict is None:
+            global_dict = {}
+        self.run_scripts("setup", lambda: self.select_scripts("setup"), "/", global_dict)
 
-    def _run_scripts(self, directory, **kwargs):
+    def select_scripts(self, directory):
         '''
-        Run scripts in a tarball directory
+        Generator of tuples (fp,fn,fc) of scripts witch are allocatable
+        in a tarball directory
         '''
-        arrow(u"Run %s scripts" % directory)
-        arrowlevel(1)
-        # load modules
-        lib_list = self._tarball.getnames(re_pattern="lib/.*\.py")
-        modules = self._load_modules(lib_list, self._tarball.get_str)
-        # get list of parser scripts
-        l_scripts = self._tarball.getnames(re_pattern="%s/.*\.py" % directory)
-        # order matter!
-        l_scripts.sort()
-        # run scripts
-        for n_scripts in l_scripts:
-            arrow(os.path.basename(n_scripts))
-            old_level = arrowlevel(1)
+        for fp in sorted(self._tarball.getnames(re_pattern="%s/.*\.py" % directory)):
+            fn = os.path.basename(fp)
             # extract source code
             try:
-                s_scripts = self._tarball.get_str(n_scripts)
+                fc = self._tarball.get_str(fp)
             except Exception as e:
-                raise ISError(u"Extracting script %s fail" % n_scripts, e)
-            # compile source code
-            try:
-                o_scripts = compile(s_scripts, n_scripts, "exec")
-            except Exception as e:
-                raise ISError(u"Unable to compile %s fail" % n_scripts, e)
-            # define execution context
-            gl = {}
-            for k in kwargs:
-                gl[k] = kwargs[k]
-            gl["image"] = self
-            # Add embedded modules
-            gl.update(modules)
-            # execute source code
-            try:
-                exec o_scripts in gl
-            except Exception as e:
-                raise ISError(u"Execution script %s fail" % n_scripts, e)
-            arrowlevel(level=old_level)
-        arrowlevel(-1)
+                raise ISError(u"Unable to extract script %s" % fp, e)
+            # yield complet file path, file name and file content
+            yield (fp, fn, fc)
 
 
 class Payload(object):

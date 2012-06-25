@@ -160,7 +160,7 @@ def c_changelog(args):
     '''
     repoman = load_repositories(args)
     for image, repo in get_images(args.pattern, repoman, min=1):
-        image.changelog.show(int(image.version), args.all_version)
+        image.changelog.show(image.version, args.all_version)
 
 def c_check(args):
     '''

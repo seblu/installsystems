@@ -589,28 +589,82 @@ def compare_versions(v1, v2):
     return > 0 if v1 > v2
     return < 0 if v2 > v1
     return = 0 if v1 == v2
+
+    This uses the Debian package version sorting algorithm (see 'man deb-version')
     '''
 
-    def get_ver(version):
-        '''Return float version'''
-        if type(version) is int or type(version) is float:
-            return float(version)
-        elif isinstance(version, basestring):
-            iv = re.match("^(\d+)(?:([-~+]).*)?$", version)
-            if iv is None:
-                raise TypeError(u"Invalid version format: %s" % version)
-            rv = float(iv.group(1))
-            if iv.group(2) == "~":
-                rv -= 0.1
-            else:
-                rv += 0.1
-            return rv
-        else:
+    # Ensure versions have the right format
+    for version in v1, v2:
+        iv = re.match("^(\d+(?:\.\d+)*)(?:([~+]).*)?$", str(version))
+        if iv is None:
             raise TypeError(u"Invalid version format: %s" % version)
 
-    fv1 = get_ver(v1)
-    fv2 = get_ver(v2)
-    return fv1 - fv2
+    digitregex = re.compile(r'^([0-9]*)(.*)$')
+    nondigitregex = re.compile(r'^([^0-9]*)(.*)$')
+
+    digits = True
+    while v1 or v2:
+        pattern = digitregex if digits else nondigitregex
+        sub_v1, v1 = pattern.findall(str(v1))[0]
+        sub_v2, v2 = pattern.findall(str(v2))[0]
+
+        if digits:
+            sub_v1 = int(sub_v1 if sub_v1 else 0)
+            sub_v2 = int(sub_v2 if sub_v2 else 0)
+            if sub_v1 < sub_v2:
+                rv = -1
+            elif sub_v1 > sub_v2:
+                rv = 1
+            else:
+                rv = 0
+            if rv != 0:
+                return rv
+        else:
+            rv = strvercmp(sub_v1, sub_v2)
+            if rv != 0:
+                return rv
+
+        digits = not digits
+    return 0
+
+def strvercmp(lhs, rhs):
+    '''
+    Compare string part of a version number
+    '''
+    size = max(len(lhs), len(rhs))
+    lhs_array = str_version_array(lhs, size)
+    rhs_array = str_version_array(rhs, size)
+    if lhs_array > rhs_array:
+        return 1
+    elif lhs_array < rhs_array:
+        return -1
+    else:
+        return 0
+
+def str_version_array(str_version, size):
+    '''
+    Turns a string into an array of numeric values kind-of corresponding to
+    the ASCII numeric values of the characters in the string.  I say 'kind-of'
+    because any character which is not an alphabetic character will be
+    it's ASCII value + 256, and the tilde (~) character will have the value
+    -1.
+
+    Additionally, the +size+ parameter specifies how long the array needs to
+    be; any elements in the array beyond the length of the string will be 0.
+
+    This method has massive ASCII assumptions. Use with caution.
+    '''
+    a = [0] * size
+    for i, char in enumerate(str_version):
+        char = ord(char)
+        if ((char >= ord('a') and char <= ord('z')) or
+            (char >= ord('A') and char <= ord('Z'))):
+            a[i] = char
+        elif char == ord('~'):
+            a[i] = -1
+        else:
+            a[i] = char + 256
+    return a
 
 def get_compressor_path(name, compress=True, level=None):
     '''

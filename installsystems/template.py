@@ -82,7 +82,7 @@ arrow(u"hostname: %s" % namespace.hostname)
 createdb = u"""
 CREATE TABLE image (md5 TEXT NOT NULL PRIMARY KEY,
                     name TEXT NOT NULL,
-                    version INTEGER NOT NULL,
+                    version TEXT NOT NULL,
                     date INTEGER NOT NULL,
                     author TEXT,
                     description TEXT,

@@ -196,14 +196,15 @@ class Repository(object):
 
     def last(self, name):
         '''
-        Return last version of name in repo or -1 if not found
+        Return last version of name in repo or None if not found
         '''
-        r = self.db.ask("SELECT version FROM image WHERE name = ? ORDER BY version DESC LIMIT 1", (name,)).fetchone()
+        r = self.db.ask("SELECT version FROM image WHERE name = ?", (name,)).fetchall()
         # no row => no way
         if r is None:
-            return -1
+            return None
+        f = lambda x,y: x[0] if istools.compare_versions(x[0], y[0]) > 0 else y[0]
         # return last
-        return r[0]
+        return reduce(f, r)
 
     def add(self, image, delete=False):
         '''
@@ -455,7 +456,7 @@ class Repository(object):
         # is no version take the last
         if version is None:
             version = self.last(name)
-            if version < 0:
+            if version is None:
                 raise ISError(u"Unable to find image %s in %s" % (name,
                                                                       self.config.name))
         # get file md5 from db

@@ -69,7 +69,7 @@ class Image(object):
         '''
         Check if @buf is a valid image version
         '''
-        if re.match("^\d+$", buf) is None:
+        if re.match("^\d+(\.\d+)*(([~+]).*)?$", buf) is None:
             raise ISError(u"Invalid image version %s" % buf)
 
     @staticmethod
@@ -1340,9 +1340,9 @@ class Changelog(dict):
             if line.lstrip().startswith("#"):
                 continue
             # try to match a new version
-            m = re.match("\[(\d+)\]", line.lstrip())
+            m = re.match("\[(\d+(?:\.\d+)*)(?:([~+]).*)?\]", line.lstrip())
             if m is not None:
-                version = int(m.group(1))
+                version = m.group(1)
                 self[version] = []
                 continue
             # if line are out of a version => invalid format

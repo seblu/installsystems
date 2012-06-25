@@ -4,8 +4,8 @@ INSTALLSYSTEMS VERSIONNING
 __________________________
 
 A valid version is an integer without dot.
-A version n, may be followed by a ~, to indicate it's inferior to n
-A version n, may be followed by a +, to indicate it's superior to n
+A version n may be followed by a ~ to indicate it's inferior to n
+A version n may be followed by a + to indicate it's superior to n
 Any following chars after ~ or + are ignored
 
 Examples:
@@ -17,4 +17,10 @@ Examples:
 
 IMAGES VERSIONNING
 __________________
-A valid version is an integer. Nothing more!
+A valid version is a string of digits separated by dots.
+A version n may be followed by a ~ to indicate it's inferior to n
+A version n may be followed by a + to indicate it's superior to n
+
+Examples:
+  1.2.3~dev < 1.2.3 < 1.2.3+dev
+  7~dev < 7 < 7+dev

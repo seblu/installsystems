@@ -141,8 +141,7 @@ class PipeFile(object):
         try:
             self.fo = urllib2.urlopen(path, timeout=self.timeout)
         except Exception as e:
-            # FIXME: unable to open file
-            raise IOError(e)
+            raise ISError("Unable to open %s" % path, e)
         # get file size
         if "Content-Length" in self.fo.headers:
             self.size = int(self.fo.headers["Content-Length"])
@@ -162,8 +161,7 @@ class PipeFile(object):
         try:
             self.fo = urllib2.urlopen(path, timeout=self.timeout)
         except Exception as e:
-            # FIXME: unable to open file
-            raise IOError(e)
+            raise ISError("Unable to open %s" % path, e)
         # get file size
         try:
             self.size = int(self.fo.headers["content-length"])
@@ -178,7 +176,7 @@ class PipeFile(object):
         try:
             import paramiko
         except ImportError:
-            raise IOError("URL type not supported")
+            raise ISError("URL type not supported. Paramiko is missing")
         # parse url
         (login, passwd, host, port, path) = re.match(
             "ssh://(([^:]+)(:([^@]+))?@)?([^/:]+)(:(\d+))?(/.*)?", path).group(2, 4, 5, 7, 8)
@@ -216,7 +214,7 @@ class PipeFile(object):
 
     def read(self, size=None):
         if self.mode == "w":
-            raise IOError("Unable to read in w mode")
+            raise ISError("Unable to read in w mode")
         buf = self.fo.read(size)
         length = len(buf)
         self._md5.update(buf)
@@ -231,7 +229,7 @@ class PipeFile(object):
 
     def write(self, buf):
         if self.mode == "r":
-            raise IOError("Unable to write in r mode")
+            raise ISError("Unable to write in r mode")
         self.fo.write(buf)
         length = len(buf)
         self._md5.update(buf)

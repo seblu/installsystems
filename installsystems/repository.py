@@ -606,7 +606,7 @@ class RepositoryManager(object):
         try:
             original_dbpath = config.dbpath
             if temp and nosync:
-                raise IOError("sync is disabled")
+                raise ISError("sync is disabled")
             elif temp:
                 # this is a temporary cached repository
                 tempfd, config.dbpath = tempfile.mkstemp()
@@ -623,7 +623,7 @@ class RepositoryManager(object):
                     try:
                         rlast = int(PipeFile(config.lastpath, mode='r',
                                              timeout=self.timeout).read().strip())
-                    except IOError:
+                    except ISError:
                         rlast = -1
                 else:
                     rlast = rdb.mtime
@@ -650,7 +650,7 @@ class RepositoryManager(object):
                         if os.path.exists(config.dbpath):
                             os.unlink(config.dbpath)
                         raise
-        except IOError as e:
+        except ISError as e :
             # if something append bad during caching, we mark repo as offline
             debug(u"Unable to cache repository %s: %s" % (config.name, e))
             config.offline = True

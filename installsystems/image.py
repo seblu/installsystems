@@ -944,6 +944,40 @@ class PackageImage(Image):
                 arrow(u"Extracting payload %s in %s" % (payname, dest))
                 self.payload[payname].extract(dest, force=force)
 
+    def run(self, parser, extparser, load_modules=True, run_parser=True,
+            run_setup=True):
+        '''
+        Run images scripts
+
+        parser is the whole command line parser
+        extparser is the parser extensible by parser scripts
+
+        if load_modules is true load image modules
+        if run_parser is true run parser scripts
+        if run_setup is true run setup scripts
+        '''
+        # register start time
+        t0 = time.time()
+        # load image modules
+        if load_modules:
+            self.load_modules(lambda: self.select_scripts("lib"))
+        # run parser scripts to extend extparser
+        # those scripts should only extand the parser or produce error
+        if run_parser:
+            self.run_parser({"parser": extparser})
+        # call parser (again), with full options
+        arrow("Parsing command line")
+        # Catch exception in custom argparse action
+        try:
+            args = parser.parse_args()
+        except Exception as e:
+            raise ISError("Argument parser", e)
+        # run setup scripts
+        if run_setup:
+            self.run_setup({"namespace": args})
+        # return the building time
+        return int(time.time() - t0)
+
     def run_parser(self, global_dict):
         '''
         Run parser scripts

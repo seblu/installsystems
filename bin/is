@@ -301,24 +301,9 @@ def c_install(args):
     image, repo = next(get_images([args.pattern], repoman, min=1, max=1))
     # Print setup information
     arrow(u"Installing %s v%s" % (image.name, image.version))
-    # install start time
-    t0 = time.time()
-    # run parser scripts with parser parser argument
-    image.run_parser({"parser": subparser})
-    # call parser again, with extended attributes
-    arrow("Parsing arguments")
-    # Catch exception in custom argparse action
-    try:
-        args = args.parser.parse_args()
-    except Exception as e:
-        raise ISError("Parsing error", e)
-    # run setup scripts
-    if not args.dry_run:
-        image.run_setup({"namespace": args})
-        # compute building time
-        t1 = time.time()
-        dt = int(t1 - t0)
-        arrow(u"Install time: %s" % datetime.timedelta(seconds=dt))
+    # let's go
+    dt = image.run(args.parser, subparser, run_setup=not args.dry_run)
+    arrow(u"Install time: %s" % datetime.timedelta(seconds=dt))
 
 def c_list(args):
     '''

@@ -139,7 +139,10 @@ class PipeFile(object):
         Open a file accross an http server
         '''
         try:
-            self.fo = urllib2.urlopen(path, timeout=self.timeout)
+            headers = {"User-Agent": "%s v%s" % (installsystems.canonical_name,
+                                                 installsystems.version)}
+            request = urllib2.Request(path, None, headers)
+            self.fo = urllib2.urlopen(request, timeout=self.timeout)
         except Exception as e:
             raise ISError("Unable to open %s" % path, e)
         # get file size

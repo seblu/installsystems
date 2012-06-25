@@ -118,6 +118,7 @@ def c_build(args):
     '''
     Build a source image in the current directory
     '''
+    gdt = 0
     for path in args.paths:
         arrow("Build %s" % path)
         # chdir inside path if --chdir
@@ -131,10 +132,13 @@ def c_build(args):
         # do the job
         dt = simg.build(force=args.force, force_payload=args.payload,
                         check=not args.no_check, script=not args.no_script)
+        gdt += dt
         arrow(u"Build time: %s" % datetime.timedelta(seconds=dt))
         if args.chdir:
             os.chdir(cwd)
         arrowlevel(-1)
+    if len(args.paths) > 1:
+        arrow(u"Global build time: %s" % datetime.timedelta(seconds=gdt))
 
 def c_cat(args):
     '''

@@ -61,9 +61,9 @@ def load_repositories(args):
     # register repositories (order matter)
     # load repo configs from command line
     if args.repo_path != "":
-        repoman.register(RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
-                                          path=args.repo_path), temp=True,
-                         nosync=args.no_sync)
+        repoconf = RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
+                                    path=args.repo_path)
+        repoman.register(repoconf, temp=True, nosync=args.no_sync)
     # load repo configs from config
     for repoconf in RepoConfigFile(args.repo_config).repos:
         repoman.register(repoconf,  nosync=args.no_sync)

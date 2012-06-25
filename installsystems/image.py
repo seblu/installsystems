@@ -273,7 +273,7 @@ class SourceImage(Image):
         self.check_source_image()
         self.description = self.parse_description()
         self.changelog = self.parse_changelog()
-        self.modules = None
+        self.modules = {}
         # script tarball path
         self.image_name = u"%s-%s%s" % (self.description["name"],
                                         self.description["version"],

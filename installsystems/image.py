@@ -301,6 +301,8 @@ class SourceImage(Image):
         # check if free to create script tarball
         if os.path.exists(self.image_name) and force == False:
             raise ISError("Tarball already exists. Remove it before")
+        # register start time
+        t0 = time.time()
         # check python scripts
         if check:
             for d in (self.build_path, self.parser_path, self.setup_path):
@@ -322,6 +324,8 @@ class SourceImage(Image):
         jdesc = self.generate_json_description()
         # creating scripts tarball
         self.create_image(jdesc)
+        # compute building time
+        return int(time.time() - t0)
 
     def create_image(self, jdescription):
         '''

@@ -284,6 +284,8 @@ class SourceImage(Image):
         Check if we are a valid SourceImage directories
         '''
         # setup and payload are the only needed dirs
+        # setup are mandatory to do something
+        # payload directory is needed because build script chroot into payload directory
         for d in (self.setup_path, self.payload_path):
             if not os.path.exists(d):
                 raise ISError(u"Invalid source image: directory %s is missing" % d)
@@ -317,9 +319,8 @@ class SourceImage(Image):
         # remove list
         rl = set()
         # run build script
-        if os.path.exists(self.build_path):
-            if script:
-                rl |= set(self.run_build())
+        if script and os.path.exists(self.build_path):
+            rl |= set(self.run_build())
         if force_payload:
             rl |= set(self.select_payloads())
         # remove payloads
@@ -358,9 +359,9 @@ class SourceImage(Image):
             tarball.add_str("format", self.format, tarfile.REGTYPE, 0644)
             # add setup scripts
             self.add_scripts(tarball, self.setup_path)
+            # add optional scripts
             for d in (self.build_path, self.parser_path, self.lib_path):
                 if os.path.exists(d):
-                    # add scripts
                     self.add_scripts(tarball, d)
             # closing tarball file
             tarball.close()

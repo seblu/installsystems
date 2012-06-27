@@ -283,14 +283,17 @@ class SourceImage(Image):
         '''
         Check if we are a valid SourceImage directories
         '''
-        for d in (self.base_path, self.build_path, self.parser_path,
-                  self.setup_path, self.payload_path, self.lib_path):
+        # setup and payload are the only needed dirs
+        for d in (self.setup_path, self.payload_path):
             if not os.path.exists(d):
                 raise ISError(u"Invalid source image: directory %s is missing" % d)
-            if not os.path.isdir(d):
-                raise ISError(u"Invalid source image: %s is not a directory" % d)
-            if not os.access(d, os.R_OK|os.X_OK):
-                raise ISError(u"Invalid source image: unable to access to %s" % d)
+        for d in (self.base_path, self.build_path, self.parser_path,
+                  self.setup_path, self.payload_path, self.lib_path):
+            if os.path.exists(d):
+                if not os.path.isdir(d):
+                    raise ISError(u"Invalid source image: %s is not a directory" % d)
+                if not os.access(d, os.R_OK|os.X_OK):
+                    raise ISError(u"Invalid source image: unable to access to %s" % d)
         if not os.path.exists(os.path.join(self.base_path, "description")):
             raise ISError("Invalid source image: no description file")
 
@@ -305,15 +308,18 @@ class SourceImage(Image):
         t0 = time.time()
         # check python scripts
         if check:
-            for d in (self.build_path, self.parser_path, self.setup_path):
-                self.check_scripts(d)
+            for d in (self.build_path, self.parser_path, self.setup_path,
+                      self.lib_path):
+                if os.path.exists(d) or d == self.setup_path:
+                    self.check_scripts(d)
         # load modules
         self.load_modules(lambda: self.select_scripts(self.lib_path))
         # remove list
         rl = set()
         # run build script
-        if script:
-            rl |= set(self.run_build())
+        if os.path.exists(self.build_path):
+            if script:
+                rl |= set(self.run_build())
         if force_payload:
             rl |= set(self.select_payloads())
         # remove payloads
@@ -350,14 +356,12 @@ class SourceImage(Image):
             # add format
             arrow("Add format")
             tarball.add_str("format", self.format, tarfile.REGTYPE, 0644)
-            # add build scripts
-            self.add_scripts(tarball, self.build_path)
-            # add parser scripts
-            self.add_scripts(tarball, self.parser_path)
             # add setup scripts
             self.add_scripts(tarball, self.setup_path)
-            # add lib scripts
-            self.add_scripts(tarball, self.lib_path)
+            for d in (self.build_path, self.parser_path, self.lib_path):
+                if os.path.exists(d):
+                    # add scripts
+                    self.add_scripts(tarball, d)
             # closing tarball file
             tarball.close()
         except (SystemExit, KeyboardInterrupt):
@@ -505,6 +509,8 @@ class SourceImage(Image):
         # ensure directory is unicode to have fn and fp in unicode
         if not isinstance(directory, unicode):
             directory = unicode(directory, locale.getpreferredencoding())
+        if not os.path.exists(directory):
+            return
         for fn in sorted(os.listdir(directory)):
             fp = os.path.join(directory, fn)
             # check name

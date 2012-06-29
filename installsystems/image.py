@@ -40,6 +40,7 @@ import time
 import installsystems
 import installsystems.template as istemplate
 import installsystems.tools as istools
+from installsystems.ordereddict import OrderedDict
 from installsystems.exception import *
 from installsystems.printer import *
 from installsystems.tools import PipeFile
@@ -634,7 +635,7 @@ class SourceImage(Image):
         d = dict()
         try:
             descpath = os.path.join(self.base_path, "description")
-            cp = ConfigParser.RawConfigParser()
+            cp = ConfigParser.RawConfigParser(dict_type=OrderedDict)
             cp.readfp(codecs.open(descpath, "r", "UTF-8"))
             for n in ("name","version", "description", "author"):
                 d[n] = cp.get("image", n)

@@ -112,7 +112,7 @@ _is() {
         typeset -gHa _is_cmds
         if _cache_invalid is-cmds || ! _retrieve_cache is-cmds; then
             _is_cmds=(
-            ${${${(f)${${"$(_call_program commands is --help)"#l#*positional arguments:*{*}}%%optional arguments:*}}/(#s)[[:space:]]#(#b)([-a-z_]##)[[:space:]]##([a-z]##)/$match[1]:$match[2]:l}/     */}
+            ${${${(f)${${"$(_call_program commands is --help 2>/dev/null)"#l#*positional arguments:*{*}}%%optional arguments:*}}/(#s)[[:space:]]#(#b)([-a-z_]##)[[:space:]]##([a-z]##)/$match[1]:$match[2]:l}/     */}
             )
             _store_cache is-cmds _is_cmds
         fi
@@ -124,7 +124,7 @@ _is() {
             ;;
         repolist)
             local repos
-            repos=($(_call_program options is --quiet --no-color --no-sync repo))
+            repos=($(_call_program options is --quiet --no-color --no-sync repo 2>/dev/null))
             _values -s , 'repository' $repos && ret=0
             ;;
         args)

@@ -981,9 +981,11 @@ class PackageImage(Image):
                              {"parser": extparser})
         # call parser (again), with full options
         arrow("Parsing command line")
+        # encode command line arguments to utf-8
+        args = istools.argv()[1:]
         # Catch exception in custom argparse action
         try:
-            args = parser.parse_args()
+            args = parser.parse_args(args=args)
         except Exception as e:
             raise ISError("Argument parser", e)
         # run setup scripts

@@ -29,7 +29,6 @@ import argparse
 import psutil
 import socket
 import sys
-import locale
 import installsystems
 import installsystems.printer
 import installsystems.tools as istools
@@ -674,10 +673,7 @@ def main():
         # init arg parser
         arg_parser = arg_parser_init()
         # encode command line arguments to utf-8
-        try:
-            args = [ unicode(x, encoding=locale.getpreferredencoding()) for x in sys.argv[1:]]
-        except UnicodeDecodeError as e:
-            raise ISError("Invalid character encoding in command line")
+        args = istools.argv()[1:]
         # first partial parsing, to get early debug and config path
         options = arg_parser.parse_known_args(args=args)[0]
         # set early command line verbosity and color
@@ -735,6 +731,7 @@ def main():
         error(exception=e)
     except Exception as e:
         error(u"Unexpected error, please report it with debug enabled", exception=e)
+
 
 # Entry point
 if __name__ == '__main__':

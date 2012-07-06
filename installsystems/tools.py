@@ -670,3 +670,12 @@ def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False)
                 os.chmod(file_path, st.st_mode)
                 if not keep:
                     os.unlink(tpl_path)
+
+def argv():
+    '''
+    Return system argv after an unicode transformation with locale preference
+    '''
+    try:
+        return [unicode(x, encoding=locale.getpreferredencoding()) for x in sys.argv]
+    except UnicodeDecodeError as e:
+        raise ISError("Invalid character encoding in command line")

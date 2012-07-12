@@ -404,7 +404,7 @@ def arg_parser_init():
     '''
     Create command parser
     '''
-    # Top level argument parsing
+    # top level argument parsing
     parser = argparse.ArgumentParser()
     parser.add_argument("-V", "--version", action="version",
                         version=installsystems.version)

@@ -27,7 +27,7 @@ OPTIONS
     show an help message and exit
 
 -V, --version
-    show installsystems version
+    show InstallSystems version
 
 -v {0,1,2}, --verbosity {0,1,2}
     show InstallSystems version
@@ -122,7 +122,7 @@ check [-h] *repository*
 
 
 chroot [-h] [-m] [-s *SHELL*\ ] *path*
-    Chroot inside *path*. This is especially usefull to update system images. This mounts filesystems (/proc, /sys, /dev, /dev/pts, /dev/shm), modify a few config files (resolv.conf, mtab) and finally executes a shell in your chroot (default: /bin/bash)
+    Chroot inside *path*. This is especially useful to update system images. This mounts filesystems (/proc, /sys, /dev, /dev/pts, /dev/shm), modify a few config files (resolv.conf, mtab) and finally executes a shell in your chroot (default: /bin/bash)
 
     -m, --no-mount
         disable mounting of /{proc,dev,sys}
@@ -142,14 +142,14 @@ copy [-h] [-f] *image*... *repository*
     Copy one *image* (or more) to another local **repository**.
 
      -f, --force
-         overwrite existing images whithout prompting
+         overwrite existing images without prompting
 
 
 del [-h] [-f] [-p] *image*...
     Delete one *image* (or more) from its repository.
 
     -f, --force
-        delete images whithout prompting
+        delete images without prompting
 
     -p, --preserve
         do not remove payloads from the repository
@@ -173,7 +173,7 @@ extract [-h] [-f] [-g] [-p] *image* *path*
 
 
 get [-h] [-f] [-I] [-p] *image*...
-    Download a remote InstallSystem *image* in current directory.
+    Download a remote InstallSystems *image* in current directory.
 
     -f, --force
         overwrite existing destination
@@ -279,7 +279,7 @@ repo [-h] [-j] [-l|-r] [-o|-O] [-s] [-u] [--purge] [repository]...
         output is formated in json
 
     -l, --local
-        list local repositoriez (filter)
+        list local repositories (filter)
 
     -r, --remote
         list remote repositories (filter)
@@ -337,7 +337,7 @@ InstallSystems use two kind of images:
 
 **source image**
 
-     Each image available in repositories has to be build. The image before building is called a source image. In a source image, there are five directories and two files. Each images make the distinction between scripts and payloads.
+     Each image available in repositories has to be built. The image before building is called a source image. In a source image, there are typically five directories and three files.
 
     build/
         Scripts to customize the build process for the image.
@@ -349,7 +349,7 @@ InstallSystems use two kind of images:
         The scripts with logical steps of the install are in this directory.
 
     lib/
-        Python modules which are embeded in image.
+        Python modules needed to build and/or to install the image
 
     payload/
         This directory embeds one or more payloads (typically rootfs) for the image.
@@ -376,5 +376,5 @@ REPOSITORIES
 
 InstallSystems manages images with repositories.
 
-An InstallSystems repository use a SQLite3 database (db), a last file (timestamp of last db modification) and MD5s of images. The repos are reachable by HTTP(S), FTP and SSH. This allows you to easily access images.
+An InstallSystems repository use a SQLite3 database (db), a last file (timestamp of last db modification) and MD5s of images. Repositories are reachable by HTTP(S), FTP and SSH. This allows you to easily access images.
 Also, please note that you can only modify local repositories.

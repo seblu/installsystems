@@ -101,7 +101,7 @@ class Image(object):
             bytecode = compile(code, filename.encode(locale.getpreferredencoding()), "exec")
         except Exception as e:
             raise ISError(u"Unable to compile %s" % filename, e)
-        # Load module
+        # load module
         try:
             exec bytecode in module.__dict__
         except Exception as e:
@@ -697,7 +697,7 @@ class PackageImage(Image):
                                                                          pkg1.version,
                                                                          pkg2.name,
                                                                          pkg2.version))
-        # Extract images for diff scripts files
+        # extract images for diff scripts files
         fromfiles = set(pkg1._tarball.getnames(re_pattern="(parser|setup)/.*"))
         tofiles = set(pkg2._tarball.getnames(re_pattern="(parser|setup)/.*"))
         for f in fromfiles | tofiles:
@@ -748,7 +748,7 @@ class PackageImage(Image):
             fileobj.consume(memfile)
             # close source
             fileobj.close()
-            # get donwloaded size and md5
+            # get downloaded size and md5
             self.size = fileobj.read_size
             self.md5 = fileobj.md5
             memfile.seek(0)
@@ -974,7 +974,7 @@ class PackageImage(Image):
         if load_modules:
             self.load_modules(lambda: self.select_scripts("lib"))
         # run parser scripts to extend extparser
-        # those scripts should only extand the parser or produce error
+        # those scripts should only extend the parser or produce error
         if run_parser:
             self.run_scripts("parser",
                              lambda: self.select_scripts("parser"),
@@ -984,7 +984,7 @@ class PackageImage(Image):
         arrow("Parsing command line")
         # encode command line arguments to utf-8
         args = istools.argv()[1:]
-        # Catch exception in custom argparse action
+        # catch exception in custom argparse action
         try:
             args = parser.parse_args(args=args)
         except Exception as e:
@@ -1162,7 +1162,7 @@ class Payload(object):
                 raise ISError(u"Destination %s is a directory" % dest)
             if not force:
                 raise ISError(u"File %s already exists" % dest)
-        # Open remote file
+        # open remote file
         debug(u"Downloading payload %s from %s" % (self.filename, self.path))
         fs = PipeFile(self.path, progressbar=True)
         # check if announced file size is good

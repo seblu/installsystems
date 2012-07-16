@@ -103,7 +103,7 @@ class Image(object):
             raise ISError(u"Unable to compile %s" % filename, e)
         # load module
         try:
-            exec bytecode in module.__dict__
+            self.secure_exec_bytecode(bytecode, name, module.__dict__)
         except Exception as e:
             raise ISError(u"Unable to load %s" % filename, e)
         return module
@@ -148,9 +148,6 @@ class Image(object):
         arrow(u"Run %s scripts" % scripts_name)
         # backup current directory and loaded modules
         cwd = os.getcwd()
-        # system modules dict
-        sysmodules = sys.modules
-        sysmodules_backup = sysmodules.copy()
         for fp, fn, fc in select_scripts():
             # check input unicode stuff
             assert(isinstance(fp, unicode))
@@ -166,27 +163,36 @@ class Image(object):
                 bytecode = compile(fc, fn.encode(locale.getpreferredencoding()), "exec")
             except Exception as e:
                 raise ISError(u"Unable to compile script %s" % fp, e)
-            # autoload modules
-            global_dict.update(self.modules)
             # add current image
             global_dict["image"] = self
             # execute source code
-            try:
-                # replace system modules by image loaded
-                # we must use the same directory and not copy it (probably C reference)
-                sysmodules.clear()
-                # sys must be in sys.module to allow loading of modules
-                sysmodules["sys"] = sys
-                sysmodules.update(self.modules)
-                exec bytecode in global_dict
-                sysmodules.clear()
-                sysmodules.update(sysmodules_backup)
-            except Exception as e:
-                sysmodules.clear()
-                sysmodules.update(sysmodules_backup)
-                raise ISError(u"Unable to execute script %s" % fp, e)
+            self.secure_exec_bytecode(bytecode, fp, global_dict)
             arrowlevel(level=old_level)
         os.chdir(cwd)
+
+    def secure_exec_bytecode(self, bytecode, path, global_dict):
+        '''
+        Execute bytecode in a clean modules' environment, without altering
+        Installsystems' sys.modules
+        '''
+        # system modules dict
+        sysmodules = sys.modules
+        sysmodules_backup = sysmodules.copy()
+        # autoload modules
+        global_dict.update(self.modules)
+        try:
+            # replace system modules by image loaded
+            # we must use the same directory and not copy it (probably C reference)
+            sysmodules.clear()
+            # sys must be in sys.module to allow loading of modules
+            sysmodules["sys"] = sys
+            sysmodules.update(self.modules)
+            exec bytecode in global_dict
+        except Exception as e:
+            raise ISError(u"Unable to execute script %s" % path, e)
+        finally:
+            sysmodules.clear()
+            sysmodules.update(sysmodules_backup)
 
 
 class SourceImage(Image):

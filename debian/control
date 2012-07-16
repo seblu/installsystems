@@ -15,7 +15,7 @@ Description: Python2 Installation framework
 
 Package: python-installsystems
 Architecture: all
-Depends: ${misc:Depends}, ${python:Depends}, python-paramiko, python-argparse (>= 1.2.1), python-progressbar (>= 2.3), python-jinja2
+Depends: ${misc:Depends}, ${python:Depends}, python-paramiko, python-argparse (>= 1.2.1), python-progressbar (>= 2.3), python-jinja2, python-configobj
 XB-Python-Version: ${python:Versions}
 Description: Python2 Installation framework - Python2 modules
  This package provides InstallSystems Python modules

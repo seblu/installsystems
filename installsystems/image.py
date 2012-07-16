@@ -22,7 +22,7 @@ Image stuff
 '''
 
 import codecs
-import ConfigParser
+import configobj
 import cStringIO
 import difflib
 import imp
@@ -37,14 +37,27 @@ import subprocess
 import sys
 import tarfile
 import time
+import validate
 import installsystems
 import installsystems.template as istemplate
 import installsystems.tools as istools
-from installsystems.ordereddict import OrderedDict
 from installsystems.exception import *
 from installsystems.printer import *
 from installsystems.tools import PipeFile
 from installsystems.tarball import Tarball
+
+
+# This must not be an unicode string, because configobj don't decode configspec
+# with the provided encoding
+DESCRIPTION_CONFIG_SPEC = """\
+[image]
+name = IS_name
+version = IS_version
+description = string
+author = string
+is_min_version = IS_min_version
+"""
+
 
 class Image(object):
     '''
@@ -63,6 +76,9 @@ class Image(object):
         '''
         if re.match("^[-_\w]+$", buf) is None:
             raise ISError(u"Invalid image name %s" % buf)
+        # return the image name, because this function is used by ConfigObj
+        # validate to ensure the image name is correct
+        return buf
 
     @staticmethod
     def check_image_version(buf):
@@ -71,6 +87,21 @@ class Image(object):
         '''
         if re.match("^\d+(\.\d+)*(([~+]).*)?$", buf) is None:
             raise ISError(u"Invalid image version %s" % buf)
+        # return the image version, because this function is used by ConfigObj
+        # validate to ensure the image version is correct
+        return buf
+
+    @staticmethod
+    def check_min_version(version):
+        '''
+        Check InstallSystems min version
+        '''
+        if istools.compare_versions(installsystems.version, version) < 0:
+            raise ISError("Minimum Installsystems version not satisfied "
+                          "(%s)" % version)
+        # return the version, because this function is used by ConfigObj
+        # validate to ensure the version is correct
+        return version
 
     @staticmethod
     def compare_versions(v1, v2):
@@ -644,23 +675,23 @@ class SourceImage(Image):
         d = dict()
         try:
             descpath = os.path.join(self.base_path, "description")
-            cp = ConfigParser.RawConfigParser(dict_type=OrderedDict)
-            cp.readfp(codecs.open(descpath, "r", "UTF-8"))
-            for n in ("name","version", "description", "author"):
-                d[n] = cp.get("image", n)
-            # get min image version
-            if cp.has_option("image", "is_min_version"):
-                d["is_min_version"] = cp.get("image", "is_min_version")
-            else:
-                d["is_min_version"] = 0
-            # check image name
-            self.check_image_name(d["name"])
-            # check image version
-            self.check_image_version(d["version"])
-            # check installsystems min version
-            if self.compare_versions(installsystems.version, d["is_min_version"]) < 0:
-                raise ISError("Minimum Installsystems version not satisfied "
-                              "(%s)" % d["is_min_version"])
+            cp = configobj.ConfigObj(descpath,
+                                     configspec=DESCRIPTION_CONFIG_SPEC.splitlines(),
+                                     encoding="utf8", file_error=True)
+            res = cp.validate(validate.Validator({"IS_name": Image.check_image_name,
+                                                  "IS_version": Image.check_image_version,
+                                                  "IS_min_version": Image.check_min_version}), preserve_errors=True)
+            # If everything is fine, the validation return True
+            # Else, it returns a list of (section, optname, error)
+            if res is not True:
+                for section, optname, error in configobj.flatten_errors(cp, res):
+                    # If error is False, this mean no value as been supplied,
+                    # so we use the default value
+                    # Else, the check has failed
+                    if error:
+                        installsystems.printer.error('Wrong description file, %s %s: %s' % (section, optname, error))
+            for n in ("name","version", "description", "author", "is_min_version"):
+                d[n] = cp["image"][n]
         except Exception as e:
             raise ISError(u"Bad description", e)
         return d

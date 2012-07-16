@@ -24,10 +24,45 @@ import codecs
 import os
 import sys
 from argparse import Namespace
-from ConfigParser import RawConfigParser
+from configobj import ConfigObj, flatten_errors
+from validate import Validator
 from installsystems.exception import *
 from installsystems.printer import *
 from installsystems.repository import RepositoryConfig
+
+# This must not be an unicode string, because configobj don't decode configspec
+# with the provided encoding
+MAIN_CONFIG_SPEC = """\
+[installsystems]
+verbosity = integer(0, 2)
+repo_config = string
+repo_search = string
+repo_filter = string
+repo_timeout = integer
+cache = string(default=%s)
+timeout = integer
+no_cache = boolean
+no_check = boolean
+no-sync = boolean
+no_color = boolean
+nice = integer
+ionice_class = option("none", "rt", "be", "idle")
+ionice_level = integer
+"""
+
+# This must not be an unicode string, because configobj don't decode configspec
+# with the provided encoding
+REPO_CONFIG_SPEC = """\
+[__many__]
+    path = string
+    fmod = integer
+    dmod = integer
+    uid = string
+    gid = string
+    offline = boolean
+    lastpath = string
+    dbpath = string
+"""
 
 
 class ConfigFile(object):
@@ -37,20 +72,37 @@ class ConfigFile(object):
 
     def __init__(self, filename):
         '''
-        filename can be full path to config file or a name in config directory
+        Filename can be full path to config file or a name in config directory
         '''
-        #try to get filename in default config dir
+        # try to get filename in default config dir
         if os.path.isfile(filename):
             self.path = os.path.abspath(filename)
         else:
             self.path = self._config_path(filename)
-        self.reload()
+        # loading config file if exists
+        if self.path is None:
+            raise ISWarning("No config file to load")
+        self.config = ConfigObj(self.path, configspec=self.configspec,
+                                encoding="utf8", file_error=True)
+        self.validate()
 
-    def reload():
+    def validate(self):
         '''
-        Reload configuration from file
+        Validate the configuration file according to the configuration specification
+        If some values doesn't respect specification, she's ignored and a warning is issued.
         '''
-        raise NotImplementedError
+        res = self.config.validate(Validator(), preserve_errors=True)
+        # If everything is fine, the validation return True
+        # Else, it returns a list of (section, optname, error)
+        if res is not True:
+            for section, optname, error in flatten_errors(self.config, res):
+                # If error is False, this mean no value as been supplied,
+                # so we use the default value
+                # Else, the check has failed
+                if error:
+                    warn("%s: %s Skipped" % (optname, error))
+                    # remove wrong value to avoid merging it with argparse value
+                    del self.config[section[0]][optname]
 
     def _config_path(self, name):
         '''
@@ -65,90 +117,19 @@ class ConfigFile(object):
 
 class MainConfigFile(ConfigFile):
     '''
-    Program configuration file
+    Program configuration class
     '''
 
-    valid_options = {
-        "verbosity": [0,1,2],
-        "no_cache": bool,
-        "no_color": bool,
-        "timeout": int,
-        "cache": str,
-        "repo_search": str,
-        "repo_filter": str,
-        "repo_config": str,
-        "repo_timeout": int,
-        "nice": int,
-        "ionice_class": ["none", "rt", "be", "idle"],
-        "ionice_level": int
-        }
     def __init__(self, filename, prefix=os.path.basename(sys.argv[0])):
         self.prefix = prefix
-        ConfigFile.__init__(self, filename)
-
-    def reload(self):
-        '''
-        Load/Reload config file
-        '''
-        self._config = {}
-        # loading default options
-        self._config["cache"] = self.cache
-        # loading config file if exists
-        if self.path is None:
-            debug("No main config file to load")
-            return
-        debug(u"Loading main config file: %s" % self.path)
+        self.configspec = (MAIN_CONFIG_SPEC % self.cache).splitlines()
         try:
-            cp = RawConfigParser()
-            cp.read(self.path)
-            # main configuration
-            if cp.has_section(self.prefix):
-                self._config.update(cp.items(self.prefix))
+            super(MainConfigFile, self).__init__(filename)
+            debug(u"Loading main config file: %s" % self.path)
+        except ISWarning:
+            debug("No main config file to load")
         except Exception as e:
             raise ISError(u"Unable load main config file %s" % self.path, e)
-
-    def parse(self, namespace=None):
-        '''
-        Parse current loaded option within a namespace
-        '''
-        if namespace is None:
-            namespace = Namespace()
-        for option, value in self._config.items():
-            # check option is valid
-            if option not in self.valid_options.keys():
-                warn(u"Invalid option %s in %s, skipped" % (option, self.path))
-                continue
-            # we expect a string like
-            if not isinstance(option, basestring):
-                raise TypeError(u"Invalid config parser option %s type" % option)
-            # smartly cast option's value
-            if self.valid_options[option] is bool:
-                value = value.strip().lower() not in ("false", "no", "0", "")
-            # in case of valid option is a list, we take the type of the first
-            # argument of the list to convert value into it
-            # as a consequence, all element of a list must be of the same type!
-            # empty list are forbidden !
-            elif isinstance(self.valid_options[option], list):
-                ctype = type(self.valid_options[option][0])
-                try:
-                    value = ctype(value)
-                except ValueError:
-                    warn("Invalid option %s type (must be %s), skipped" %
-                         (option, ctype))
-                    continue
-                if value not in self.valid_options[option]:
-                    warn("Invalid value %s in option %s (must be in %s), skipped" %
-                         (value, option, self.valid_options[option]))
-                    continue
-            else:
-                try:
-                    value = self.valid_options[option](value)
-                except ValueError:
-                    warn("Invalid option %s type (must be %s), skipped" %
-                         (option, self.valid_options[option]))
-                    continue
-            setattr(namespace, option, value)
-        return namespace
 
     def _cache_paths(self):
         '''
@@ -177,8 +158,6 @@ class MainConfigFile(ConfigFile):
         '''
         Find a cache directory
         '''
-        if "cache" in self._config:
-            return self._config["cache"]
         if self._cache_path() is None:
             for di in self._cache_paths():
                 try:
@@ -188,34 +167,47 @@ class MainConfigFile(ConfigFile):
                     debug(u"Unable to create %s: %s" % (di, e))
         return self._cache_path()
 
+    def parse(self, namespace=None):
+        '''
+        Parse current loaded option within a namespace
+        '''
+        if namespace is None:
+            namespace = Namespace()
+        if self.path:
+            for option, value in self.config[self.prefix].items():
+                setattr(namespace, option, value)
+        return namespace
+
 
 class RepoConfigFile(ConfigFile):
     '''
     Repository Configuration class
     '''
 
-    def reload(self):
-        '''
-        Load/Reload config file
-        '''
+    def __init__(self, filename):
         # seting default config
         self._config = {}
         self._repos = []
-        # if no file nothing to load
-        if self.path is None:
-            return
-        # loading config file if exists
-        debug(u"Loading repository config file: %s" % self.path)
+        self.configspec = REPO_CONFIG_SPEC.splitlines()
         try:
-            cp = RawConfigParser()
-            cp.readfp(codecs.open(self.path, "r", "utf8"))
+            super(RepoConfigFile, self).__init__(filename)
+            debug(u"Loading repository config file: %s" % self.path)
+            self._parse()
+        except ISWarning:
+            debug("No repository config file to load")
+
+    def _parse(self):
+        '''
+        Parse repositories from config
+        '''
+        try:
             # each section is a repository
-            for rep in cp.sections():
+            for rep in self.config.sections:
                 # check if its a repo section
-                if "path" not in cp.options(rep):
+                if "path" not in self.config[rep]:
                     continue
                 # get all options in repo
-                self._repos.append(RepositoryConfig(rep, **dict(cp.items(rep))))
+                self._repos.append(RepositoryConfig(rep, **dict(self.config[rep].items())))
         except Exception as e:
             raise ISError(u"Unable to load repository file %s" % self.path, e)
 

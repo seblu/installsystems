@@ -71,7 +71,7 @@ class Repository(object):
     @staticmethod
     def split_repository_list(repolist, filter=None):
         '''
-        Return a list of repository from an comma/spaces separated names of repo
+        Return a list of repository from a comma/spaces separated names of repo
         '''
         if filter is None:
             filter = Repository.is_repository_name
@@ -80,7 +80,7 @@ class Repository(object):
     @classmethod
     def diff(cls, repo1, repo2):
         '''
-        Comptue a diff between two repositories
+        Compute a diff between two repositories
         '''
         arrow(u"Diff between repositories #y#%s#R# and #g#%s#R#" % (repo1.config.name,
                                                                     repo2.config.name))
@@ -965,7 +965,7 @@ class RepositoryConfig(object):
         '''
         Set db path
         '''
-        # dbpath must be local, sqlite3 requirment
+        # dbpath must be local, sqlite3 requirement
         if not istools.isfile(value):
             raise ValueError("Database path must be local")
         self._dbpath = os.path.abspath(value)

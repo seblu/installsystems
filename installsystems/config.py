@@ -155,7 +155,7 @@ class MainConfigFile(ConfigFile):
         List all candidates to cache directories. Alive or not
         '''
         dirs = [os.path.expanduser("~/.cache"), "/var/tmp", "/tmp"]
-        # we have an additional directry if we are root
+        # we have an additional directory if we are root
         if os.getuid() == 0:
             dirs.insert(0, "/var/cache")
         return map(lambda x: os.path.join(x, self.prefix), dirs)

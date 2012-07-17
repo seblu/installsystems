@@ -74,13 +74,27 @@ OPTIONS
 --ionice-level IONICE_LEVEL
     set the *IONICE_LEVEL* for the process
 
+<remote_image>
+    an InstallSystems *image* selected with the following pattern:
+
+    [repository/]image[:version] (Note that the repository can be local)
+
+    Example: stable/debian\*:\*, \*/\*:1
+
+<local_image>
+    an InstallSystems *image*, same as <remote_image>, but the repository *must* be local
+
+<image>
+    an InstallSystems *image*, it's a <remote_image> or a path to a packaged image
+
+
 COMMANDS
 ========
 
 Please note that you can display specific help messages for all of
 these commands by using the --help argument after the command name.
 
-add [-h] [-p] *repository* *image*...
+add [-h] [-p] *repository* *image_path*...
     Add a local *image* to a local *repository*.
 
     -p, --preserve
@@ -106,11 +120,11 @@ build [-h] [-c] [-C] [-f] [-p] [-s] [*path*]...
         do not run build scripts
 
 
-cat [-h] path|[repository/]\ *image*\ [:version] *file*...
+cat [-h] <image> *file*...
     Display one *file* (or more) from *image*. Globbing is allowed for files matching.
 
 
-changelog [-h] [-v]  path|[repository/]\ *image*\ [:version]...
+changelog [-h] [-v]  <image>...
     Display the last changelog entry for one *image* (or more).
 
     -v, --all-version
@@ -138,14 +152,14 @@ clean [-h] [-f] *repository*...
         do not prompt before cleaning
 
 
-copy [-h] [-f] *image*... *repository*
+copy [-h] [-f] <remote_image>... *repository*
     Copy one *image* (or more) to another local **repository**.
 
      -f, --force
          overwrite existing images without prompting
 
 
-del [-h] [-f] [-p] *image*...
+del [-h] [-f] [-p] <local_image>...
     Delete one *image* (or more) from its repository.
 
     -f, --force
@@ -159,7 +173,7 @@ diff [-h] *object* *object*
     Show diff between two repositories or images.
 
 
-extract [-h] [-f] [-g] [-p] *image* *path*
+extract [-h] [-f] [-g] [-p] <image> *path*
     Extract an InstallSystems *image* into *path*.
 
     -f, --force
@@ -172,7 +186,7 @@ extract [-h] [-f] [-g] [-p] *image* *path*
         extract payloads
 
 
-get [-h] [-f] [-I] [-p] *image*...
+get [-h] [-f] [-I] [-p] <remote_image>...
     Download a remote InstallSystems *image* in current directory.
 
     -f, --force
@@ -189,7 +203,7 @@ help [-h]
     Show help.
 
 
-info [-h] [-c] [-j] [-v] *image*...
+info [-h] [-c] [-j] [-v] <image>...
     Display info about one *image* (or more).
 
     -c, --changelog
@@ -206,15 +220,15 @@ init [-h] *repository*...
     Create one empty *repository* (or more).
 
 
-install [--dry-run] *image*
+install [--dry-run] <image>
     Install *image*. Each *image* may have specific options. Typically, each one will display a list of available options when using the **--help** argument. In case of trouble during the install you should contact the author of the image. You can find this info in its description file.
 
     --dry-run
         do not execute setup scripts
 
 
-list [-h] [-A] [-d] [-D] [-j] [-l] [-m] [-s] [-u] [image...]
-    List available images. By default, it displays the image name and its repository, ordered by repositories/images/version.
+list [-h] [-A] [-d] [-D] [-j] [-l] [-m] [-s] [-u] [<remote_image>...]
+    List available *images*. By default, it displays the image name and its repository, ordered by repositories/images/version.
 
     -A, --author
         display image author
@@ -241,7 +255,7 @@ list [-h] [-A] [-d] [-D] [-j] [-l] [-m] [-s] [-u] [image...]
         display image url
 
 
-move [-h] [-f] *image*... *repository*
+move [-h] [-f] <local_image>... *repository*
     Move one *image* (or more) to another *repository*.
 
     -f, --force

@@ -186,7 +186,7 @@ _is() {
                     (copy)
                         args+=(
                         '(-f --force)'{-f,--force}'[copy image without confirmation]'
-                        '1:image:_installsystems_images'
+                        '1:image:_installsystems_remote_images'
                         '*: : _alternative "pattern:image:_installsystems_remote_images" "repo:repository:_installsystems_local_repo"'
                         )
                         ;;

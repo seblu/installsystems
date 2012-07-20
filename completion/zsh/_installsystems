@@ -258,6 +258,12 @@ _is() {
                         '*:image:_installsystems_remote_images'
                         )
                         ;;
+                     (motd)
+                        args+=(
+                        '1:repository:_installsystems_repo'
+                        "--edit[edit repository's MOTD]"
+                        )
+                        ;;
                     (move)
                         args+=(
                         '(-f --force)'{-f,--force}'[move image without confirmation]'

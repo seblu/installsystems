@@ -317,6 +317,10 @@ def c_install(args):
     # select image to install
     repoman = load_repositories(args)
     image, repo = next(get_images([args.pattern], repoman, min=1, max=1))
+    if repo:
+        # Print repo MOTD
+        arrow("Repository %s MOTD" % repo.config.name)
+        repo.motd()
     # Print setup information
     arrow(u"Installing %s v%s" % (image.name, image.version))
     # let's go
@@ -336,6 +340,28 @@ def c_list(args):
                         o_md5=args.md5, o_date=args.date, o_author=args.author,
                         o_size=args.size, o_url=args.url,
                         o_description=args.description)
+
+def c_motd(args):
+    '''
+    Display (and edit) repository's MOTD
+    '''
+    repoman = load_repositories(args)
+    repo = repoman[args.repository]
+    arrow("Current MOTD for %s:" % repo.config.name)
+    repo.motd()
+    if args.edit:
+        # check local repository
+        if not repo.local:
+            raise ISError(u"Repository must be local")
+        arrow("New MOTD (end with a blank line):")
+        motd = ""
+        # raw_input return bytestring
+        data = raw_input().decode(sys.stdin.encoding)
+        motd += data
+        while data:
+            data = raw_input().decode(sys.stdin.encoding)
+            motd += u"\n%s" % data
+        repo.motd(motd[:-1])
 
 def c_move(args):
     '''
@@ -627,6 +653,12 @@ def arg_parser_init():
     p.add_argument("pattern", nargs="*", default=[],
                    help="[repository/][image][:version]")
     p.set_defaults(func=c_list)
+    # motd command parser
+    p = subparser.add_parser("motd", help=c_motd.__doc__.lower())
+    p.add_argument("repository", help="repository to display/edit MOTD")
+    p.add_argument("--edit", action="store_true",
+                   help="edit repository's MOTD")
+    p.set_defaults(func=c_motd)
     # move command parser
     p = subparser.add_parser("move", help=c_move.__doc__.lower())
     p.add_argument("-f", "--force", action="store_true",

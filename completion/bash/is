@@ -52,9 +52,9 @@ _is() {
    _get_comp_words_by_ref cur prev cword
    _get_first_arg
    cmds=('add' 'build' 'cat' 'changelog' 'check' 'chroot' 'clean' 'copy' 'del'
-       'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'move' 'new' 'repo'
-       'search' 'version' 'diff' 'payload' 'prepare_chroot' 'unprepare_chroot',
-       'upgrade_db')
+       'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'motd' 'move'
+       'new' 'repo' 'search' 'version' 'diff' 'payload' 'prepare_chroot'
+       'unprepare_chroot', 'upgrade_db')
    opts=('-h'  '--help'
    '-V'  '--version'
    '-v'  '--verbosity'
@@ -155,6 +155,10 @@ _is() {
       list)
          [[ "$cur" == -* ]] && _opt '-h --help -l --long -j --json -m --md5 -s --size -d --date -A --author -u --url -D --description' && return 0
          _remote_image
+      ;;
+      motd)
+         [[ "$cur" == -* ]] && _opt '-h --help --edit' && return 0
+         _repo
       ;;
       move)
          [[ "$cur" == -* ]] && _opt '-h --help -f --force' && return 0

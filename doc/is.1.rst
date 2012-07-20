@@ -255,6 +255,13 @@ list [-h] [-A] [-d] [-D] [-j] [-l] [-m] [-s] [-u] [<remote_image>...]
         display image url
 
 
+motd [-h] [--edit] *repository*
+    Display MOTD of a repository
+
+    --edit
+        edit the MOTD of the repository
+
+
 move [-h] [-f] <local_image>... *repository*
     Move one *image* (or more) to another *repository*.
 

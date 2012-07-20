@@ -215,7 +215,7 @@ class Repository(object):
         '''
         # check local repository
         if not self.local:
-            raise ISError(u"Repository addition must be local")
+            raise ISError(u"Repository must be local")
         try:
             arrow("Updating last file")
             last_path = os.path.join(self.config.path, self.config.lastname)
@@ -584,6 +584,25 @@ class Repository(object):
                 # Remove dummy repository
                 shutil.rmtree(tmpdir)
 
+    def motd(self, new_motd=None):
+        '''
+        Display and edit repository motd
+        '''
+        if new_motd is None:
+            try:
+                motd = self.db.ask("SELECT motd FROM repository").fetchone()
+            except:
+                motd = None
+            if motd is None:
+                raise ISError("Unable to retrieve %s's MOTD" % self.config.name)
+            out(motd[0])
+        else:
+            # check local repository
+            if not self.local:
+                raise ISError(u"Repository must be local")
+            self.db.ask("UPDATE repository SET motd = ?", (new_motd,))
+            self.update_last()
+
 
 class Repository_v1(Repository):
 
@@ -648,6 +667,14 @@ class Repository_v1(Repository):
             d["is_min_version"] = 9
             images.append(d)
         return images
+
+    def motd(self, new_motd=None):
+        '''
+        Display and edit repository motd
+        '''
+        out('')
+        if new_motd:
+            warn("[%s] repository v1, unable to edit MOTD." % self.config.name)
 
 
 class RepositoryManager(object):

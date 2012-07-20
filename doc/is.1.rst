@@ -77,9 +77,9 @@ OPTIONS
 <remote_image>
     an InstallSystems *image* selected with the following pattern:
 
-    [repository/]image[:version] (Note that the repository can be local)
+    [repository/][image][:version] (Note that the repository can be local)
 
-    Example: stable/debian\*:\*, \*/\*:1
+    Example: stable/debian\*:\*, stable/, stable/:4, :\*dev, debian
 
 <local_image>
     an InstallSystems *image*, same as <remote_image>, but the repository *must* be local

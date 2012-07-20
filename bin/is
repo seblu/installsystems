@@ -475,7 +475,7 @@ def arg_parser_init():
     p.set_defaults(func=c_build)
     # cat command parser
     p = subparser.add_parser("cat", help=c_cat.__doc__.lower())
-    p.add_argument("pattern", help="path|[repository/]image[:version]")
+    p.add_argument("pattern", help="path|[repository/][image][:version]")
     p.add_argument("file", nargs="+",
                    help="file inside image to cat (globbing allowed)")
     p.set_defaults(func=c_cat)
@@ -483,7 +483,7 @@ def arg_parser_init():
     p = subparser.add_parser("changelog", help=c_changelog.__doc__.lower())
     p.add_argument("-v", "--all-version",  action="store_true",
                    help="display changelog for all versions")
-    p.add_argument("pattern", nargs="+", help="path|[repository/]image[:version]")
+    p.add_argument("pattern", nargs="+", help="path|[repository/][image][:version]")
     p.set_defaults(func=c_changelog)
     # check command parser
     p = subparser.add_parser("check", help=c_check.__doc__.lower())
@@ -508,13 +508,13 @@ def arg_parser_init():
     p.add_argument("-f", "--force", action="store_true",
                    help="copy image without confirmation")
     p.add_argument("pattern", nargs="+",
-                   help="[repository/]image[:version]")
+                   help="[repository/][image][:version]")
     p.add_argument("repository", help="destination repository")
     p.set_defaults(func=c_copy)
     # del command parser
     p =  subparser.add_parser("del", help=c_del.__doc__.lower())
     p.add_argument("pattern", nargs="+",
-                   help="[repository/]image[:version]")
+                   help="[repository/][image][:version]")
     p.add_argument("-f", "--force", action="store_true",
                    help="delete image without confirmation")
     p.add_argument("-p", "--preserve", action="store_true",
@@ -523,7 +523,7 @@ def arg_parser_init():
     # diff command parser
     p = subparser.add_parser("diff", help=c_diff.__doc__.lower())
     p.add_argument("object", nargs="+",
-                   help="path|repository|[repository/]image[:version]")
+                   help="path|repository|[repository/][image][:version]")
     p.set_defaults(func=c_diff)
     # extract command parser
     p = subparser.add_parser("extract", help=c_extract.__doc__.lower())
@@ -534,7 +534,7 @@ def arg_parser_init():
     p.add_argument("-p", "--payload", action="store_true",
                    help="extract payloads")
     p.add_argument("pattern",
-                   help="path|[repository/]image[:version]")
+                   help="path|[repository/][image][:version]")
     p.add_argument("path", help="image will be extracted in path")
     p.set_defaults(func=c_extract)
     # get command parser
@@ -546,7 +546,7 @@ def arg_parser_init():
     p.add_argument("-p", "--payload", action="store_true",
                    help="get payloads")
     p.add_argument("pattern", nargs="+",
-                   help="[repository/]image[:version]")
+                   help="[repository/][image][:version]")
     p.set_defaults(func=c_get)
     # help command parser
     p = subparser.add_parser("help", help=c_help.__doc__.lower())
@@ -561,7 +561,7 @@ def arg_parser_init():
     p.add_argument("-v", "--verbose", action="store_true",
                    help="verbose output")
     p.add_argument("pattern", nargs="+",
-                   help="path|[repository/]image[:version]")
+                   help="path|[repository/][image][:version]")
     p.set_defaults(func=c_info)
     # init command parser
     p = subparser.add_parser("init", help=c_init.__doc__.lower())
@@ -573,7 +573,7 @@ def arg_parser_init():
                               help=c_install.__doc__.lower())
     p.add_argument("--dry-run", action="store_true",
                    help="doesn't execute setup scripts")
-    p.add_argument("pattern", help="path|[repository/]image[:version]")
+    p.add_argument("pattern", help="path|[repository/][image][:version]")
     p.set_defaults(func=c_install, parser=parser, install_parser=p)
     # list command parser
     p = subparser.add_parser("list", help=c_list.__doc__.lower())
@@ -594,14 +594,14 @@ def arg_parser_init():
     p.add_argument("-u", "--url", action="store_true",
                    help="display image url")
     p.add_argument("pattern", nargs="*", default=[],
-                   help="[repository/]image[:version]")
+                   help="[repository/][image][:version]")
     p.set_defaults(func=c_list)
     # move command parser
     p = subparser.add_parser("move", help=c_move.__doc__.lower())
     p.add_argument("-f", "--force", action="store_true",
                    help="move image without confirmation")
     p.add_argument("pattern", nargs="+",
-                   help="[repository/]image[:version]")
+                   help="[repository/][image][:version]")
     p.add_argument("repository", help="destination repository")
     p.set_defaults(func=c_move)
     # new command parser

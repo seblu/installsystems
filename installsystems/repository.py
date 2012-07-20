@@ -686,10 +686,12 @@ class RepositoryManager(object):
         ans = {}
         for pattern in patterns:
             path, image, version = Repository.split_image_path(pattern)
-            # no image name, skip it
             if image is None:
-                warn(u"No image name in pattern %s, skipped" % pattern)
-                continue
+                if path is None or version is None:
+                    image = "*"
+                else:
+                    # empty pattern
+                    continue
             # building image list
             images = {}
             for reponame in self.onlines:

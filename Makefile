@@ -1,4 +1,23 @@
-## Makefile
+#!/usr/bin/make
+
+# Installsystems - Python installation framework
+# Copyright © 2011-2012 Smartjog S.A
+# Copyright © 2011-2012 Sébastien Luttringer
+#
+# This file is part of Installsystems.
+#
+# Installsystems is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Installsystems is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public License
+# along with Installsystems.  If not, see <http://www.gnu.org/licenses/>.
 
 .PHONY: all tar deb clean cleanbuild buildd dsc doc
 

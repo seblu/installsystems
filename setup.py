@@ -32,7 +32,7 @@ setup(
     long_description=ldesc,
     author='Sébastien Luttringer',
     author_email='sebastien.luttringer@smartjog.com',
-    license='GPL2',
+    license='LGPL3',
     packages=[ 'installsystems' ],
     scripts=[ 'bin/is' ],
     data_files=(

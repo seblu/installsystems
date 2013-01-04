@@ -183,23 +183,28 @@ class PipeFile(object):
             "ssh://(([^:]+)(:([^@]+))?@)?([^/:]+)(:(\d+))?(/.*)?", path).group(2, 4, 5, 7, 8)
         if port is None: port = 22
         if path is None: path = "/"
-        # open ssh connection
-        # we need to keep it inside the object unless it was cutted
-        self._ssh = paramiko.SSHClient()
-        self._ssh.load_system_host_keys()
-        self._ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        self._ssh.connect(host, port=port, username=login, password=passwd,
-                          look_for_keys=True, timeout=self.timeout)
-        # swith in sftp mode
-        sftp = self._ssh.open_sftp()
-        # get the file infos
-        sta = sftp.stat(path)
-        self.size = sta.st_size
-        self.mtime = sta.st_mtime
-        # open the file
-        self.fo = sftp.open(path, self.mode)
-        # this is needed to have correct file transfert speed
-        self.fo.set_pipelined(True)
+        try:
+            # open ssh connection
+            # we need to keep it inside the object unless it was cutted
+            self._ssh = paramiko.SSHClient()
+            self._ssh.load_system_host_keys()
+            self._ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+            # Here there is a bug arround conect with allow_agent if agent is not able to open with a key
+            self._ssh.connect(host, port=port, username=login, password=passwd, allow_agent=True,
+                              look_for_keys=True, timeout=self.timeout)
+            # swith in sftp mode
+            sftp = self._ssh.open_sftp()
+            # get the file infos
+            sta = sftp.stat(path)
+            self.size = sta.st_size
+            self.mtime = sta.st_mtime
+            # open the file
+            self.fo = sftp.open(path, self.mode)
+            # this is needed to have correct file transfert speed
+            self.fo.set_pipelined(True)
+        except Exception as e:
+            # FIXME: unable to open file
+            raise IOError(e)
 
     def close(self):
         if self.progressbar:

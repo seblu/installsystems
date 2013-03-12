@@ -1,6 +1,7 @@
 *.pyc
 .*.swp
 *~
+*.egg-info
 TODO
 test
 tags

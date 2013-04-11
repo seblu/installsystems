@@ -111,7 +111,7 @@ class PipeFile(object):
             elif ftype == "ssh":
                 self._open_ssh(path)
             else:
-                raise IOError("URL type not supported")
+                raise ISError("URL type not supported")
         # init progress bar
         # we use 0 because a null file is cannot show a progression during write
         if self.size == 0:
@@ -206,7 +206,7 @@ class PipeFile(object):
             self.fo.set_pipelined(True)
         except Exception as e:
             # FIXME: unable to open file
-            raise IOError(e)
+            raise ISError(e)
 
     def close(self):
         if self.progressbar:

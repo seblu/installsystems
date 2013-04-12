@@ -386,9 +386,19 @@ InstallSystems use two kind of images:
        | author = Toto <toto@example.com>
        | is_min_version = 9
 
+    Description file can also specify the compressor to use for payloads. Four compressors are available: 'none' (no compression), 'gzip', 'bzip2' and 'xz'. For each compressor, you can declare a globbing pattern to select specific payloads (use commas to separate patterns). Be careful, order matters. Here is an example:
+
+        |
+        | [compressor]
+        | gzip = \*
+        | xz = rootfs\*
+        | none = \*.gz, \*.bz2, \*.xz
+
+    The default compressor will be gzip, xz will be used for payload matching rootfs\* and each payload whose name ends with .gz, .bz2 and .xz will not be compressed.
+
 **packaged image**
 
-    Built images are called packaged images. They are versionned, gzipped and ready to deploy. Like source images, package images still make the difference between scripts and payloads. But it doesn't make difference between build, parser and setup scripts. In fact you will have at least two tarballs:
+    Built images are called packaged images. They are versionned, compressed and ready to deploy. Like source images, package images still make the difference between scripts and payloads. But it doesn't make difference between build, parser and setup scripts. In fact you will have at least two tarballs:
 
     image_name.isimage
         This tarball contains build/, parser/, setup/, description and changelog.

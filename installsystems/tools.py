@@ -671,11 +671,13 @@ def get_compressor_path(name, compress=True, level=None):
     Return better compressor argv from its generic compressor name
     e.g: bzip2 can return pbzip2 if available or bzip2 if not
     '''
-    compressors = {"gzip": [["gzip", "--no-name", "--stdout"]],
+    compressors = {"none": [["cat"]],
+                   "gzip": [["gzip", "--no-name", "--stdout"]],
                    "bzip2": [["pbzip2", "--stdout"],
                              ["bzip2", "--compress", "--stdout"]],
                    "xz": [["xz", "--compress", "--stdout"]]}
-    decompressors = {"gzip": [["gzip", "--decompress", "--stdout"]],
+    decompressors = {"none": [["cat"]],
+                     "gzip": [["gzip", "--decompress", "--stdout"]],
                      "bzip2": [["pbzip2","--decompress", "--stdout"],
                                ["bzip2", "--decompress", "--stdout"]],
                      "xz": [["xz", "--decompress", "--stdout"]]}

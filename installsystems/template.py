@@ -22,6 +22,9 @@ version = %(version)s
 description = %(description)s
 author = %(author)s
 is_min_version = %(is_min_version)s
+
+[compressor]
+%(compressor)s
 """
 
 changelog = u"""[1]

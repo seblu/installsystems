@@ -26,6 +26,7 @@ import configobj
 import cStringIO
 import difflib
 import imp
+import fnmatch
 import json
 import locale
 import math
@@ -56,6 +57,9 @@ version = IS_version
 description = string
 author = string
 is_min_version = IS_min_version
+
+[compressor]
+__many__ = force_list
 """
 
 
@@ -68,6 +72,7 @@ class Image(object):
     # before version 6, it's strict string comparaison
     format = "1"
     extension = ".isimage"
+    default_compressor = "gzip"
 
     @staticmethod
     def check_image_name(buf):
@@ -266,7 +271,8 @@ class SourceImage(Image):
                 "version": "1",
                 "description": "",
                 "author": "",
-                "is_min_version": installsystems.version}}
+                "is_min_version": installsystems.version,
+                "compressor": "gzip = *\nnone = *.gz, *.bz2, *.xz"}}
         # create changelog example from template
         examples["changelog"] = {"path": "changelog", "content": istemplate.changelog}
         # create build example from template
@@ -427,6 +433,7 @@ class SourceImage(Image):
         ans["gid"] = source_stat.st_gid
         ans["mode"] = stat.S_IMODE(source_stat.st_mode)
         ans["mtime"] = source_stat.st_mtime
+        ans["compressor"] = self.compressor(name)
         return ans
 
     def select_payloads(self):
@@ -466,10 +473,12 @@ class SourceImage(Image):
                 if not os.path.exists(paydesc["dest_path"]):
                     if paydesc["isdir"]:
                         self.create_payload_tarball(paydesc["dest_path"],
-                                                    paydesc["source_path"])
+                                                    paydesc["source_path"],
+                                                    paydesc["compressor"])
                     else:
                         self.create_payload_file(paydesc["dest_path"],
-                                                 paydesc["source_path"])
+                                                 paydesc["source_path"],
+                                                 paydesc["compressor"])
                 # create versionned payload file
                 if os.path.lexists(paydesc["link_path"]):
                     os.unlink(paydesc["link_path"])
@@ -477,13 +486,13 @@ class SourceImage(Image):
             except Exception as e:
                 raise ISError(u"Unable to create payload %s" % payload_name, e)
 
-    def create_payload_tarball(self, tar_path, data_path):
+    def create_payload_tarball(self, tar_path, data_path, compressor):
         '''
         Create a payload tarball
         '''
         try:
             # get compressor argv (first to escape file creation if not found)
-            a_comp = istools.get_compressor_path(self.compressor, compress=True)
+            a_comp = istools.get_compressor_path(compressor, compress=True)
             a_tar = ["tar", "--create", "--numeric-owner", "--directory",
                      data_path, "."]
             # create destination file
@@ -511,13 +520,13 @@ class SourceImage(Image):
                 os.unlink(tar_path)
             raise
 
-    def create_payload_file(self, dest, source):
+    def create_payload_file(self, dest, source, compressor):
         '''
         Create a payload file
         '''
         try:
             # get compressor argv (first to escape file creation if not found)
-            a_comp = istools.get_compressor_path(self.compressor, compress=True)
+            a_comp = istools.get_compressor_path(compressor, compress=True)
             # open source file
             f_src = open(source, "r")
             # create destination file
@@ -633,6 +642,8 @@ class SourceImage(Image):
         arrowlevel(1)
         # copy description
         desc = self.description.copy()
+        # only store compressor patterns
+        desc["compressor"] = desc["compressor"]["patterns"]
         # timestamp image
         arrow("Timestamping")
         desc["date"] = int(time.time())
@@ -657,7 +668,8 @@ class SourceImage(Image):
                 "uid": payload_desc["uid"],
                 "gid": payload_desc["gid"],
                 "mode": payload_desc["mode"],
-                "mtime": payload_desc["mtime"]
+                "mtime": payload_desc["mtime"],
+                "compressor": payload_desc["compressor"]
                 }
         arrowlevel(-1)
         # check md5 are uniq
@@ -692,6 +704,17 @@ class SourceImage(Image):
                         installsystems.printer.error('Wrong description file, %s %s: %s' % (section, optname, error))
             for n in ("name","version", "description", "author", "is_min_version"):
                 d[n] = cp["image"][n]
+            d["compressor"] = {}
+            # set payload compressor
+            d["compressor"]["patterns"] = cp["compressor"].items()
+            if not d["compressor"]["patterns"]:
+                d["compressor"]["patterns"] = [(Image.default_compressor, "*")]
+            for compressor, patterns in cp["compressor"].items():
+                # is a valid compressor?
+                istools.get_compressor_path(compressor)
+                for pattern in patterns:
+                    for payname in fnmatch.filter(self.select_payloads(), pattern):
+                        d["compressor"][payname] = compressor
         except Exception as e:
             raise ISError(u"Bad description", e)
         return d
@@ -714,13 +737,15 @@ class SourceImage(Image):
             raise ISError(u"Bad changelog", e)
         return cl
 
-    @property
-    def compressor(self):
+    def compressor(self, payname):
         '''
-        Return image compressor
+        Return payload compressor
         '''
-        # currently only support gzip
-        return "gzip"
+        try:
+            return self.description["compressor"][payname]
+        except KeyError:
+            # set default compressor if no compressor is specified
+            return Image.default_compressor
 
 
 class PackageImage(Image):
@@ -846,6 +871,17 @@ class PackageImage(Image):
             desc.update(json.loads(img_desc))
             self.check_image_name(desc["name"])
             self.check_image_version(desc["version"])
+            if "compressor" not in desc:
+                desc["compressor"] = "gzip = *"
+            else:
+                # format compressor pattern string
+                compressor_str = ""
+                for compressor, patterns in desc["compressor"]:
+                    # if pattern is not empty
+                    if patterns != ['']:
+                        compressor_str += "%s = %s\n" % (compressor, ", ".join(patterns))
+                # remove extra endline
+                desc["compressor"] = compressor_str[:-1]
             # add is_min_version if not present
             if "is_min_version" not in desc:
                 desc["is_min_version"] = 0
@@ -1155,7 +1191,7 @@ class Payload(object):
         '''
         Return payload compress format
         '''
-        return self._compressor if self._compressor is not None else "gzip"
+        return self._compressor if self._compressor is not None else Image.default_compressor
 
     @property
     def info(self):

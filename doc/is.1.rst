@@ -369,11 +369,22 @@ InstallSystems use two kind of images:
         This directory embeds one or more payloads (typically rootfs) for the image.
 
     description
-        It defines the author, the date and the version of the image.
+        It defines information about image.
 
     changelog
         The changelog file lists modifications of the image.
 
+**description**
+
+    The description file contains name, version, author, description and InstallSystems minimum version needed.
+
+       |
+       | [image]
+       | name = foo
+       | version = 42
+       | description = example image
+       | author = Toto <toto@example.com>
+       | is_min_version = 9
 
 **packaged image**
 

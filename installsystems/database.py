@@ -20,8 +20,10 @@
 Database stuff
 '''
 
+import math
 import os
 import sqlite3
+import uuid
 import installsystems.tools as istools
 import installsystems.template as istemplate
 from installsystems.tarball import Tarball
@@ -33,6 +35,8 @@ class Database(object):
     Abstract repo database stuff
     It needs to be local cause of sqlite3 which need to open a file
     '''
+
+    version = 2.0
 
     @classmethod
     def create(cls, path):
@@ -47,6 +51,8 @@ class Database(object):
             conn = sqlite3.connect(path, isolation_level=None)
             conn.execute("PRAGMA foreign_keys = ON")
             conn.executescript(istemplate.createdb)
+            conn.execute("INSERT INTO repository values (?,?,?)",
+                         (str(uuid.uuid4()), Database.version, "",))
             conn.commit()
             conn.close()
         except Exception as e:
@@ -64,16 +70,15 @@ class Database(object):
         self.conn.execute("PRAGMA foreign_keys = ON")
         # get database version
         try:
-            r = self.ask("SELECT value FROM misc WHERE key = 'version'").fetchone()
+            r = self.ask("SELECT version FROM repository").fetchone()
             if r is None:
                 raise TypeError()
             self.version = float(r[0])
         except:
             self.version = 1.0
-        # we only support database v1
-        if self.version >= 2.0:
-            debug(u"Invalid database format: %s" % self.version)
-            raise ISError("Invalid database format")
+        if math.floor(self.version) >= math.floor(Database.version) + 1.0:
+            raise ISWarning(u"New database format (%s), please upgrade "
+                            "your Installsystems version" % self.version)
         # we make a query to be sure format is valid
         try:
             self.ask("SELECT * FROM image")

@@ -30,6 +30,7 @@ import tempfile
 import fnmatch
 import cStringIO
 import json
+import uuid
 import installsystems
 import installsystems.tools as istools
 from installsystems.exception import *
@@ -38,6 +39,35 @@ from installsystems.tarball import Tarball
 from installsystems.tools import PipeFile
 from installsystems.image import Image, PackageImage
 from installsystems.database import Database
+
+class RepositoryFactory(object):
+    '''
+    Repository factory
+    '''
+
+    def __init__(self):
+        self.repo_class = {
+            1: Repository_v1,
+            2: Repository
+        }
+
+    def create(self, config):
+        db = None
+        if not config.offline:
+            try:
+                db = Database(config.dbpath)
+            except ISWarning as e:
+                warn('[%s]: %s' % (config.name, e))
+                config.offline = True
+            except ISError:
+                debug(u"Unable to load database %s" % config.dbpath)
+                config.offline = True
+        if config.offline:
+            debug(u"Repository %s is offline" % config.name)
+        if db is None:
+            return Repository(config)
+        else:
+            return self.repo_class[int(db.version)](config, db)
 
 class Repository(object):
     '''
@@ -113,17 +143,10 @@ class Repository(object):
         for md5 in i_only2: pimg(repo2, "g", md5, i_dict2)
         for md5 in p_only2: ppay(repo2, "g", md5, p_dict2)
 
-    def __init__(self, config):
+    def __init__(self, config, db=None):
         self.config = config
         self.local = istools.isfile(self.config.path)
-        if not self.config.offline:
-            try:
-                self.db = Database(config.dbpath)
-            except:
-                debug(u"Unable to load database %s" % config.dbpath)
-                self.config.offline = True
-        if self.config.offline:
-            debug(u"Repository %s is offline" % config.name)
+        self.db = db
 
     def __getattribute__(self, name):
         '''
@@ -146,6 +169,13 @@ class Repository(object):
         Return repository version
         '''
         return self.db.version
+
+    @property
+    def uuid(self):
+        '''
+        Return repository UUID
+        '''
+        return self.db.ask("SELECT uuid from repository").fetchone()[0]
 
     def init(self):
         '''
@@ -206,6 +236,40 @@ class Repository(object):
         # return last
         return reduce(f, r)
 
+    def _add(self, image):
+        '''
+        Add description to db
+        '''
+        arrow("Adding metadata")
+        self.db.begin()
+        # insert image information
+        arrow("Image", 1)
+        self.db.ask("INSERT INTO image values (?,?,?,?,?,?,?,?,?)",
+                    (image.md5,
+                     image.name,
+                     image.version,
+                     image.date,
+                     image.author,
+                     image.description,
+                     image.size,
+                     image.is_min_version,
+                     image.img_format,
+                     ))
+        # insert data information
+        arrow("Payloads", 1)
+        for name, obj in image.payload.items():
+            self.db.ask("INSERT INTO payload values (?,?,?,?,?)",
+                        (obj.md5,
+                         image.md5,
+                         name,
+                         obj.isdir,
+                         obj.size,
+                         ))
+        # on commit
+        self.db.commit()
+        # update last file
+        self.update_last()
+
     def add(self, image, delete=False):
         '''
         Add a packaged image to repository
@@ -240,34 +304,7 @@ class Repository(object):
         r_image.md5 = image.md5
         # checking image and payload after copy
         r_image.check("Check image and payload")
-        # add description to db
-        arrow("Adding metadata")
-        self.db.begin()
-        # insert image information
-        arrow("Image", 1)
-        self.db.ask("INSERT INTO image values (?,?,?,?,?,?,?)",
-                    (image.md5,
-                     image.name,
-                     image.version,
-                     image.date,
-                     image.author,
-                     image.description,
-                     image.size,
-                     ))
-        # insert data informations
-        arrow("Payloads", 1)
-        for name, obj in image.payload.items():
-            self.db.ask("INSERT INTO payload values (?,?,?,?,?)",
-                        (obj.md5,
-                         image.md5,
-                         name,
-                         obj.isdir,
-                         obj.size,
-                         ))
-        # on commit
-        self.db.commit()
-        # update last file
-        self.update_last()
+        self._add(image)
         # removing orginal files
         if delete:
             arrow("Removing original files")
@@ -497,6 +534,70 @@ class Repository(object):
                         (a[0],)).fetchall()
         return [ a[0] ] + [ x[0] for x in b ]
 
+class Repository_v1(Repository):
+
+    def _add(self, image):
+        '''
+        Add description to db
+        '''
+        arrow("Adding metadata")
+        self.db.begin()
+        # insert image information
+        arrow("Image", 1)
+        self.db.ask("INSERT INTO image values (?,?,?,?,?,?,?)",
+                    (image.md5,
+                     image.name,
+                     image.version,
+                     image.date,
+                     image.author,
+                     image.description,
+                     image.size,
+                     ))
+        # insert data information
+        arrow("Payloads", 1)
+        for name, obj in image.payload.items():
+            self.db.ask("INSERT INTO payload values (?,?,?,?,?)",
+                        (obj.md5,
+                         image.md5,
+                         name,
+                         obj.isdir,
+                         obj.size,
+                         ))
+        # on commit
+        self.db.commit()
+        # update last file
+        self.update_last()
+
+    @property
+    def uuid(self):
+        '''
+        Return repository UUID
+        '''
+        # repository v1 don't have UUID, generate one with repository url
+        # encode in ascii for hash digest
+        return str(uuid.uuid5(uuid.NAMESPACE_URL,
+                              self.config.path.encode('ascii')))
+
+    def images(self):
+        '''
+        Return a dict of information on images
+        '''
+        db_images = self.db.ask("SELECT md5, name, version, date, author, \
+                           description, size \
+                           FROM image ORDER BY name, version").fetchall()
+
+        images = []
+        field = ("md5", "name", "version", "date", "author", "description",
+                 "size")
+        for info in db_images:
+            d = dict(zip(field, info))
+            d["repo"] = self.config.name
+            d["url"] = os.path.join(self.config.path, d["md5"])
+            d["format"] = 1
+            d["is_min_version"] = 9
+            images.append(d)
+        return images
+
 
 class RepositoryManager(object):
     '''
@@ -512,6 +613,7 @@ class RepositoryManager(object):
         self.filter = [] if filter is None else filter
         self.search = [] if search is None else search
         self.timeout = timeout or 3
+        self.factory = RepositoryFactory()
         debug(u"Repository timeout setted to %ds" % self.timeout)
         if cache_path is None:
             self.cache_path = None
@@ -551,9 +653,19 @@ class RepositoryManager(object):
         if isinstance(key, int):
             return self.repos[key]
         elif isinstance(key, basestring):
+            # match name
             for repo in self.repos:
                 if repo.config.name == key:
                     return repo
+            # if not found, match uuid
+            # we need at least 4 chars to avoid ambiguous uuid matching
+            if len(key) >= 4:
+                for repo in [r for r in self.repos if not r.config.offline]:
+                    if fnmatch.fnmatch(repo.uuid, "%s*" % key):
+                        return repo
+            else:
+                raise ISWarning("Ambiguous argument: we need at least 4 chars "
+                              "to match an uuid")
             raise IndexError(u"No repository named: %s" % key)
         else:
             raise TypeError(u"Invalid type %s for %s" % (type(key), key))
@@ -584,11 +696,11 @@ class RepositoryManager(object):
             debug(u"Registering offline repository %s (%s)" % (config.path, config.name))
             # we must force offline in cast of argument offline
             config.offline = True
-            self.repos.append(Repository(config))
+            self.repos.append(self.factory.create(config))
         # if path is local, no needs to create a cache
         elif istools.isfile(config.path):
             debug(u"Registering direct repository %s (%s)" % (config.path, config.name))
-            self.repos.append(Repository(config))
+            self.repos.append(self.factory.create(config))
         # path is remote, we need to create a cache
         else:
             debug(u"Registering cached repository %s (%s)" % (config.path, config.name))
@@ -655,7 +767,7 @@ class RepositoryManager(object):
             # if something append bad during caching, we mark repo as offline
             debug(u"Unable to cache repository %s: %s" % (config.name, e))
             config.offline = True
-        return Repository(config)
+        return self.factory.create(config)
 
     @property
     def names(self):
@@ -702,8 +814,13 @@ class RepositoryManager(object):
             # No path means only in searchable repositories
             if path is None:
                 for k, v in images.items():
+                    # match name
                     if v["repo"] not in self.search:
-                        del images[k]
+                        uuid = self[v["repo"]].uuid
+                        # match uuid
+                        if not [uuid for pat in self.search
+                                if fnmatch.fnmatch(uuid, '%s*' % pat)]:
+                            del images[k]
                 path = "*"
             # No version means last version
             if version is None:
@@ -717,10 +834,15 @@ class RepositoryManager(object):
                         versions.remove(last)
                         for rmv in versions:
                             del images[u"%s/%s:%s" % (repo, img, rmv)]
+            # if 'path*' do not match a repo name, it may be an uuid, so add
+            # globbing for smart uuid matching
+            if not fnmatch.filter(self.onlines, "%s*" % path):
+                path = "%s*" % path
             # filter with pattern on path
             filter_pattern = u"%s/%s:%s" % (path, image, version)
-            for k in images.keys():
-                if not fnmatch.fnmatch(k, filter_pattern):
+            for k, img in images.items():
+                if not (fnmatch.fnmatch(k, filter_pattern) or
+                        fnmatch.fnmatch("%s/%s" % (self[img["repo"]].uuid, k.split("/")[1]), filter_pattern)):
                     del images[k]
             ans.update(images)
 	return ans

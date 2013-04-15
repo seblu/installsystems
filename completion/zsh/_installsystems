@@ -308,6 +308,11 @@ _is() {
                         '1:path:_files -/'
                         )
                         ;;
+                     (upgrade_db)
+                        args+=(
+                        '1:repo:_installsystems_local_repo'
+                        )
+                        ;;
                 esac
                 _arguments -s -w "$args[@]" && ret=0
             else

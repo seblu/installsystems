@@ -418,6 +418,13 @@ def c_unprepare_chroot(args):
     '''
     istools.unprepare_chroot(args.path, mount=not args.no_umount)
 
+def c_upgrade_db(args):
+    '''
+    Upgrade repository's database to the current database version
+    '''
+    repoman = load_repositories(args)
+    repoman[args.repository].upgrade_db()
+
 def c_version(args):
     '''
     Display installsystems version
@@ -683,6 +690,11 @@ def arg_parser_init():
                    help="disable unmounting of /{proc,dev,sys}")
     p.add_argument("path")
     p.set_defaults(func=c_unprepare_chroot)
+    # upgrade_db command parser
+    p = subparser.add_parser("upgrade_db",
+                             help=c_upgrade_db.__doc__.lower())
+    p.add_argument("repository", help="repository to upgrade")
+    p.set_defaults(func=c_upgrade_db)
     # version command parser
     p = subparser.add_parser("version", help=c_version.__doc__.lower())
     p.set_defaults(func=c_version)

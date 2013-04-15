@@ -325,6 +325,10 @@ unprepare_chroot [-h] [-m] *path*
         disable unmouting of /{proc,dev,sys}
 
 
+upgrade_db [-h] *repository*
+    Upgrade repository's database to the current database version
+
+
 version [-h]
     Print InstallSystems version.
 

@@ -155,8 +155,8 @@ class Repository(object):
         because repository is not initialized
         '''
         config = object.__getattribute__(self, "config")
-        # config, init, local are always accessible
-        if name in ("init", "config", "local"):
+        # config, init, local and upgrade_db are always accessible
+        if name in ("init", "config", "local", "upgrade_db"):
             return object.__getattribute__(self, name)
         # if no db (not init or not accessible) raise error
         if config.offline:
@@ -533,6 +533,57 @@ class Repository(object):
         b = self.db.ask("SELECT md5 FROM payload WHERE image_md5 = ?",
                         (a[0],)).fetchall()
         return [ a[0] ] + [ x[0] for x in b ]
+
+    def upgrade_db(self):
+        if self.version == Database.version:
+            info("Database already up-to-date (%s)" % self.version)
+            return
+        else:
+            arrow("Start repository upgrade")
+            arrowlevel(1)
+            # Create dummy repository
+            tmpdir = tempfile.mkdtemp()
+            try:
+                repoconf = RepositoryConfig("tmp_migrate_repo", path=tmpdir)
+                dstrepo = Repository(repoconf)
+                # Symlink content from repository into dummy repo
+                for file in os.listdir(self.config.path):
+                    os.symlink(os.path.join(self.config.path, file),
+                               os.path.join(tmpdir, file))
+                os.unlink(repoconf.dbpath)
+                os.unlink(repoconf.lastpath)
+                old_verbosity = installsystems.verbosity
+                arrow("Initialize new database")
+                # Disable unwanted message during upgrade
+                installsystems.verbosity = 0
+                dstrepo.init()
+                # Restore verbosity
+                installsystems.verbosity = old_verbosity
+                md5s = self.db.ask("SELECT md5 FROM image").fetchall()
+                # Copy images to dummy repository (fill new database)
+                arrow("Fill database with images")
+                arrowlevel(1)
+                installsystems.verbosity = 0
+                for img in [PackageImage(os.path.join(self.config.path, md5[0]),
+                                         md5name=True) for md5 in md5s]:
+                    installsystems.verbosity = old_verbosity
+                    arrow("%s v%s" % (img.name, img.version))
+                    installsystems.verbosity = 0
+                    dstrepo.add(img)
+                installsystems.verbosity = old_verbosity
+                arrowlevel(-1)
+                arrow("Backup old database")
+                shutil.move(self.config.dbpath,
+                            os.path.join("%s.bak" % self.config.dbpath))
+                # Replace old db with the new from dummy repository
+                shutil.move(repoconf.dbpath, self.config.dbpath)
+                self.update_last()
+                arrowlevel(-1)
+                arrow("Repository upgrade complete")
+            finally:
+                # Remove dummy repository
+                shutil.rmtree(tmpdir)
+
 
 class Repository_v1(Repository):
 

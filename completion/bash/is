@@ -53,7 +53,8 @@ _is() {
    _get_first_arg
    cmds=('add' 'build' 'cat' 'changelog' 'check' 'chroot' 'clean' 'copy' 'del'
        'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'move' 'new' 'repo'
-       'search' 'version' 'diff' 'payload' 'prepare_chroot' 'unprepare_chroot')
+       'search' 'version' 'diff' 'payload' 'prepare_chroot' 'unprepare_chroot',
+       'upgrade_db')
    opts=('-h'  '--help'
    '-V'  '--version'
    '-v'  '--verbosity'
@@ -182,6 +183,11 @@ _is() {
       unprepare_chroot)
          [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount' && return 0
          _filedir -d
+      ;;
+      upgrade_db)
+         [[ "$cur" == -* ]] && _opt '-h --help' && return 0
+         _count_args
+         (( args == 2 )) && _local_repo
       ;;
       version)
          [[ "$cur" == -* ]] && _opt '-h --help' && return 0

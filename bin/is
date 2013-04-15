@@ -97,7 +97,10 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
             yield PackageImage(item[0]), None
         else:
             r = item[1]
-            yield repoman[r["repo"]].get(r["name"], r["version"]), repoman[r["repo"]]
+            try:
+                yield repoman[r["repo"]].get(r["name"], r["version"]), repoman[r["repo"]]
+            except IndexError as e:
+                raise ISError(e)
 
 ################################################################################
 # Commands functions
@@ -108,7 +111,10 @@ def c_add(args):
     Add packaged images into a repository
     '''
     repoman = load_repositories(args)
-    repo = repoman[args.repository]
+    try:
+        repo = repoman[args.repository]
+    except IndexError as e:
+        raise ISError(e)
     for image in args.path:
         pkg = PackageImage(image)
         repo.add(pkg, delete=not args.preserve)
@@ -162,7 +168,10 @@ def c_check(args):
     '''
     repoman = load_repositories(args)
     for reponame in args.repository:
-        repoman[reponame].check()
+        try:
+            repoman[reponame].check()
+        except IndexError as e:
+            raise ISError(e)
 
 def c_chroot(args):
     '''
@@ -176,14 +185,20 @@ def c_clean(args):
     '''
     repoman = load_repositories(args)
     for reponame in args.repository:
-        repoman[reponame].clean(args.force)
+        try:
+            repoman[reponame].clean(args.force)
+        except IndexError as e:
+            raise ISError(e)
 
 def c_copy(args):
     '''
     Copy an image from a repository to another one
     '''
     repoman = load_repositories(args)
-    dstrepo = repoman[args.repository]
+    try:
+        dstrepo = repoman[args.repository]
+    except IndexError as e:
+        raise ISError(e)
     todo = list(get_images(args.pattern, repoman, local=False, min=1))
     # check user really want to this
     if not args.force:
@@ -234,7 +249,10 @@ def c_diff(args):
     '''
     repoman = load_repositories(args)
     if args.object[0] in repoman.onlines and args.object[1] in repoman.onlines:
-        Repository.diff(repoman[args.object[0]], repoman[args.object[1]])
+        try:
+            Repository.diff(repoman[args.object[0]], repoman[args.object[1]])
+        except IndexError as e:
+            raise ISError(e)
     else:
         img = get_images(args.object, repoman, min=2, max=2)
         img1, repo1 = next(img)
@@ -282,7 +300,10 @@ def c_init(args):
     '''
     repoman = load_repositories(args)
     for reponame in args.repository:
-        repoman[reponame].init()
+        try:
+            repoman[reponame].init()
+        except IndexError as e:
+            raise ISError(e)
 
 def c_install(args):
     '''
@@ -321,7 +342,10 @@ def c_move(args):
     Move packaged image from a repository to another one
     '''
     repoman = load_repositories(args)
-    dstrepo = repoman[args.repository]
+    try:
+        dstrepo = repoman[args.repository]
+    except IndexError as e:
+        raise ISError(e)
     todo = list(get_images(args.pattern, repoman, local=False, min=1))
     # check all source repository are local (need by deletion)
     for img, repo in todo:

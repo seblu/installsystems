@@ -378,7 +378,7 @@ class Repository(object):
 
     def images(self):
         '''
-        Return a dict of informations on images
+        Return a dict of information on images
         '''
         db_images = self.db.ask("SELECT md5, name, version, date,\
                 author, description, size FROM image ORDER BY name, version").fetchall()
@@ -393,7 +393,7 @@ class Repository(object):
 
     def payloads(self):
         '''
-        Return a dict of informations on payloads
+        Return a dict of information on payloads
         '''
         db_payloads = self.db.ask("SELECT payload.md5,payload.size,payload.isdir,image.name,image.version,payload.name FROM payload inner join image on payload.image_md5 = image.md5").fetchall()
         res = {}

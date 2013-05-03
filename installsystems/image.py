@@ -577,7 +577,10 @@ class SourceImage(Image):
             assert(isinstance(fn, unicode))
             assert(isinstance(fc, str))
             arrow(fn)
-            compile(fc, fn.encode(locale.getpreferredencoding()), "exec")
+            try:
+                compile(fc, fn.encode(locale.getpreferredencoding()), "exec")
+            except SyntaxError as e:
+                raise ISError(exception=e)
         arrowlevel(-1)
 
     def run_build(self):

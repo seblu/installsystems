@@ -589,8 +589,6 @@ def compare_versions(v1, v2):
     return > 0 if v1 > v2
     return < 0 if v2 > v1
     return = 0 if v1 == v2
-
-    This uses the Debian package version sorting algorithm (see 'man deb-version')
     '''
 
     # Ensure versions have the right format

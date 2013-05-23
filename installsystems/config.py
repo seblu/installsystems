@@ -55,8 +55,8 @@ ionice_level = integer
 REPO_CONFIG_SPEC = """\
 [__many__]
     path = string
-    fmod = integer
-    dmod = integer
+    fmod = string
+    dmod = string
     uid = string
     gid = string
     offline = boolean

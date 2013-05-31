@@ -223,6 +223,8 @@ class Image(object):
             # sys must be in sys.module to allow loading of modules
             sysmodules["sys"] = sys
             sysmodules.update(self.modules)
+            # we need installsystems.printer to conserve arrow level
+            sysmodules["installsystems.printer"] = installsystems.printer
             exec bytecode in global_dict
         except Exception as e:
             raise ISError(u"Unable to execute script %s" % path, e)

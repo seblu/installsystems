@@ -54,7 +54,7 @@ _is() {
    cmds=('add' 'build' 'cat' 'changelog' 'check' 'chroot' 'clean' 'copy' 'del'
        'extract' 'get' 'help' 'info' 'init' 'install' 'list' 'motd' 'move'
        'new' 'repo' 'search' 'version' 'diff' 'payload' 'prepare_chroot'
-       'unprepare_chroot', 'upgrade_db')
+       'unprepare_chroot' 'upgrade_db')
    opts=('-h'  '--help'
    '-V'  '--version'
    '-v'  '--verbosity'

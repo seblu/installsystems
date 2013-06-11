@@ -203,17 +203,23 @@ help [-h]
     Show help.
 
 
-info [-h] [-c] [-j] [-v] <image>...
-    Display info about one *image* (or more).
+info [-h] [-a] [-j] [-c] [-f] [-p] <image>...
+    Display information about one *image* (or more).
 
-    -c, --changelog
-        display *image* changelog
+    -a, --all
+        display all information available
 
     -j, --json
-        output is formated in json
+        display all information formated in json
 
-    -v, --verbose
-        verbose output
+    -c, --changelog
+        display image changelog
+
+    -f, --files
+        display image files
+
+    -p, --payloads
+        display image payloads
 
 
 init [-h] *repository*...

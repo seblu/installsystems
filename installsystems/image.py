@@ -903,7 +903,7 @@ class PackageImage(Image):
             warn(u"Invalid changelog: %s" % e)
         return desc
 
-    def show(self, o_verbose=False, o_changelog=False, o_json=False):
+    def show(self, o_payloads=False, o_files=False, o_changelog=False, o_json=False):
         '''
         Display image content
         '''
@@ -915,15 +915,17 @@ class PackageImage(Image):
             out(u'#yellow#Date:#reset# %s' % istools.time_rfc2822(self.date))
             out(u'#yellow#Description:#reset# %s' % self.description)
             out(u'#yellow#Author:#reset# %s' % self.author)
-            if o_verbose:
-                # field is_build_version is new in version 5. I can be absent.
-                try: out(u'#yellow#IS build version:#reset# %s' % self.is_build_version)
-                except AttributeError: pass
-                # field is_min_version is new in version 5. I can be absent.
-                try: out(u'#yellow#IS minimum version:#reset# %s' % self.is_min_version)
-                except AttributeError: pass
+            # field is_build_version is new in version 5. I can be absent.
+            try: out(u'#yellow#IS build version:#reset# %s' % self.is_build_version)
+            except AttributeError: pass
+            # field is_min_version is new in version 5. I can be absent.
+            try: out(u'#yellow#IS minimum version:#reset# %s' % self.is_min_version)
+            except AttributeError: pass
+            out(u'#yellow#Format:#reset# %s' % self.format)
             out(u'#yellow#MD5:#reset# %s' % self.md5)
-            if o_verbose:
+            out(u'#yellow#Payload count:#reset# %s' % len(self.payload))
+            # display payloads
+            if o_payloads:
                 payloads = self.payload
                 for payload_name in payloads:
                     payload = payloads[payload_name]
@@ -932,11 +934,12 @@ class PackageImage(Image):
                     out(u'  #yellow#Size:#reset# %s' % (istools.human_size(payload.size)))
                     out(u'  #yellow#MD5:#reset# %s' % payload.md5)
             # display image content
-            out('#light##yellow#Content:#reset#')
-            self._tarball.list(o_verbose)
+            if o_files:
+                out('#light##yellow#Files:#reset#')
+                self._tarball.list(True)
             # display changelog
             if o_changelog:
-                self.changelog.show(int(self.version), o_verbose)
+                self.changelog.show(self.version)
 
     def check(self, message="Check MD5"):
         '''

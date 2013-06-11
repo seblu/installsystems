@@ -289,10 +289,14 @@ def c_info(args):
     '''
     Display info about packaged images
     '''
+    if args.all:
+        args.payloads = True
+        args.files = True
+        args.changelog = True
     repoman = load_repositories(args)
     for image, repo in get_images(args.pattern, repoman, min=1):
-        image.show(o_verbose=args.verbose, o_changelog=args.changelog,
-                   o_json=args.json)
+        image.show(o_files=args.files, o_payloads=args.payloads,
+                   o_changelog=args.changelog, o_json=args.json)
 
 def c_init(args):
     '''
@@ -613,12 +617,16 @@ def arg_parser_init():
     p.set_defaults(func=c_help, parser=parser, subparser=subparser)
     # info command parser
     p = subparser.add_parser("info", help=c_info.__doc__.lower())
+    p.add_argument("-a", "--all", action="store_true",
+                   help="display all information")
+    p.add_argument("-j", "--json", action="store_true",
+                   help="display all information formated in json")
     p.add_argument("-c", "--changelog", action="store_true",
                    help="display image changelog")
-    p.add_argument("-j", "--json", action="store_true",
-                   help="output is formated in json")
-    p.add_argument("-v", "--verbose", action="store_true",
-                   help="verbose output")
+    p.add_argument("-f", "--files", action="store_true",
+                   help="display image files")
+    p.add_argument("-p", "--payloads", action="store_true",
+                   help="display image payloads")
     p.add_argument("pattern", nargs="+",
                    help="path|[repository/][image][:version]")
     p.set_defaults(func=c_info)

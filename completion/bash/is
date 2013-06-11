@@ -139,7 +139,7 @@ _is() {
          (( args == 2 )) && _opt "${cmds[@]}"
       ;;
       info)
-         [[ "$cur" == -* ]] && _opt '-v --verbose -c --changelog' && return 0
+         [[ "$cur" == -* ]] && _opt '-a --all -j --json -c --changelog -f --files -p --payloads' && return 0
          _image
       ;;
       init)

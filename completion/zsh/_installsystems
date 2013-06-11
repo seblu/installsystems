@@ -227,9 +227,11 @@ _is() {
                         ;;
                     (info)
                         args+=(
-                        '(-c --changelog)'{-c,--changelog}'[display image changelog]'
+                        '(-a --all)'{-a,--all}'[display all information]'
                         '(-j, --json)'{-j,--json}'[output is formated in json]'
-                        '(-v --verbose)'{-v,--verbose}'[verbose output]'
+                        '(-c --changelog)'{-c,--changelog}'[display image changelog]'
+                        '(-f --files)'{-f,--files}'[display image files]'
+                        '(-p --payloads)'{-p,--payloads}'[display image payloads]'
                         '*:image:_installsystems_images'
                         )
                         ;;

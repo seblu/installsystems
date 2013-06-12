@@ -32,7 +32,7 @@ from installsystems.repository import RepositoryConfig
 
 # This must not be an unicode string, because configobj don't decode configspec
 # with the provided encoding
-MAIN_CONFIG_SPEC = """\
+MAIN_CONFIG_SPEC = '''\
 [installsystems]
 verbosity = integer(0, 2)
 repo_config = string
@@ -48,11 +48,11 @@ no_color = boolean
 nice = integer
 ionice_class = option("none", "rt", "be", "idle")
 ionice_level = integer
-"""
+'''
 
 # This must not be an unicode string, because configobj don't decode configspec
 # with the provided encoding
-REPO_CONFIG_SPEC = """\
+REPO_CONFIG_SPEC = '''\
 [__many__]
     path = string
     fmod = string
@@ -62,7 +62,7 @@ REPO_CONFIG_SPEC = """\
     offline = boolean
     lastpath = string
     dbpath = string
-"""
+'''
 
 
 class ConfigFile(object):

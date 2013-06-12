@@ -50,7 +50,7 @@ from installsystems.tarball import Tarball
 
 # This must not be an unicode string, because configobj don't decode configspec
 # with the provided encoding
-DESCRIPTION_CONFIG_SPEC = """\
+DESCRIPTION_CONFIG_SPEC = '''\
 [image]
 name = IS_name
 version = IS_version
@@ -60,7 +60,7 @@ is_min_version = IS_min_version
 
 [compressor]
 __many__ = force_list
-"""
+'''
 
 
 class Image(object):

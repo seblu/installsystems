@@ -191,7 +191,7 @@ class Image(object):
             assert(isinstance(fc, str))
             arrow(fn, 1)
             # backup arrow level
-            old_level = arrowlevel(1)
+            old_level = arrowlevel(2)
             # chdir in exec_directory
             os.chdir(exec_directory)
             # compile source code

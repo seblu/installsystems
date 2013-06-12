@@ -939,6 +939,7 @@ class PackageImage(Image):
                 self._tarball.list(True)
             # display changelog
             if o_changelog:
+                out('#light##yellow#Changelog:#reset#')
                 self.changelog.show(self.version)
 
     def check(self, message="Check MD5"):
@@ -1425,25 +1426,22 @@ class Changelog(dict):
         # save original
         self.verbatim = data
 
-    def show(self, version=None, verbose=False):
+    def show(self, version=None):
         '''
-        Show changelog for a given version or all
+        Show changelog for a given version
         '''
-        out('#light##yellow#Changelog:#reset#')
+        assert(isinstance(version, unicode))
         # if no version take the hightest
         if version is None:
-            version = max(self)
+            version = max(self, istools.strvercmp)
         # display asked version
         if version in self:
-            self._show_version(version)
-        # display all version in verbose mode
-        if verbose:
-            for ver in sorted((k for k in self if k < version), reverse=True):
-                self._show_version(ver)
+            out(os.linesep.join(self[version]))
 
-    def _show_version(self, version):
+    def show_all(self):
         '''
-        Display a version content
+        Show changelog for all versions
         '''
-        out(u'  #yellow#Version:#reset# %s' % version)
-        out(os.linesep.join(self[version]))
+        for ver in sorted(self, istools.strvercmp,  reverse=True):
+            out(u'-- #purple#version:#reset# %s' % ver)
+            out(os.linesep.join(self[ver]))

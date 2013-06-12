@@ -253,7 +253,7 @@ class Repository(object):
                      image.description,
                      image.size,
                      image.is_min_version,
-                     image.img_format,
+                     image.format,
                      ))
         # insert data information
         arrow("Payloads", 1)

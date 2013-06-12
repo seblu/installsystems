@@ -159,8 +159,14 @@ def c_changelog(args):
     Display changelog of packaged images
     '''
     repoman = load_repositories(args)
-    for image, repo in get_images(args.pattern, repoman, min=1):
-        image.changelog.show(image.version, args.all_version)
+    images = list(get_images(args.pattern, repoman, min=1))
+    for image, repo in images:
+        if len(images) > 1:
+            out("--- #yellow#image: %s v%s#reset#" % (image.name, image.version))
+        if args.all_version:
+            image.changelog.show_all()
+        else:
+            image.changelog.show(image.version)
 
 def c_check(args):
     '''

@@ -68,9 +68,6 @@ class Image(object):
     Abstract class of images
     '''
 
-    # format should be a float  X.Y but for compatibility reason it's a string
-    # before version 6, it's strict string comparaison
-    format = "1"
     extension = ".isimage"
     default_compressor = "gzip"
 
@@ -237,6 +234,11 @@ class SourceImage(Image):
     '''
     Image source manipulation class
     '''
+
+    # format should be a float  X.Y but for compatibility reason it's a string
+    # before version 6, it's strict string comparaison
+    format = "2.0"
+
 
     @classmethod
     def create(cls, path, force=False):
@@ -862,7 +864,7 @@ class PackageImage(Image):
         # check format
         img_format = self._tarball.get_utf8("format")
         try:
-            if float(img_format) >= math.floor(float(self.format)) + 1.0:
+            if float(img_format) >= math.floor(float(SourceImage.format)) + 1.0:
                 raise Exception()
         except:
             raise ISError(u"Invalid image format %s" % img_format)

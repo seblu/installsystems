@@ -155,8 +155,8 @@ class Repository(object):
         because repository is not initialized
         '''
         config = object.__getattribute__(self, "config")
-        # config, init, local and upgrade_db are always accessible
-        if name in ("init", "config", "local", "upgrade_db"):
+        # config, init, local and upgrade are always accessible
+        if name in ("init", "config", "local", "upgrade"):
             return object.__getattribute__(self, name)
         # if no db (not init or not accessible) raise error
         if config.offline:
@@ -537,9 +537,9 @@ class Repository(object):
                         (a[0],)).fetchall()
         return [ a[0] ] + [ x[0] for x in b ]
 
-    def upgrade_db(self):
+    def upgrade(self):
         if self.version == Database.version:
-            info("Database already up-to-date (%s)" % self.version)
+            info("Repository already up-to-date (%s)" % self.version)
             return
         else:
             arrow("Start repository upgrade")

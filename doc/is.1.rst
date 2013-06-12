@@ -350,8 +350,8 @@ unprepare_chroot [-h] [-m] *path*
         disable unmouting of /{proc,dev,sys}
 
 
-upgrade_db [-h] *repository*
-    Upgrade repository's database to the current database version
+upgrade [-h] *repository*
+    Upgrade repository's to the last version
 
 
 version [-h]

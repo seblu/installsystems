@@ -188,7 +188,7 @@ _is() {
          [[ "$cur" == -* ]] && _opt '-h --help -m --no-mount' && return 0
          _filedir -d
       ;;
-      upgrade_db)
+      upgrade)
          [[ "$cur" == -* ]] && _opt '-h --help' && return 0
          _count_args
          (( args == 2 )) && _local_repo

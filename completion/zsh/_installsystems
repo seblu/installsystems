@@ -320,7 +320,7 @@ _is() {
                         '1:path:_files -/'
                         )
                         ;;
-                     (upgrade_db)
+                     (upgrade)
                         args+=(
                         '1:repo:_installsystems_local_repo'
                         )

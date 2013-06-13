@@ -49,6 +49,8 @@ parser = """# -*- python -*-
 # global image object is a reference to current image
 # global parser object is your installsystems subparser (argparse)
 
+# you can use exit() to break the execution of the script
+
 import os
 import argparse
 from installsystems.printer import arrow
@@ -71,6 +73,8 @@ setup = u"""# -*- python -*-
 
 # global image object is a reference to current image
 # namespace object is the persistant, it can be used to store data accross scripts
+
+# you can use exit() to break the execution of the script
 
 from installsystems.printer import arrow
 

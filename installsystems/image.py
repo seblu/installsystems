@@ -223,8 +223,14 @@ class Image(object):
             # we need installsystems.printer to conserve arrow level
             sysmodules["installsystems.printer"] = installsystems.printer
             exec bytecode in global_dict
+        except SystemExit as e:
+            # skip a script which call exit(0) or exit()
+            if e.code is None or e.code == 0:
+                return
+            else:
+                raise ISError(u"Script %s exits with status" % path, e)
         except Exception as e:
-            raise ISError(u"Unable to execute script %s" % path, e)
+            raise ISError(u"Fail to execute script %s" % path, e)
         finally:
             sysmodules.clear()
             sysmodules.update(sysmodules_backup)

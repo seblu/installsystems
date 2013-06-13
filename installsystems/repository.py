@@ -926,7 +926,7 @@ class RepositoryManager(object):
                         fnmatch.fnmatch("%s/%s" % (self[img["repo"]].uuid, k.split("/")[1]), filter_pattern)):
                     del images[k]
             ans.update(images)
-	return ans
+        return ans
 
     def search_image(self, pattern):
         '''

@@ -43,7 +43,7 @@ build = u"""# -*- python -*-
 """
 
 
-parser = """# -*- python -*-
+parser = u"""# -*- python -*-
 # -*- coding: utf-8 -*-
 
 # global image object is a reference to current image

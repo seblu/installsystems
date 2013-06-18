@@ -25,13 +25,31 @@ EXTRA_DIST = COPYRIGHT LICENSE \
 dist_doc_DATA = README COPYRIGHT LICENSE AUTHORS DEPENDENCIES
 
 # main binary
-dist_bin_SCRIPTS = bin/is
+dist_bin_SCRIPTS = bin/is installsystems/__init__.py
 
 # python library
 installsystemsdir=$(pythondir)/installsystems
-installsystems_PYTHON = installsystems/*.py
+installsystems_PYTHON = \
+	installsystems/__init__.py \
+	installsystems/config.py \
+	installsystems/database.py \
+	installsystems/exception.py \
+	installsystems/image.py \
+	installsystems/printer.py \
+	installsystems/repository.py \
+	installsystems/tarball.py \
+	installsystems/template.py \
+	installsystems/tools.py
 
-CLEANFILES = $(bin_SCRIPTS)
+do_substitution = $(SED) -e 's,[@]pythondir[@],$(pythondir),g' \
+	-e 's,[@]PACKAGE[@],$(PACKAGE),g' \
+	-e 's,[@]VERSION[@],$(VERSION),g'
+
+installsystems/__init__.py: installsystems/__init__.py.in
+	$(do_substitution) < $(srcdir)/$< > $@
+
+
+CLEANFILES = $(bin_SCRIPTS) installsystems/__init__.py
 
 install-exec-hook:
 	ln -fs is $(DESTDIR)$(bindir)/installsystems

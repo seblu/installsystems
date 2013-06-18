@@ -35,4 +35,6 @@ AC_ARG_WITH([zshcompdir],
 )
 AC_SUBST([zshcompdir], [$with_zshcompdir])
 
+AC_PROG_SED
+
 AC_OUTPUT

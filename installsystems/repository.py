@@ -643,12 +643,9 @@ class Repository_v1(Repository):
     @property
     def uuid(self):
         '''
-        Return repository UUID
+        Repository v1 doesn't support UUID
         '''
-        # repository v1 don't have UUID, generate one with repository url
-        # encode in ascii for hash digest
-        return str(uuid.uuid5(uuid.NAMESPACE_URL,
-                              self.config.path.encode('ascii')))
+        return None
 
     def images(self):
         '''
@@ -1100,7 +1097,7 @@ class RepositoryManager(object):
                 if not repo["offline"]:
                     if o_version:
                         ln += u"  (#p#v%s#R#)" % repo["version"]
-                    if o_uuid:
+                    if o_uuid and repo["uuid"] is not None:
                         ln += u"  [%s]" % repo["uuid"]
                 l.append(ln)
             s = os.linesep.join(l)

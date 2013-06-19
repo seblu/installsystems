@@ -64,6 +64,8 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
     '''
     Print message colorised in fd ended by endl
     '''
+    if message is None:
+        return
     # color subsitution
     color_pattern = "#(%s)#" % "|".join(COLOR)
     if not fd.isatty() or NOCOLOR:

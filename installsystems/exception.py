@@ -31,7 +31,7 @@ class ISException(Exception):
     Base exception class
     '''
 
-    def __init__(self, message="", exception=None):
+    def __init__(self, message=u"", exception=None):
         self.message = unicode(message)
         self.exception = None if exception is None else sys.exc_info()
 
@@ -71,6 +71,7 @@ class ISException(Exception):
         # reset color
         out("#R#", fd=fd, endl="")
 
+
 class ISError(ISException):
     '''
     Installsystems error; this exception will stop execution
@@ -81,3 +82,12 @@ class ISWarning(ISException):
     '''
     Installsystems warning; this exception do not stop execution
     '''
+
+
+class InvalidSourceImage(ISError):
+    '''
+    Invalid source image errors
+    '''
+
+    def __init(self, message=u"", exception=None):
+        ISException(self, u"Invalid source image: " + message, exception)

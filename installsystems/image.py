@@ -336,22 +336,26 @@ class SourceImage(Image):
     def check_source_image(self):
         '''
         Check if we are a valid SourceImage directories
+        A vaild SourceImage contains at least a description and a setup directory.
+        Payload directory is mandatory is build scripts are present
         '''
-        # setup and payload are the only needed dirs
-        # setup are mandatory to do something
-        # payload directory is needed because build script chroot into payload directory
-        for d in (self.setup_path, self.payload_path):
-            if not os.path.exists(d):
-                raise ISError(u"Invalid source image: directory %s is missing" % d)
+        # Ensure setup_path exists
+        if not os.path.exists(self.setup_path):
+            raise InvalidSourceImage(u"setup directory is missing.")
+        # Ensure description exists
+        if not os.path.exists(os.path.join(self.base_path, u"description")):
+            raise InvalidSourceImage(u"no description file.")
+        # Ensure payload directory exists if there is build directory
+        if not os.path.exists(self.payload_path) and os.path.exists(self.build_path):
+            raise InvalidSourceImage(u"payload directory is mandatory with a build directory.")
+        # Ensure directories are directories and accessible
         for d in (self.base_path, self.build_path, self.parser_path,
                   self.setup_path, self.payload_path, self.lib_path):
             if os.path.exists(d):
                 if not os.path.isdir(d):
-                    raise ISError(u"Invalid source image: %s is not a directory" % d)
+                    raise InvalidSourceImage(u"%s is not a directory." % d)
                 if not os.access(d, os.R_OK|os.X_OK):
-                    raise ISError(u"Invalid source image: unable to access to %s" % d)
-        if not os.path.exists(os.path.join(self.base_path, "description")):
-            raise ISError("Invalid source image: no description file")
+                    raise InvalidSourceImage(u"unable to access to %s." % d)
 
     def build(self, force=False, force_payload=False, check=True, script=True):
         '''
@@ -450,6 +454,8 @@ class SourceImage(Image):
         '''
         Return a generator on image payloads
         '''
+        if not os.path.isdir(self.payload_path):
+            raise StopIteration()
         for payname in os.listdir(self.payload_path):
             yield payname
 

@@ -24,4 +24,26 @@ canonical_name="installsystems"
 version = "@VERSION@"
 verbosity = 1 # 0: quiet, 1: normal, 2: debug
 
+def git_version():
+    import os
+    import sys
+    from subprocess import check_output, CalledProcessError
+    version = ""
+    cwd = os.getcwd()
+    try:
+        os.chdir(os.path.dirname(sys.argv[0]))
+        version = check_output(["git", "describe", "--tags", "--always" ],
+                               stdin=open(os.devnull, 'rb'),
+                               stderr=open(os.devnull, "wb")).strip()
+        if len(version) > 0:
+            version = "-" + version
+    except (OSError, CalledProcessError):
+        pass
+    finally:
+        os.chdir(cwd)
+    return version
+
+if version.find("+git") >= 0:
+    version += git_version()
+
 __all__ = []

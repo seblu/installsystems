@@ -37,4 +37,7 @@ AC_SUBST([zshcompdir], [$with_zshcompdir])
 
 AC_PROG_SED
 
+AM_CONDITIONAL([ISGIT],[test -d .git])
+AM_COND_IF([ISGIT],[VERSION=$VERSION+git])
+
 AC_OUTPUT

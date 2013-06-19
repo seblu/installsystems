@@ -366,7 +366,7 @@ class SourceImage(Image):
         if check:
             for d in (self.build_path, self.parser_path, self.setup_path,
                       self.lib_path):
-                if os.path.exists(d) or d == self.setup_path:
+                if os.path.exists(d):
                     self.check_scripts(d)
         # load modules
         self.load_modules(lambda: self.select_scripts(self.lib_path))

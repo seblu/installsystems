@@ -39,7 +39,7 @@ build = u"""# -*- python -*-
 # rebuild list is empty by default
 #rebuild += ["rootfs"]
 
-# vim:set ts=2 sw=2 noet:
+# vim:set ts=4 sw=4 et:
 """
 
 
@@ -65,7 +65,7 @@ parser.add_argument("-n", "--hostname", dest="hostname", type=str, required=True
 parser.add_argument("target", type=str, action=TargetAction,
   help="target installation directory")
 
-# vim:set ts=2 sw=2 noet:
+# vim:set ts=4 sw=4 et:
 """
 
 setup = u"""# -*- python -*-
@@ -83,7 +83,7 @@ arrow(u"hostname: %s" % namespace.hostname)
 # uncomment to extract payload named root in namespace.target directory
 #image.payload["rootfs"].extract(namespace.target)
 
-# vim:set ts=2 sw=2 noet:
+# vim:set ts=4 sw=4 et:
 """
 
 createdb = u"""

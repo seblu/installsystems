@@ -157,7 +157,7 @@ _is() {
          _remote_image
       ;;
       motd)
-         [[ "$cur" == -* ]] && _opt '-h --help --edit' && return 0
+         [[ "$cur" == -* ]] && _opt '-h --help -r --remove -f --files -s --set' && return 0
          _repo
       ;;
       move)

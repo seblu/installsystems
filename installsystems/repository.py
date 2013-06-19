@@ -586,25 +586,24 @@ class Repository(object):
             finally:
                 # Remove dummy repository
                 shutil.rmtree(tmpdir)
+    @property
+    def motd(self):
+        '''
+        Return repository message of the day
+        '''
+        motd = self.db.ask("SELECT motd FROM repository").fetchone()[0]
+        return None if len(motd) == 0 else motd
 
-    def motd(self, new_motd=None):
+    def setmotd(self, value=""):
         '''
-        Display and edit repository motd
+        Set repository message of the day
         '''
-        if new_motd is None:
-            try:
-                motd = self.db.ask("SELECT motd FROM repository").fetchone()
-            except:
-                motd = None
-            if motd is None:
-                raise ISError("Unable to retrieve %s's MOTD" % self.config.name)
-            out(motd[0])
-        else:
-            # check local repository
-            if not self.local:
-                raise ISError(u"Repository must be local")
-            self.db.ask("UPDATE repository SET motd = ?", (new_motd,))
-            self.update_last()
+        # check local repository
+        if not self.local:
+            raise ISError(u"Repository must be local")
+        arrow("Updating motd")
+        self.db.ask("UPDATE repository SET motd = ?", (value,))
+        self.update_last()
 
 
 class Repository_v1(Repository):
@@ -671,14 +670,21 @@ class Repository_v1(Repository):
             images.append(d)
         return images
 
-    def motd(self, new_motd=None):
+    @property
+    def motd(self):
         '''
-        Display and edit repository motd
+        Return repository message of the day.
+        Repository v1 don't have message of day
         '''
-        out('')
-        if new_motd:
-            warn("[%s] repository v1, unable to edit MOTD." % self.config.name)
+        return None
 
+    def setmotd(self, value=""):
+        '''
+        Don't set repository message of the day. Not supported by v1.
+        '''
+        # check local repository
+        warn(u"Repository v1 doesn't support motd. Unable to set")
+        return
 
 class RepositoryManager(object):
     '''

@@ -327,11 +327,10 @@ def c_install(args):
     # select image to install
     repoman = load_repositories(args)
     image, repo = next(get_images([args.pattern], repoman, min=1, max=1))
-    if repo:
-        # Print repo MOTD
-        arrow("Repository %s MOTD" % repo.config.name)
-        repo.motd()
-    # Print setup information
+    if repo is not None:
+        arrow("Repository message")
+        out(repo.motd, endl="")
+    # print setup information
     arrow(u"Installing %s v%s" % (image.name, image.version))
     # let's go
     dt = image.run(args.parser, subparser, run_setup=not args.dry_run)
@@ -354,25 +353,23 @@ def c_list(args):
 
 def c_motd(args):
     '''
-    Display (and edit) repository's MOTD
+    Show and set repository's message
     '''
     repoman = load_repositories(args)
-    repo = repoman[args.repository]
-    arrow("Current MOTD for %s:" % repo.config.name)
-    repo.motd()
-    if args.edit:
-        # check local repository
-        if not repo.local:
-            raise ISError(u"Repository must be local")
-        arrow("New MOTD (end with a blank line):")
-        motd = ""
-        # raw_input return bytestring
-        data = raw_input().decode(sys.stdin.encoding)
-        motd += data
-        while data:
-            data = raw_input().decode(sys.stdin.encoding)
-            motd += u"\n%s" % data
-        repo.motd(motd[:-1])
+    if args.file:
+        args.set = open(args.file, "rb").read()
+    elif args.remove:
+        args.set = ""
+    arrowlevel(1)
+    for reponame in repoman.select_repositories(args.repository):
+        arrow(reponame, -1)
+        try:
+            if args.set is not None:
+                repoman[reponame].setmotd(args.set)
+            else:
+                out(repoman[reponame].motd)
+        except IndexError as e:
+            raise ISError(e)
 
 def c_move(args):
     '''
@@ -675,9 +672,11 @@ def arg_parser_init():
     p.set_defaults(func=c_list)
     # motd command parser
     p = subparser.add_parser("motd", help=c_motd.__doc__.lower())
-    p.add_argument("repository", help="repository to display/edit MOTD")
-    p.add_argument("--edit", action="store_true",
-                   help="edit repository's MOTD")
+    g = p.add_mutually_exclusive_group()
+    g.add_argument("-r", "--remove", action="store_true", help="remove the motd")
+    g.add_argument("-s", "--set", help="set the motd from command line")
+    g.add_argument("-f", "--file", help="set the motd from a file")
+    p.add_argument("repository", nargs="*", default=[u"*"], help="image repository")
     p.set_defaults(func=c_motd)
     # move command parser
     p = subparser.add_parser("move", help=c_move.__doc__.lower())

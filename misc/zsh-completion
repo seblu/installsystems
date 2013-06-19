@@ -264,8 +264,10 @@ _is() {
                         ;;
                      (motd)
                         args+=(
-                        '1:repository:_installsystems_repo'
-                        "--edit[edit repository's MOTD]"
+                        '(-f --files)'{-f,--files}'[set the motd from a file]: motd:_files'
+                        '(-s --set)'{-s,--set}'[set the motd from command line]'
+                        '(-r --remove)'{-r,--remove}'[remove the motd]'
+                        '*:repository:_installsystems_local_repo'
                         )
                         ;;
                     (move)

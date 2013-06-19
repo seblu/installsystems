@@ -267,11 +267,20 @@ list [-h] [-A] [-d] [-D] [-f] [-j] [-i] [-l] [-m] [-s] [-u] [<remote_image>...]
         display image url
 
 
-motd [-h] [--edit] *repository*
-    Display MOTD of a repository
+motd [-h] [-f] [-r] [-s] *repository*
+    Show or set the message of the day (MOTD) of repository.
+    This message is only displayed during installation of an image from this repository.
 
-    --edit
-        edit the MOTD of the repository
+    -f, --file *FILE*
+        set the repository MOTD from file *FILE*.
+
+    -s, --set *MESSAGE*
+        set the repository MOTD from command line argument *MESSAGE*.
+
+    -r, --remove
+        remove the repository MOTD.
+
+    MOTD are supported by repository version >= 2.0.
 
 
 move [-h] [-f] <local_image>... *repository*

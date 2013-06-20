@@ -31,6 +31,7 @@ import fnmatch
 import cStringIO
 import json
 import uuid
+import string
 import installsystems
 import installsystems.tools as istools
 from installsystems.exception import *
@@ -861,6 +862,22 @@ class RepositoryManager(object):
         return [ r.config.name for r in self.repos ]
 
     @property
+    def uuids(self):
+        '''
+        Return a dict of repository UUID and associated names
+        '''
+        d = {}
+        for r in self.repos:
+            uuid = r.uuid
+            if uuid is None:
+                continue
+            if uuid in d:
+                d[uuid].append(r)
+            else:
+                d[uuid] = [r]
+        return d
+
+    @property
     def onlines(self):
         '''
         Return list of online repository names
@@ -1030,8 +1047,12 @@ class RepositoryManager(object):
         Return a list of repository
         '''
         ans = set()
+        uuidb = self.uuids
         for pattern in patterns:
             ans |= set(fnmatch.filter(self.names, pattern))
+            if istools.strcspn(pattern, string.hexdigits + "-") == 0:
+                for uuid in filter(lambda x: x.startswith(pattern), uuidb.keys()):
+                    ans |= set((r.config.name for r in uuidb[uuid]))
         return sorted(ans)
 
     def purge_repositories(self, patterns):

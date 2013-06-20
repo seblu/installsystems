@@ -32,6 +32,7 @@ import time
 import urllib2
 
 from subprocess import call, check_call, CalledProcessError
+from itertools import takewhile
 
 import installsystems
 from progressbar import Widget, ProgressBar, Percentage
@@ -733,3 +734,9 @@ def argv():
         return [unicode(x, encoding=locale.getpreferredencoding()) for x in sys.argv]
     except UnicodeDecodeError as e:
         raise ISError("Invalid character encoding in command line")
+
+def strcspn(string, pred):
+    '''
+    Python implementation of libc strcspn
+    '''
+    return len(list(takewhile(lambda x: x not in pred, string)))

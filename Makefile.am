@@ -25,7 +25,8 @@ EXTRA_DIST = COPYRIGHT LICENSE \
 dist_doc_DATA = README COPYRIGHT LICENSE AUTHORS DEPENDENCIES
 
 # main binary
-dist_bin_SCRIPTS = bin/is installsystems/__init__.py
+dist_bin_SCRIPTS = bin/is
+noinst_SCRIPTS = installsystems/__init__.py
 
 # python library
 installsystemsdir=$(pythondir)/installsystems

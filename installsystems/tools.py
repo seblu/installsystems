@@ -325,18 +325,35 @@ def mkdir(path, uid=None, gid=None, mode=None):
     makedirs(path)
     chrights(path, uid, gid, mode)
 
-def chrights(path, uid=None, gid=None, mode=None, mtime=None):
+def chrights(path, uid=None, gid=None, mode=None, mtime=None, strict=False):
     '''
     Set rights on a file
+    If strict is True, raise error if change right fail
     '''
     if uid is not None:
-        chown(path, uid, -1)
+        try:
+            chown(path, uid, -1)
+        except OSError:
+            if strict:
+                raise
     if gid is not None:
-        chown(path, -1, gid)
+        try:
+            chown(path, -1, gid)
+        except OSError:
+            if strict:
+                raise
     if mode is not None:
-        chmod(path, mode)
+        try:
+            chmod(path, mode)
+        except OSError:
+            if strict:
+                raise
     if mtime is not None:
-        utime(path, (mtime, mtime))
+        try:
+            utime(path, (mtime, mtime))
+        except OSError:
+            if strict:
+                raise
 
 def pathtype(path):
     '''

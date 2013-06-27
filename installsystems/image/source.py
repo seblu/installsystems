@@ -534,10 +534,10 @@ class SourceImage(Image):
             # If everything is fine, the validation return True
             # Else, it returns a list of (section, optname, error)
             if res is not True:
-                for section, optname, error in flatten_errors(cp, res):
+                for section, optname, err in flatten_errors(cp, res):
                     # If error, the check has failed
-                    if error:
-                        error('Wrong description file, %s %s: %s' % (section, optname, error))
+                    if err:
+                        error(u"Wrong description file, %s %s: %s" % (section, optname, err))
                     # Else, no value has been supplied and there is no default value
                     else:
                         error(u"No option '%s' in section '%s'" % (optname, section[0]))

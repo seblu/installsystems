@@ -175,8 +175,11 @@ class SourceImage(Image):
         Create packaged image
         '''
         # check if free to create script tarball
-        if exists(self.image_name) and force == False:
-            raise ISError("Tarball already exists. Remove it before")
+        if exists(self.image_name):
+            if force:
+                unlink(self.image_name)
+            else:
+                raise ISError("Tarball already exists. Remove it before")
         # register start time
         t0 = time()
         # check python scripts

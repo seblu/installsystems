@@ -28,7 +28,9 @@ from installsystems.exception import ISError, ISException
 from installsystems.image import PackageImage, SourceImage
 from installsystems.printer import arrow, arrowlevel, setmode
 from installsystems.printer import out, warn, error, debug, confirm
-from installsystems.repository import Repository, RepositoryManager, RepositoryConfig
+from installsystems.repository import split_list as split_repo_list, diff as repodiff
+from installsystems.repository.manager import RepositoryManager
+from installsystems.repository.config import RepositoryConfig
 from installsystems.tools import chroot, prepare_chroot, unprepare_chroot
 from installsystems.tools import islocal, smd5sum, argv
 from os import getpid, getcwdu, chdir
@@ -48,8 +50,8 @@ def load_repositories(args):
     if args.no_cache:
         args.cache = None
     # split filter and search in list
-    args.repo_filter = Repository.split_list(args.repo_filter)
-    args.repo_search = Repository.split_list(args.repo_search)
+    args.repo_filter = split_repo_list(args.repo_filter)
+    args.repo_search = split_repo_list(args.repo_search)
     # init repo cache object
     repoman = RepositoryManager(args.cache, timeout=args.repo_timeout or args.timeout,
                                 filter=args.repo_filter, search=args.repo_search)
@@ -252,7 +254,7 @@ def c_diff(args):
     repoman = load_repositories(args)
     if args.object[0] in repoman.onlines and args.object[1] in repoman.onlines:
         try:
-            Repository.diff(repoman[args.object[0]], repoman[args.object[1]])
+            diff(repoman[args.object[0]], repoman[args.object[1]])
         except IndexError as e:
             raise ISError(e)
     else:

@@ -20,9 +20,7 @@
 Repository Factory
 '''
 
-from installsystems.printer import debug, warn
-from installsystems.exception import ISWarning, ISError
-from installsystems.repository.database import Database
+from installsystems.exception import ISError
 from installsystems.repository.repository1 import Repository1
 from installsystems.repository.repository2 import Repository2
 
@@ -31,28 +29,21 @@ class RepositoryFactory(object):
     Repository factory
     '''
 
-    def __init__(self):
-
-        self.repo_class = {
-            1: Repository1,
-            2: Repository2,
-        }
-
-    def create(self, config):
-        db = None
-        if not config.offline:
-            try:
-                db = Database(config.dbpath)
-            except ISWarning as e:
-                warn('[%s]: %s' % (config.name, e))
-                config.offline = True
-            except ISError:
-                debug(u"Unable to load database %s" % config.dbpath)
-                config.offline = True
-        if config.offline:
-            debug(u"Repository %s is offline" % config.name)
-        if db is None:
+    def __new__(cls, config):
+        '''
+        Factory design pattern.
+        Return the right object version based on a version detector function
+        '''
+        version = cls.version(config.dbpath)
+        if version == 1:
+            return Repostory1(config)
+        elif version == 2:
             return Repository2(config)
-        else:
-            return self.repo_class[int(db.version)](config, db)
+        raise ISError(u"Unsupported repository version")
 
+    @staticmethod
+    def version(path):
+        '''
+        Return the version of a database
+        '''
+        return 2

@@ -22,8 +22,8 @@ Repository configuration module
 
 from grp import getgrnam
 from installsystems.printer import warn, debug
-from installsystems.repository.repository import Repository
-from installsystems.tools import isfile, chrights, mkdir, compare_versions
+from installsystems.repository import check_name
+from installsystems.tools import islocal, chrights, mkdir, compare_versions
 from os  import getuid, getgid, umask, linesep
 from os.path import join, abspath
 from pwd import getpwnam
@@ -37,7 +37,7 @@ class RepositoryConfig(object):
         # set default value for arguments
         self._valid_param = ("name", "path", "dbpath", "lastpath",
                              "uid", "gid", "fmod", "dmod", "offline")
-        self.name = Repository.check_name(name)
+        self.name = check_name(name)
         self.path = ""
         self._offline = False
         self._dbpath = None
@@ -111,7 +111,7 @@ class RepositoryConfig(object):
         Set db path
         '''
         # dbpath must be local, sqlite3 requirement
-        if not isfile(value):
+        if not islocal(value):
             raise ValueError("Database path must be local")
         self._dbpath = abspath(value)
 

@@ -34,7 +34,7 @@ from installsystems.tools import mkdir, abspath, time_rfc2822, human_size, argv,
 from json import loads, dumps
 from math import floor
 from os import listdir
-from os.path import join, basename, exists, isdir, dirname, abspath
+from os.path import join, basename, exists, isdir, dirname
 from time import time
 
 class PackageImage(Image):

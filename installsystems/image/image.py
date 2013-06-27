@@ -145,7 +145,9 @@ class Image(object):
         try:
             # replace system modules by image loaded
             # we must use the same directory and not copy it (probably C reference)
-            sysmodules.clear()
+            for module in self.modules:
+                if module in sysmodules:
+                    del sysmodules[str(module)]
             # sys must be in sys.module to allow loading of modules
             sysmodules["sys"] = sys
             sysmodules.update(self.modules)

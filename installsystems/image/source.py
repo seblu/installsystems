@@ -535,12 +535,13 @@ class SourceImage(Image):
             # Else, it returns a list of (section, optname, error)
             if res is not True:
                 for section, optname, error in flatten_errors(cp, res):
-                    # If error is False, this mean no value as been supplied,
-                    # so we use the default value
-                    # Else, the check has failed
+                    # If error, the check has failed
                     if error:
                         error('Wrong description file, %s %s: %s' % (section, optname, error))
-            for n in ("name","version", "description", "author", "is_min_version"):
+                    # Else, no value has been supplied and there is no default value
+                    else:
+                        error(u"No option '%s' in section '%s'" % (optname, section[0]))
+            for n in ("name", "version", "description", "author", "is_min_version"):
                 d[n] = cp["image"][n]
             d["compressor"] = {}
             # set payload compressor
@@ -661,9 +662,9 @@ DESCRIPTION_CONFIG_SPEC = """\
 [image]
 name = IS_name
 version = IS_version
-description = string
-author = string
-is_min_version = IS_min_version
+description = string(default='')
+author = string(default='')
+is_min_version = IS_min_version(default=0)
 
 [compressor]
 __many__ = force_list

@@ -28,19 +28,36 @@ dist_doc_DATA = README COPYRIGHT LICENSE AUTHORS DEPENDENCIES
 dist_bin_SCRIPTS = bin/is
 noinst_SCRIPTS = installsystems/__init__.py
 
-# python library
+# python installsystems package
 installsystemsdir=$(pythondir)/installsystems
 installsystems_PYTHON = \
 	installsystems/__init__.py \
 	installsystems/config.py \
-	installsystems/database.py \
 	installsystems/exception.py \
-	installsystems/image.py \
 	installsystems/printer.py \
-	installsystems/repository.py \
-	installsystems/tarball.py \
 	installsystems/template.py \
 	installsystems/tools.py
+
+installsystemsimagedir=$(pythondir)/installsystems/image
+installsystemsimage_PYTHON = \
+	installsystems/image/__init__.py \
+	installsystems/image/changelog.py \
+	installsystems/image/image.py \
+	installsystems/image/package.py \
+	installsystems/image/payload.py \
+	installsystems/image/source.py \
+	installsystems/image/tarball.py
+
+installsystemsrepositorydir=$(pythondir)/installsystems/repository
+installsystemsrepository_PYTHON = \
+	installsystems/repository/__init__.py \
+	installsystems/repository/config.py \
+	installsystems/repository/database.py \
+	installsystems/repository/factory.py \
+	installsystems/repository/manager.py \
+	installsystems/repository/repository.py \
+	installsystems/repository/repository1.py \
+	installsystems/repository/repository2.py
 
 do_substitution = $(SED) -e 's,[@]pythondir[@],$(pythondir),g' \
 	-e 's,[@]PACKAGE[@],$(PACKAGE),g' \

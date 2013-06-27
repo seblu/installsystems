@@ -20,13 +20,16 @@
 Install Systems Printer module
 '''
 
-import locale
-import sys
-import os
-import re
-import installsystems
-from installsystems.exception import *
+from installsystems.exception import ISException
 
+from locale import getpreferredencoding
+from os import linesep, _exit
+from re import sub
+from sys import stdout, stderr, exc_info
+from traceback import print_exc
+from warnings import filterwarnings
+
+VERBOSITY = 1 # 0: quiet, 1: normal, 2: debug
 NOCOLOR = False
 
 COLOR = {
@@ -58,9 +61,9 @@ COLOR = {
 
 # arrow_level is between 1 and 3
 # is the level of indentation of arrow
-_arrow_level = 1
+_ARROW_LEVEL = 1
 
-def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
+def out(message="", fd=stdout, endl=linesep, flush=True):
     '''
     Print message colorised in fd ended by endl
     '''
@@ -72,30 +75,30 @@ def out(message="", fd=sys.stdout, endl=os.linesep, flush=True):
         f = lambda obj: ""
     else:
         f = lambda obj: COLOR[obj.group(1)]
-    message = re.sub(color_pattern, f, message)
+    message = sub(color_pattern, f, message)
     # convert unicode into str before write
     # this can cause issue on python 2.6
     if type(message) == unicode:
-        message = message.encode(locale.getpreferredencoding(), "replace")
+        message = message.encode(getpreferredencoding(), "replace")
     # printing
     fd.write("%s%s" % (message, endl))
     if flush:
         fd.flush()
 
-def err(message, fd=sys.stderr, endl=os.linesep):
+def err(message, fd=stderr, endl=linesep):
     '''
     Print a message on stderr
     '''
     out(message, fd, endl)
 
-def fatal(message, quit=True, fd=sys.stderr, endl=os.linesep):
+def fatal(message, quit=True, fd=stderr, endl=linesep):
     out(u"#light##red#Fatal:#reset# #red#%s#reset#" % message, fd, endl)
-    if sys.exc_info()[0] is not None and installsystems.verbosity > 1:
+    if exc_info()[0] is not None and VERBOSITY > 1:
         raise
     if quit:
-        os._exit(21)
+        _exit(21)
 
-def error(message=None, exception=None, quit=True, fd=sys.stderr, endl=os.linesep):
+def error(message=None, exception=None, quit=True, fd=stderr, endl=linesep):
     # create error message
     pmesg = u""
     if message is not None:
@@ -109,59 +112,69 @@ def error(message=None, exception=None, quit=True, fd=sys.stderr, endl=os.linese
     if pmesg != "":
         out(u"#light##red#Error:#reset# #red#%s#reset#" % pmesg, fd, endl)
     # print traceback in debug mode
-    if installsystems.verbosity > 1 and isinstance(exception, ISException):
+    if VERBOSITY > 1 and isinstance(exception, ISException):
         exception.print_tb(fd)
-    elif installsystems.verbosity > 1:
+    elif VERBOSITY > 1:
         out("#l##B#", fd=fd, endl="")
-        traceback.print_exc(file=fd)
+        print_exc(file=fd)
         out("#R#", fd=fd, endl="")
     if quit:
         exit(42)
 
-def warn(message, fd=sys.stderr, endl=os.linesep):
+def warn(message, fd=stderr, endl=linesep):
     out(u"#light##yellow#Warning:#reset# #yellow#%s#reset#" % message, fd, endl)
 
-def info(message, fd=sys.stderr, endl=os.linesep):
-    if installsystems.verbosity > 0:
+def info(message, fd=stderr, endl=linesep):
+    if VERBOSITY > 0:
         out(u"#light#Info:#reset# %s" % message, fd, endl)
 
-def debug(message, fd=sys.stderr, endl=os.linesep):
-    if installsystems.verbosity > 1:
+def debug(message, fd=stderr, endl=linesep):
+    '''
+    Print debug information
+    '''
+    if VERBOSITY > 1:
         out(u"#light##black#%s#reset#" % message, fd, endl)
 
 def arrowlevel(inc=None, level=None):
-    global _arrow_level
-    old_level = _arrow_level
+    '''
+    Modify the current arrow level
+    '''
+    global _ARROW_LEVEL
+    old_level = _ARROW_LEVEL
     if level is not None:
-        _arrow_level = max(1, min(4, level))
+        _ARROW_LEVEL = max(1, min(4, level))
     if inc is not None:
-        _arrow_level = max(1, min(4, _arrow_level + inc))
+        _ARROW_LEVEL = max(1, min(4, _ARROW_LEVEL + inc))
     return old_level
 
-def arrow(message, inclevel=None, level=None, fd=sys.stdout, endl=os.linesep):
-    if installsystems.verbosity == 0:
+def arrow(message, inclevel=None, level=None, fd=stdout, endl=linesep):
+    '''
+    Print a message prefixed by an arrow
+    Arrows have indentation levels
+    '''
+    if VERBOSITY == 0:
         return
     # define new level
     old_level = arrowlevel(inc=inclevel, level=level)
-    if _arrow_level == 1:
+    if _ARROW_LEVEL == 1:
         out(u"#light##red#=>#reset# %s" % message, fd=fd, endl=endl)
-    elif _arrow_level == 2:
+    elif _ARROW_LEVEL == 2:
         out(u" #light##yellow#=>#reset# %s" % message, fd=fd, endl=endl)
-    elif _arrow_level == 3:
+    elif _ARROW_LEVEL == 3:
         out(u"  #light##blue#=>#reset# %s" % message, fd=fd, endl=endl)
-    elif _arrow_level == 4:
+    elif _ARROW_LEVEL == 4:
         out(u"   #light##green#=>#reset# %s" % message, fd=fd, endl=endl)
     # restore old on one shot level
     arrowlevel(level = old_level)
 
-def ask(message, fd=sys.stdout, endl=""):
+def ask(message, fd=stdout, endl=""):
     '''
     Ask a question on stdin
     '''
     out(message, fd=fd, endl=endl, flush=True)
     return raw_input()
 
-def confirm(message=None, ans=None, fd=sys.stdout, endl=""):
+def confirm(message=None, ans=None, fd=stdout, endl=""):
     '''
     Ask a question on stdin
     '''
@@ -170,3 +183,17 @@ def confirm(message=None, ans=None, fd=sys.stdout, endl=""):
     if message is None:
         message = u"#u##l##w#Are you sure?#R# (%s) " % ans
     return ask(message, fd, endl) == ans
+
+def setmode(verbosity=None, nocolor=None):
+    '''
+    Set printer mode
+    This is done to allow write access to global variables
+    '''
+    global VERBOSITY, NOCOLOR
+    if verbosity is not None:
+        # no warning if we are not in debug mode
+        if verbosity < 2:
+            filterwarnings("ignore")
+        VERBOSITY = verbosity
+    if nocolor is not None:
+        NOCOLOR = nocolor

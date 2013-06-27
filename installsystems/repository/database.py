@@ -25,8 +25,6 @@ import os
 import sqlite3
 import uuid
 import installsystems.tools as istools
-import installsystems.template as istemplate
-from installsystems.tarball import Tarball
 from installsystems.exception import *
 from installsystems.printer import *
 
@@ -50,7 +48,7 @@ class Database(object):
         try:
             conn = sqlite3.connect(path, isolation_level=None)
             conn.execute("PRAGMA foreign_keys = ON")
-            conn.executescript(istemplate.createdb)
+            conn.executescript(TEMPLATE_EMPTY_DB)
             conn.execute("INSERT INTO repository values (?,?,?)",
                          (str(uuid.uuid4()), Database.version, "",))
             conn.commit()
@@ -104,3 +102,28 @@ class Database(object):
         Ask question to db
         '''
         return self.conn.execute(sql, args)
+
+
+TEMPLATE_EMPTY_DB = u"""
+CREATE TABLE image (md5 TEXT NOT NULL PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    version TEXT NOT NULL,
+                    date INTEGER NOT NULL,
+                    author TEXT,
+                    description TEXT,
+                    size INTEGER NOT NULL,
+                    is_min_version INTEGER NOT NULL,
+                    format INTEGER NOT NULL,
+                    UNIQUE(name, version));
+
+CREATE TABLE payload (md5 TEXT NOT NULL,
+                      image_md5 TEXT NOT NULL REFERENCES image(md5),
+                      name TEXT NOT NULL,
+                      isdir INTEGER NOT NULL,
+                      size INTEGER NOT NULL,
+                      PRIMARY KEY(md5, image_md5));
+
+CREATE TABLE repository (uuid TEXT NOT NULL PRIMARY KEY,
+                         version FLOAT NOT NULL,
+                         motd TEXT NOT NULL);
+"""

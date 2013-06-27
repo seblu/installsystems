@@ -16,16 +16,20 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with Installsystems.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import sys
-import time
-import tarfile
-import StringIO
-import re
-import fnmatch
-from installsystems.exception import *
+from StringIO import StringIO
+from installsystems.exception import ISError
+from os import chown, lchown
+from re import match
+from sys import platform
+from tarfile import TarFile, TarInfo, REGTYPE, ExtractError
+from time import time
 
-class Tarball(tarfile.TarFile):
+# use module prefix because we test presence of geteuid
+import os
+# use module prefix because a function is named filter
+import fnmatch
+
+class Tarball(TarFile):
     '''
     Tarball wrapper
     '''
@@ -37,19 +41,19 @@ class Tarball(tarfile.TarFile):
         '''
         if isinstance(name, unicode):
             name = name.encode("UTF-8")
-        ti = tarfile.TarInfo(name)
+        ti = TarInfo(name)
         # set tarinfo attribute
         for v in ("name", "ftype", "mode", "mtime", "uid", "gid", "uname", "gname"):
             if vars()[v] is not None:
                 vars(ti)[v] = vars()[v]
         # set mtime to current if not specified
         if mtime is None:
-            ti.mtime = int(time.time())
+            ti.mtime = int(time())
         # unicode char is encoded in UTF-8, has changelog must be in UTF-8
         if isinstance(content, unicode):
             content = content.encode("UTF-8")
         ti.size = len(content) if content is not None else 0
-        self.addfile(ti, StringIO.StringIO(content))
+        self.addfile(ti, StringIO(content))
 
     def get_str(self, name):
         '''
@@ -76,7 +80,7 @@ class Tarball(tarfile.TarFile):
         names = super(Tarball, self).getnames()
         # regexp matching
         if re_pattern is not None:
-            names = filter(lambda x: re.match(re_pattern, x), names)
+            names = filter(lambda x: match(re_pattern, x), names)
         # globbing matching
         if glob_pattern is not None:
             names = fnmatch.filter(names, glob_pattern)
@@ -110,9 +114,9 @@ class Tarball(tarfile.TarFile):
             # We have to be root to do so.
             try:
                 if tarinfo.issym() and hasattr(os, "lchown"):
-                    os.lchown(targetpath, tarinfo.uid, tarinfo.gid)
+                    lchown(targetpath, tarinfo.uid, tarinfo.gid)
                 else:
-                    if sys.platform != "os2emx":
-                        os.chown(targetpath, tarinfo.uid, tarinfo.gid)
+                    if platform != "os2emx":
+                        chown(targetpath, tarinfo.uid, tarinfo.gid)
             except EnvironmentError, e:
                 raise ExtractError("could not change owner")

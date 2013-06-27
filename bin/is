@@ -20,25 +20,24 @@
 InstallSystems Command line Tool
 '''
 
-import os
-import datetime
-import re
-import fnmatch
-import warnings
-import argparse
-import psutil
-import socket
-import sys
-import installsystems
-import installsystems.printer
-import installsystems.tools as istools
-from installsystems.exception import *
-from installsystems.printer import *
-from installsystems.repository import Repository
-from installsystems.repository import RepositoryManager
-from installsystems.repository import RepositoryConfig
-from installsystems.image import PackageImage, SourceImage
+from argparse import ArgumentParser
+from datetime import timedelta
+from installsystems import VERSION
 from installsystems.config import MainConfigFile, RepoConfigFile
+from installsystems.exception import ISError, ISException
+from installsystems.image import PackageImage, SourceImage
+from installsystems.printer import arrow, arrowlevel, setmode
+from installsystems.printer import out, warn, error, debug, confirm
+from installsystems.repository import Repository, RepositoryManager, RepositoryConfig
+from installsystems.tools import chroot, prepare_chroot, unprepare_chroot
+from installsystems.tools import isfile, smd5sum, argv
+from os import getpid, getcwdu, chdir
+from psutil import IOPRIO_CLASS_RT, IOPRIO_CLASS_BE, IOPRIO_CLASS_IDLE
+from psutil import Process, IOPRIO_CLASS_NONE
+from socket import setdefaulttimeout
+
+# used by os.path.isfile
+import os
 
 ################################################################################
 # Common functions
@@ -52,15 +51,15 @@ def load_repositories(args):
     if args.no_cache:
         args.cache = None
     # split filter and search in list
-    args.repo_filter = Repository.split_repository_list(args.repo_filter)
-    args.repo_search = Repository.split_repository_list(args.repo_search)
+    args.repo_filter = Repository.split_list(args.repo_filter)
+    args.repo_search = Repository.split_list(args.repo_search)
     # init repo cache object
     repoman = RepositoryManager(args.cache, timeout=args.repo_timeout or args.timeout,
                                 filter=args.repo_filter, search=args.repo_search)
     # register repositories (order matter)
     # load repo configs from command line
     if args.repo_path != "":
-        repoconf = RepositoryConfig(istools.smd5sum(args.repo_path)[:8],
+        repoconf = RepositoryConfig(smd5sum(args.repo_path)[:8],
                                     path=args.repo_path)
         repoman.register(repoconf, temp=True, nosync=args.no_sync)
     # load repo configs from config
@@ -80,7 +79,7 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
     ans = []
     for pattern in patterns:
         # check if image is a local file
-        if local and istools.isfile(pattern) and os.path.isfile(pattern):
+        if local and isfile(pattern) and os.path.isfile(pattern):
             ans.append((pattern, None))
         else: # we need to find image in a repository
             ans += sorted(repoman.select_images([pattern]).items())
@@ -128,8 +127,8 @@ def c_build(args):
         arrow("Build %s" % path)
         # chdir inside path if --chdir
         if args.chdir:
-            cwd = os.getcwdu()
-            os.chdir(path)
+            cwd = getcwdu()
+            chdir(path)
             path = "."
         arrowlevel(1)
         # load source image
@@ -138,19 +137,19 @@ def c_build(args):
         dt = simg.build(force=args.force, force_payload=args.payload,
                         check=not args.no_check, script=not args.no_script)
         gdt += dt
-        arrow(u"Build time: %s" % datetime.timedelta(seconds=dt))
+        arrow(u"Build time: %s" % timedelta(seconds=dt))
         if args.chdir:
-            os.chdir(cwd)
+            chdir(cwd)
         arrowlevel(-1)
     if len(args.paths) > 1:
-        arrow(u"Global build time: %s" % datetime.timedelta(seconds=gdt))
+        arrow(u"Global build time: %s" % timedelta(seconds=gdt))
 
 def c_cat(args):
     '''
     Display files inside a packaged image
     '''
     repoman = load_repositories(args)
-    image, repo = next(get_images([args.pattern], repoman, min=1, max=1))
+    image = next(get_images([args.pattern], repoman, min=1, max=1))[0]
     for filename in args.file:
         image.cat(filename)
 
@@ -160,7 +159,7 @@ def c_changelog(args):
     '''
     repoman = load_repositories(args)
     images = list(get_images(args.pattern, repoman, min=1))
-    for image, repo in images:
+    for image in images:
         if len(images) > 1:
             out("--- #yellow#image: %s v%s#reset#" % (image.name, image.version))
         if args.all_version:
@@ -183,7 +182,7 @@ def c_chroot(args):
     '''
     Helper to go cleanly inside a chroot
     '''
-    istools.chroot(args.path, shell=args.shell, mount=not args.no_mount)
+    chroot(args.path, shell=args.shell, mount=not args.no_mount)
 
 def c_clean(args):
     '''
@@ -334,7 +333,7 @@ def c_install(args):
     arrow(u"Installing %s v%s" % (image.name, image.version))
     # let's go
     dt = image.run(args.parser, subparser, run_setup=not args.dry_run)
-    arrow(u"Install time: %s" % datetime.timedelta(seconds=dt))
+    arrow(u"Install time: %s" % timedelta(seconds=dt))
 
 def c_list(args):
     '''
@@ -421,7 +420,7 @@ def c_prepare_chroot(args):
     '''
     Helper to prepare a path to be chrooted
     '''
-    istools.prepare_chroot(args.path, mount=not args.no_mount)
+    prepare_chroot(args.path, mount=not args.no_mount)
 
 def c_repo(args):
     '''
@@ -451,7 +450,7 @@ def c_unprepare_chroot(args):
     '''
     Helper to remove chroot preparation of a path
     '''
-    istools.unprepare_chroot(args.path, mount=not args.no_umount)
+    unprepare_chroot(args.path, mount=not args.no_umount)
 
 def c_upgrade(args):
     '''
@@ -464,16 +463,16 @@ def c_version(args):
     '''
     Display installsystems version
     '''
-    out(installsystems.version)
+    out(VERSION)
 
 def arg_parser_init():
     '''
     Create command parser
     '''
     # top level argument parsing
-    parser = argparse.ArgumentParser()
+    parser = ArgumentParser()
     parser.add_argument("-V", "--version", action="version",
-                        version=installsystems.version)
+                        version=VERSION)
     # exclusive group on verbosity
     g = parser.add_mutually_exclusive_group()
     g.add_argument("-v", "--verbosity", default=1,
@@ -761,29 +760,26 @@ def main():
     Program main
     '''
     try:
+        # by default full debug
+        setmode(2)
         # init arg parser
         arg_parser = arg_parser_init()
         # encode command line arguments to utf-8
-        args = istools.argv()[1:]
+        args = argv()[1:]
         # first partial parsing, to get early debug and config path
         options = arg_parser.parse_known_args(args=args)[0]
         # set early command line verbosity and color
-        installsystems.verbosity = options.verbosity
-        installsystems.printer.NOCOLOR = options.no_color
+        setmode(options.verbosity, options.no_color)
         # load main config file options
         config_parser = MainConfigFile(options.config, "installsystems")
         options = config_parser.parse()
         # second partial parsing, command line option overwrite config file
         options = arg_parser.parse_known_args(args=args, namespace=options)[0]
         # set verbosity and color
-        installsystems.verbosity = options.verbosity
-        installsystems.printer.NOCOLOR = options.no_color
-        # no warning if we are not in debug mode
-        if installsystems.verbosity < 2:
-            warnings.filterwarnings("ignore")
+        setmode(options.verbosity, options.no_color)
         # nice and ionice process
         if options.nice is not None or options.ionice_class is not None:
-            proc = psutil.Process(os.getpid())
+            proc = Process(getpid())
             if options.nice is not None:
                 try:
                     proc.nice = options.nice
@@ -793,10 +789,10 @@ def main():
             if options.ionice_class is not None:
                 try:
                     ioclassmap = {
-                        "none": psutil.IOPRIO_CLASS_NONE,
-                        "rt": psutil.IOPRIO_CLASS_RT,
-                        "be": psutil.IOPRIO_CLASS_BE,
-                        "idle": psutil.IOPRIO_CLASS_IDLE}
+                        "none": IOPRIO_CLASS_NONE,
+                        "rt": IOPRIO_CLASS_RT,
+                        "be": IOPRIO_CLASS_BE,
+                        "idle": IOPRIO_CLASS_IDLE}
                     proc.set_ionice(ioclassmap[options.ionice_class], options.ionice_level)
                     debug(u"Setting ionice to class %s, level %s" %
                           (options.ionice_class, options.ionice_level))
@@ -804,7 +800,7 @@ def main():
                     warn(u"Unable to ionice process to %s" % options.ionice_class)
         # set timeout option
         if options.timeout is not None:
-            socket.setdefaulttimeout(options.timeout)
+            setdefaulttimeout(options.timeout)
             debug("Global timeout setted to %ds" % options.timeout)
         # except for install command we parse all args!
         # install command is responsible of parsing
@@ -813,15 +809,15 @@ def main():
         # let's go
         options.func(options)
         exit(0)
-    except UnicodeDecodeError as e:
+    except UnicodeDecodeError:
         error("Unable to decode some characters. Check your locale settings.")
     except KeyboardInterrupt:
         warn("Keyboard Interrupted")
         exit(1)
-    except ISError as e:
-        error(exception=e)
-    except Exception as e:
-        error(u"Unexpected error, please report it with debug enabled", exception=e)
+    except ISException as err:
+        error(exception=err)
+    except Exception as err:
+        error(u"Unexpected error, please report it with debug enabled", exception=err)
 
 
 # Entry point

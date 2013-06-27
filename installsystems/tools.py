@@ -20,27 +20,27 @@
 InstallSystems Generic Tools Library
 '''
 
-import hashlib
-import jinja2
-import locale
-import math
-import os
-import re
-import shutil
-import socket
-import time
-import urllib2
-
-from subprocess import call, check_call, CalledProcessError
+from hashlib import md5
+from installsystems import VERSION, CANONICAL_NAME
+from installsystems.exception import ISError
+from installsystems.printer import VERBOSITY, warn, debug, arrow
 from itertools import takewhile
-
-import installsystems
-from progressbar import Widget, ProgressBar, Percentage
-from progressbar import FileTransferSpeed
+from jinja2 import Template
+from locale import getpreferredencoding
+from math import log
+from os import environ, pathsep, walk, rename, symlink, unlink
+from os import stat, lstat, fstat, makedirs, chown, chmod, utime
+from os.path import exists, join, isdir, ismount, splitext
 from progressbar import Bar, BouncingBar, ETA, UnknownLength
-from installsystems.tarball import Tarball
-from installsystems.exception import *
-from installsystems.printer import *
+from progressbar import FileTransferSpeed
+from progressbar import Widget, ProgressBar, Percentage
+from re import match, compile
+from shutil import copy
+from socket import getdefaulttimeout
+from stat import S_ISDIR, S_ISREG
+from subprocess import call, check_call, CalledProcessError
+from time import mktime, gmtime, strftime, strptime
+from urllib2 import urlopen, Request
 
 
 ################################################################################
@@ -73,7 +73,7 @@ class PipeFile(object):
             if pbar.currval < 2e-6: # =~ 0
                 scaled = power = 0
             else:
-                power = int(math.log(pbar.currval, 1000))
+                power = int(log(pbar.currval, 1000))
                 scaled = pbar.currval / 1000.**power
             return self.format % (scaled, self.prefixes[power], self.unit)
 
@@ -87,9 +87,9 @@ class PipeFile(object):
             raise AttributeError("You must have a path or a fileobj to open")
         if mode not in ("r", "w"):
             raise AttributeError("Invalid open mode. Must be r or w")
-        self.timeout = timeout or socket.getdefaulttimeout()
+        self.timeout = timeout or getdefaulttimeout()
         self.mode = mode
-        self._md5 = hashlib.md5()
+        self._md5 = md5()
         self.size = 0
         self.mtime = None
         self.consumed_size = 0
@@ -99,7 +99,7 @@ class PipeFile(object):
             # seek to 0 and compute filesize if we have and fd
             if hasattr(self.fo, "fileno"):
                 self.seek(0)
-                self.size = os.fstat(self.fo.fileno()).st_size
+                self.size = fstat(self.fo.fileno()).st_size
         # we need to open the path
         else:
             ftype = pathtype(path)
@@ -131,7 +131,7 @@ class PipeFile(object):
         Open file on the local filesystem
         '''
         self.fo = open(path, self.mode)
-        sta = os.fstat(self.fo.fileno())
+        sta = fstat(self.fo.fileno())
         self.size = sta.st_size
         self.mtime = sta.st_mtime
 
@@ -140,10 +140,9 @@ class PipeFile(object):
         Open a file accross an http server
         '''
         try:
-            headers = {"User-Agent": "%s v%s" % (installsystems.canonical_name,
-                                                 installsystems.version)}
-            request = urllib2.Request(path, None, headers)
-            self.fo = urllib2.urlopen(request, timeout=self.timeout)
+            headers = {"User-Agent": "%s v%s" % (CANONICAL_NAME, VERSION)}
+            request = Request(path, None, headers)
+            self.fo = urlopen(request, timeout=self.timeout)
         except Exception as e:
             raise ISError("Unable to open %s" % path, e)
         # get file size
@@ -153,7 +152,7 @@ class PipeFile(object):
             self.size = 0
         # get mtime
         try:
-            self.mtime = int(time.mktime(time.strptime(self.fo.headers["Last-Modified"],
+            self.mtime = int(mktime(strptime(self.fo.headers["Last-Modified"],
                                                        "%a, %d %b %Y %H:%M:%S %Z")))
         except:
             self.mtime = None
@@ -163,7 +162,7 @@ class PipeFile(object):
         Open file via ftp
         '''
         try:
-            self.fo = urllib2.urlopen(path, timeout=self.timeout)
+            self.fo = urlopen(path, timeout=self.timeout)
         except Exception as e:
             raise ISError("Unable to open %s" % path, e)
         # get file size
@@ -182,7 +181,7 @@ class PipeFile(object):
         except ImportError:
             raise ISError("URL type not supported. Paramiko is missing")
         # parse url
-        (login, passwd, host, port, path) = re.match(
+        (login, passwd, host, port, path) = match(
             "ssh://(([^:]+)(:([^@]+))?@)?([^/:]+)(:(\d+))?(/.*)?", path).group(2, 4, 5, 7, 8)
         if port is None: port = 22
         if path is None: path = "/"
@@ -278,7 +277,7 @@ class PipeFile(object):
         '''
         Set this property to true enable progress bar
         '''
-        if installsystems.verbosity == 0:
+        if VERBOSITY == 0:
             return
         if val == True and not hasattr(self, "_progressbar_started"):
             self._progressbar_started = True
@@ -314,8 +313,8 @@ def smd5sum(buf):
     Compute md5 of a string
     '''
     if isinstance(buf, unicode):
-        buf = buf.encode(locale.getpreferredencoding())
-    m = hashlib.md5()
+        buf = buf.encode(getpreferredencoding())
+    m = md5()
     m.update(buf)
     return m.hexdigest()
 
@@ -323,7 +322,7 @@ def mkdir(path, uid=None, gid=None, mode=None):
     '''
     Create a directory and set rights
     '''
-    os.makedirs(path)
+    makedirs(path)
     chrights(path, uid, gid, mode)
 
 def chrights(path, uid=None, gid=None, mode=None, mtime=None):
@@ -331,13 +330,13 @@ def chrights(path, uid=None, gid=None, mode=None, mtime=None):
     Set rights on a file
     '''
     if uid is not None:
-        os.chown(path, uid, -1)
+        chown(path, uid, -1)
     if gid is not None:
-        os.chown(path, -1, gid)
+        chown(path, -1, gid)
     if mode is not None:
-        os.chmod(path, mode)
+        chmod(path, mode)
     if mtime is not None:
-        os.utime(path, (mtime, mtime))
+        utime(path, (mtime, mtime))
 
 def pathtype(path):
     '''
@@ -356,10 +355,10 @@ def pathsearch(name, path=None):
     '''
     Search PATH for a binary
     '''
-    path = path or os.environ["PATH"]
-    for d in path.split(os.pathsep):
-        if os.path.exists(os.path.join(d, name)):
-            return os.path.join(os.path.abspath(d), name)
+    path = path or environ["PATH"]
+    for d in path.split(pathsep):
+        if exists(join(d, name)):
+            return join(abspath(d), name)
     return None
 
 def isfile(path):
@@ -372,6 +371,7 @@ def abspath(path):
     '''
     Format a path to be absolute
     '''
+    import os
     ptype = pathtype(path)
     if ptype in ("http", "ftp", "ssh"):
         return path
@@ -386,13 +386,14 @@ def getsize(path):
     '''
     Get size of a path. Recurse if directory
     '''
+    import os
     total_sz = os.path.getsize(path)
-    if os.path.isdir(path):
-        for root, dirs, files in os.walk(path):
+    if isdir(path):
+        for root, dirs, files in walk(path):
             for filename in dirs + files:
-                filepath = os.path.join(root, filename)
-                filestat = os.lstat(filepath)
-                if stat.S_ISDIR(filestat.st_mode) or stat.S_ISREG(filestat.st_mode):
+                filepath = join(root, filename)
+                filestat = lstat(filepath)
+                if S_ISDIR(filestat.st_mode) or S_ISREG(filestat.st_mode):
                     total_sz += filestat.st_size
     return total_sz
 
@@ -401,7 +402,7 @@ def human_size(num, unit='B'):
     Return human readable size
     '''
     prefixes = ('','Ki', 'Mi', 'Gi', 'Ti','Pi', 'Ei', 'Zi', 'Yi')
-    power = int(math.log(num, 1024))
+    power = int(log(num, 1024))
     # max is YiB
     if power >= len(prefixes):
         power = len(prefixes) - 1
@@ -412,15 +413,15 @@ def time_rfc2822(timestamp):
     '''
     Return a rfc2822 format time string from an unix timestamp
     '''
-    return time.strftime("%a, %d %b %Y %H:%M:%S %z", time.gmtime(timestamp))
+    return strftime("%a, %d %b %Y %H:%M:%S %z", gmtime(timestamp))
 
 def guess_distro(path):
     '''
     Try to detect which distro is inside a directory
     '''
-    if os.path.exists(os.path.join(path, "etc/debian_version")):
+    if exists(join(path, "etc", "debian_version")):
         return "debian"
-    elif os.path.exists(os.path.join(path, "etc/arch-release")):
+    elif exists(join(path, "etc", "arch-release")):
         return "archlinux"
     return None
 
@@ -435,18 +436,16 @@ def prepare_chroot(path, mount=True):
         arrow("Mounting filesystems")
         for mp in mps:
             origin =  u"/%s" % mp
-            target = os.path.join(path, mp)
-            if os.path.ismount(target):
+            target = join(path, mp)
+            if ismount(target):
                 warn(u"%s is already a mountpoint, skipped" % target)
-            elif os.path.ismount(origin) and os.path.isdir(target):
+            elif ismount(origin) and isdir(target):
                 arrow(u"%s -> %s" % (origin, target), 1)
                 try:
                     check_call(["mount",  "--bind", origin, target], close_fds=True)
                 except CalledProcessError as e:
                     warn(u"Mount failed: %s.\n" % e)
     arrow("Tricks")
-    exists = os.path.exists
-    join = os.path.join
     # check path is a kind of linux FHS
     if not exists(join(path, "etc")) or not exists(join(path, "usr")):
         return
@@ -460,10 +459,10 @@ def prepare_chroot(path, mount=True):
             and not exists(resolv_trick_path)):
             arrow("resolv.conf", 1)
             if exists(resolv_path):
-                os.rename(resolv_path, resolv_backup_path)
+                rename(resolv_path, resolv_backup_path)
             else:
                 open(resolv_trick_path, "wb")
-            shutil.copy("/etc/resolv.conf", resolv_path)
+            copy("/etc/resolv.conf", resolv_path)
     except Exception as e:
         warn(u"resolv.conf tricks fail: %s" % e)
     # trick mtab
@@ -473,9 +472,9 @@ def prepare_chroot(path, mount=True):
         mtab_trick_path = join(path, "etc", "mtab.istrick")
         if not exists(mtab_backup_path) and not exists(mtab_trick_path):
             arrow("mtab", 1)
-            if os.path.exists(mtab_path):
-                os.rename(mtab_path, mtab_backup_path)
-            os.symlink("/proc/self/mounts", mtab_path)
+            if exists(mtab_path):
+                rename(mtab_path, mtab_backup_path)
+            symlink("/proc/self/mounts", mtab_path)
     except Exception as e:
         warn(u"mtab tricks fail: %s" % e)
     # try to guest distro
@@ -498,10 +497,8 @@ def unprepare_chroot(path, mount=True):
     Rollback preparation of a chroot environment inside a directory
     '''
     arrow("Untricks")
-    exists = os.path.exists
-    join = os.path.join
     # check path is a kind of linux FHS
-    if exists(os.path.join(path, "etc")) and exists(os.path.join(path, "usr")):
+    if exists(join(path, "etc")) and exists(join(path, "usr")):
         # untrick mtab
         mtab_path = join(path, "etc", "mtab")
         mtab_backup_path = join(path, "etc", "mtab.isbackup")
@@ -510,17 +507,17 @@ def unprepare_chroot(path, mount=True):
             arrow("mtab", 1)
             # order matter !
             if exists(mtab_trick_path):
-                try: os.unlink(mtab_path)
+                try: unlink(mtab_path)
                 except OSError: pass
                 try:
-                    os.unlink(mtab_trick_path)
+                    unlink(mtab_trick_path)
                 except OSError:
                     warn(u"Unable to remove %s" % mtab_trick_path)
             if exists(mtab_backup_path):
-                try: os.unlink(mtab_path)
+                try: unlink(mtab_path)
                 except OSError: pass
                 try:
-                    os.rename(mtab_backup_path, mtab_path)
+                    rename(mtab_backup_path, mtab_path)
                 except OSError:
                     warn(u"Unable to restore %s" % mtab_backup_path)
 
@@ -532,17 +529,17 @@ def unprepare_chroot(path, mount=True):
             arrow("resolv.conf", 1)
             # order matter !
             if exists(resolv_trick_path):
-                try: os.unlink(resolv_path)
+                try: unlink(resolv_path)
                 except OSError: pass
                 try:
-                    os.unlink(resolv_trick_path)
+                    unlink(resolv_trick_path)
                 except OSError:
                     warn(u"Unable to remove %s" % resolv_trick_path)
             if exists(resolv_backup_path):
-                try: os.unlink(resolv_path)
+                try: unlink(resolv_path)
                 except OSError: pass
                 try:
-                    os.rename(resolv_backup_path, resolv_path)
+                    rename(resolv_backup_path, resolv_path)
                 except OSError:
                     warn(u"Unable to restore %s" % resolv_backup_path)
         # try to guest distro
@@ -551,7 +548,7 @@ def unprepare_chroot(path, mount=True):
         if distro == "debian":
             arrow("Debian specific", 1)
             for f in ("etc/debian_chroot", "usr/sbin/policy-rc.d"):
-                try: os.unlink(join(path, f))
+                try: unlink(join(path, f))
                 except: pass
     # unmounting
     if mount:
@@ -559,7 +556,7 @@ def unprepare_chroot(path, mount=True):
         arrow("Unmounting filesystems")
         for mp in reversed(mps):
             target = join(path, mp)
-            if os.path.ismount(target):
+            if ismount(target):
                 arrow(target, 1)
                 call(["umount", target], close_fds=True)
 
@@ -580,8 +577,8 @@ def is_version(version):
     '''
     Check if version is valid
     '''
-    if re.match("^(\d+)(?:([-~+]).*)?$", version) is None:
-        raise TypeError(u"Invalid version format %s" % buf)
+    if match("^(\d+)(?:([-~+]).*)?$", version) is None:
+        raise TypeError(u"Invalid version format %s" % version)
 
 def compare_versions(v1, v2):
     '''
@@ -594,12 +591,12 @@ def compare_versions(v1, v2):
 
     # Ensure versions have the right format
     for version in v1, v2:
-        iv = re.match("^(\d+(?:\.\d+)*)(?:([~+]).*)?$", str(version))
+        iv = match("^(\d+(?:\.\d+)*)(?:([~+]).*)?$", str(version))
         if iv is None:
             raise TypeError(u"Invalid version format: %s" % version)
 
-    digitregex = re.compile(r'^([0-9]*)(.*)$')
-    nondigitregex = re.compile(r'^([^0-9]*)(.*)$')
+    digitregex = compile(r'^([0-9]*)(.*)$')
+    nondigitregex = compile(r'^([^0-9]*)(.*)$')
 
     digits = True
     while v1 or v2:
@@ -702,36 +699,37 @@ def render_templates(target, context, tpl_ext=".istpl", force=False, keep=False)
     Render templates according to tpl_ext
     Apply template mode/uid/gid to the generated file
     '''
-    for path in os.walk(target):
+    for path in walk(target):
         for filename in path[2]:
-            name, ext = os.path.splitext(filename)
+            name, ext = splitext(filename)
             if ext == tpl_ext:
-                tpl_path = os.path.join(path[0], filename)
-                file_path = os.path.join(path[0], name)
+                tpl_path = join(path[0], filename)
+                file_path = join(path[0], name)
                 arrow(tpl_path)
-                if os.path.exists(file_path) and not force:
+                if exists(file_path) and not force:
                     raise ISError(u"%s will be overwritten, cancel template "
                                   "generation (set force=True if you know "
                                   "what you do)" % file_path)
                 try:
                     with open(tpl_path) as tpl_file:
-                        template = jinja2.Template(tpl_file.read())
+                        template = Template(tpl_file.read())
                         with open(file_path, "w") as rendered_file:
                             rendered_file.write(template.render(context))
                 except Exception as e:
                     raise ISError(u"Render template fail", e)
-                st = os.stat(tpl_path)
-                os.chown(file_path, st.st_uid, st.st_gid)
-                os.chmod(file_path, st.st_mode)
+                st = stat(tpl_path)
+                chown(file_path, st.st_uid, st.st_gid)
+                chmod(file_path, st.st_mode)
                 if not keep:
-                    os.unlink(tpl_path)
+                    unlink(tpl_path)
 
 def argv():
     '''
     Return system argv after an unicode transformation with locale preference
     '''
+    from sys import argv
     try:
-        return [unicode(x, encoding=locale.getpreferredencoding()) for x in sys.argv]
+        return [unicode(x, encoding=getpreferredencoding()) for x in argv]
     except UnicodeDecodeError as e:
         raise ISError("Invalid character encoding in command line")
 

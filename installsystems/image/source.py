@@ -313,6 +313,11 @@ class SourceImage(Image):
                     unlink(paydesc["link_path"])
                 symlink(paydesc["dest_path"], paydesc["link_path"])
             except Exception as e:
+                # cleaning file in case of error
+                if exists(paydesc["dest_path"]):
+                    unlink(paydesc["dest_path"])
+                if lexists(paydesc["link_path"]):
+                    unlink(paydesc["link_path"])
                 raise ISError(u"Unable to create payload %s" % payload_name, e)
 
     def create_payload_tarball(self, tar_path, data_path, compressor):

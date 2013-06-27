@@ -93,15 +93,6 @@ class RepositoryManager(object):
             for repo in self.repos:
                 if repo.config.name == key:
                     return repo
-            # if not found, match uuid
-            # we need at least 4 chars to avoid ambiguous uuid matching
-            if len(key) >= 4:
-                for repo in [r for r in self.repos if not r.config.offline]:
-                    if fnmatch.fnmatch(repo.uuid, "%s*" % key):
-                        return repo
-            else:
-                raise ISWarning("Ambiguous argument: we need at least 4 chars "
-                              "to match an uuid")
             raise IndexError(u"No repository named: %s" % key)
         else:
             raise TypeError(u"Invalid type %s for %s" % (type(key), key))

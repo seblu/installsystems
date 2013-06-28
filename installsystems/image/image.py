@@ -171,7 +171,7 @@ class Image(object):
         '''
         Check if @buf is a valid image name
         '''
-        if match("^[-_\w]+$", buf) is None:
+        if match("^[-_.\w]+$", buf) is None:
             raise ISError(u"Invalid image name %s" % buf)
         # return the image name, because this function is used by ConfigObj
         # validate to ensure the image name is correct

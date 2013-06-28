@@ -378,11 +378,12 @@ def pathsearch(name, path=None):
             return join(abspath(d), name)
     return None
 
-def isfile(path):
+def islocal(path, must_exists=False):
     '''
     Return True if path is of type file
+    if must_exists is True, also check is file exists
     '''
-    return pathtype(path) == "file"
+    return pathtype(path) == "file" and (not must_exists or exists(path))
 
 def abspath(path):
     '''

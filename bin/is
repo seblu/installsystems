@@ -30,14 +30,11 @@ from installsystems.printer import arrow, arrowlevel, setmode
 from installsystems.printer import out, warn, error, debug, confirm
 from installsystems.repository import Repository, RepositoryManager, RepositoryConfig
 from installsystems.tools import chroot, prepare_chroot, unprepare_chroot
-from installsystems.tools import isfile, smd5sum, argv
+from installsystems.tools import islocal, smd5sum, argv
 from os import getpid, getcwdu, chdir
 from psutil import IOPRIO_CLASS_RT, IOPRIO_CLASS_BE, IOPRIO_CLASS_IDLE
 from psutil import Process, IOPRIO_CLASS_NONE
 from socket import setdefaulttimeout
-
-# used by os.path.isfile
-import os
 
 ################################################################################
 # Common functions
@@ -79,7 +76,7 @@ def get_images(patterns, repoman, local=True, min=None, max=None):
     ans = []
     for pattern in patterns:
         # check if image is a local file
-        if local and isfile(pattern) and os.path.isfile(pattern):
+        if local and islocal(pattern, True):
             ans.append((pattern, None))
         else: # we need to find image in a repository
             ans += sorted(repoman.select_images([pattern]).items())

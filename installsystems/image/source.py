@@ -30,7 +30,7 @@ from installsystems.image.image import Image
 from installsystems.image.payload import Payload
 from installsystems.image.tarball import Tarball, REGTYPE
 from installsystems.printer import arrow, arrowlevel, warn, error
-from installsystems.tools import PipeFile, isfile, get_compressor_path, chrights
+from installsystems.tools import PipeFile, islocal, get_compressor_path, chrights
 from json import dumps
 from locale import getpreferredencoding
 from os import stat, listdir, mkdir, umask, access, unlink, symlink, R_OK, X_OK
@@ -63,7 +63,7 @@ class SourceImage(Image):
         Create an empty source image
         '''
         # check local repository
-        if not isfile(path):
+        if not islocal(path):
             raise NotImplementedError("SourceImage must be local")
         # main path
         build_path = join(path, "build")
@@ -132,7 +132,7 @@ class SourceImage(Image):
         '''
         Image.__init__(self)
         # check local repository
-        if not isfile(path):
+        if not islocal(path):
             raise NotImplementedError("SourceImage must be local")
         self.base_path = abspath(path)
         for pathtype in ("build", "parser", "setup", "payload", "lib"):

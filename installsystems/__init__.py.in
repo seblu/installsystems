@@ -26,18 +26,20 @@ def git_version():
     '''
     from os import getcwd, chdir, devnull
     from os.path import dirname
-    from subprocess import check_output, CalledProcessError
+    from subprocess import Popen, PIPE
     from sys import argv
     version = ""
     cwd = getcwd()
     try:
         chdir(dirname(argv[0]))
-        version = check_output(["git", "describe", "--tags", "--always" ],
-                               stdin=open(devnull, 'rb'),
-                               stderr=open(devnull, "wb")).strip()
+        process = Popen(["git", "describe", "--tags", "--always" ],
+                        stdout=PIPE,
+                        stdin=open(devnull, 'rb'),
+                        stderr=open(devnull, "wb"))
+        version = process.communicate()[0].strip()
         if len(version) > 0:
             version = "-" + version
-    except (OSError, CalledProcessError):
+    except OSError:
         pass
     finally:
         chdir(cwd)

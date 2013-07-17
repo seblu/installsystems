@@ -610,7 +610,7 @@ BUILD_TPL = u"""# -*- python -*-
 # rebuild list is empty by default
 #rebuild += ["rootfs"]
 
-# vim:set ts=4 sw=4 et:
+# vim:set ts=4 sw=4 ai et:
 """
 
 PARSER_TPL = u"""# -*- python -*-
@@ -621,13 +621,13 @@ PARSER_TPL = u"""# -*- python -*-
 
 # you can use exit() to break the execution of the script
 
-import os
-import argparse
+from argparse import Action
 from installsystems.printer import arrow
+from os.path import isdir
 
-class TargetAction(argparse.Action):
+class TargetAction(Action):
   def __call__(self, parser, namespace, values, option_string=None):
-    if not os.path.isdir(values):
+    if not isdir(values):
       raise Exception(u"Invalid target directory %s" % values)
     namespace.target = values
 
@@ -635,7 +635,7 @@ parser.add_argument("-n", "--hostname", dest="hostname", type=str, required=True
 parser.add_argument("target", type=str, action=TargetAction,
   help="target installation directory")
 
-# vim:set ts=4 sw=4 et:
+# vim:set ts=4 sw=4 ai et:
 """
 
 SETUP_TPL = u"""# -*- python -*-
@@ -653,7 +653,7 @@ arrow(u"hostname: %s" % namespace.hostname)
 # uncomment to extract payload named root in namespace.target directory
 #image.payload["rootfs"].extract(namespace.target)
 
-# vim:set ts=4 sw=4 et:
+# vim:set ts=4 sw=4 ai et:
 """
 
 # This must not be an unicode string, because configobj don't decode configspec
